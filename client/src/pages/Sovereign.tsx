@@ -17,6 +17,7 @@ import {
   Shield,
   X,
 } from "lucide-react";
+import { getFlagUrl } from "@/lib/countryFlags";
 import {
   ScatterChart,
   Scatter,
@@ -119,18 +120,18 @@ function RatingBadge({ rating }: { rating: string | null }) {
 
 function ScoreBar({ score }: { score: number | null }) {
   if (score == null) return <span className="text-muted-foreground">—</span>;
-  const max = 20;
+  const max = 15;
   const pct = Math.min((score / max) * 100, 100);
   let color = "bg-red-500";
-  if (score >= 15) color = "bg-emerald-500";
-  else if (score >= 10) color = "bg-blue-500";
-  else if (score >= 7) color = "bg-yellow-500";
+  if (score >= 12) color = "bg-emerald-500";
+  else if (score >= 9) color = "bg-blue-500";
+  else if (score >= 6) color = "bg-yellow-500";
   return (
     <div className="flex items-center gap-2">
       <div className="w-12 h-1.5 rounded-full bg-muted overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs font-medium">{score}</span>
+      <span className="text-xs font-medium">{score}/15</span>
     </div>
   );
 }
@@ -609,8 +610,20 @@ export default function Sovereign() {
                     onClick={() => setLocation(`/fixed-income/sovereign/${bond.slug}`)}
                   >
                     <td className="px-3 py-2.5">
-                      <div className="font-medium text-foreground">{bond.name}</div>
-                      <div className="text-[10px] text-muted-foreground truncate max-w-[180px]">{bond.ticker}</div>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const flagSrc = getFlagUrl(bond.country, "20x15");
+                          return flagSrc ? (
+                            <img src={flagSrc} alt={bond.country || ""} className="h-4 w-5 rounded-sm object-cover flex-shrink-0" />
+                          ) : (
+                            <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          );
+                        })()}
+                        <div>
+                          <div className="font-medium text-foreground">{bond.name}</div>
+                          <div className="text-[10px] text-muted-foreground truncate max-w-[180px]">{bond.ticker}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-3 py-2.5"><RatingBadge rating={bond.compositeRating} /></td>
                     <td className="px-3 py-2.5 font-medium">{bond.coupon != null ? `${bond.coupon}%` : "—"}</td>

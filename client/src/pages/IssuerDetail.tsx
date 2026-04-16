@@ -293,7 +293,7 @@ export default function IssuerDetail() {
                 <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg border border-border bg-secondary/50">
                   <Shield className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium text-foreground">
-                    Score: {issuer.score}/20
+                    Score: {issuer.score}/15
                   </span>
                 </div>
               )}

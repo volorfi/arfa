@@ -58,3 +58,7 @@
 - [x] Support data refresh by uploading new Sovereign.xlsx (via scripts/import-sovereign.mjs)
 - [x] Support data refresh for Corporate bonds (via scripts/import-corporate.mjs)
 - [x] Write vitest tests for sovereign bond routes
+
+- [x] Fix max Score display to 15/15 across all pages (Sovereign, SovereignBondDetail, InvestmentGrade, IssuerDetail)
+- [x] Add country flags (flagcdn.com) instead of orange globe icon on Sovereign table and bond detail pages
+- [x] Move Sovereign above Corporate in sidebar Fixed Income menu

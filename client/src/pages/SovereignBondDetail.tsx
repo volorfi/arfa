@@ -19,6 +19,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
+import { getFlagUrl } from "@/lib/countryFlags";
 import {
   RadarChart,
   PolarGrid,
@@ -198,9 +199,20 @@ export default function SovereignBondDetail() {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                <Globe className="h-6 w-6 text-white" />
-              </div>
+              {(() => {
+                const flagUrl = getFlagUrl(bond.country, "48x36");
+                return flagUrl ? (
+                  <img
+                    src={flagUrl}
+                    alt={bond.country || ""}
+                    className="h-12 w-16 rounded-lg object-cover shadow-md border border-border/50"
+                  />
+                ) : (
+                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                    <Globe className="h-6 w-6 text-white" />
+                  </div>
+                );
+              })()}
               <div>
                 <h1 className="text-xl font-bold">{bond.name}</h1>
                 <p className="text-sm text-muted-foreground">{bond.ticker}</p>
@@ -303,7 +315,7 @@ export default function SovereignBondDetail() {
               { label: "Amount Issued", value: bond.amtIssued != null ? `${bond.amtIssued.toLocaleString()} mln` : null },
               { label: "Amount Outstanding", value: bond.amtOutstanding != null ? `${bond.amtOutstanding.toLocaleString()} mln` : null },
               { label: "Min Piece", value: bond.minPiece != null ? bond.minPiece.toLocaleString() : null },
-              { label: "Score", value: bond.score != null ? `${bond.score} / 20` : null },
+              { label: "Score", value: bond.score != null ? `${bond.score} / 15` : null },
             ].map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between py-2.5 border-b border-border/30 last:border-0">
                 <span className="text-xs text-muted-foreground">{label}</span>

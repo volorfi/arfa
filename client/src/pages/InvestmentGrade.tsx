@@ -677,7 +677,7 @@ export default function InvestmentGrade() {
                               <div
                                 className="h-full rounded-full"
                                 style={{
-                                  width: `${Math.min(100, (bond.score / 20) * 100)}%`,
+                                  width: `${Math.min(100, (bond.score / 15) * 100)}%`,
                                   backgroundColor:
                                     bond.score >= 12
                                       ? "#10b981"
@@ -690,7 +690,7 @@ export default function InvestmentGrade() {
                               />
                             </div>
                             <span className="text-xs font-medium text-foreground tabular-nums">
-                              {bond.score}
+                              {bond.score}/15
                             </span>
                           </div>
                         ) : (

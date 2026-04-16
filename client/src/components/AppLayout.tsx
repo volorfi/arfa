@@ -106,8 +106,8 @@ const menuItems: MenuItem[] = [
     label: "Fixed Income",
     path: "/fixed-income",
     children: [
-      { label: "Corporate", path: "/fixed-income/investment-grade", icon: Shield },
       { label: "Sovereign", path: "/fixed-income/sovereign", icon: Flag },
+      { label: "Corporate", path: "/fixed-income/investment-grade", icon: Shield },
     ],
   },
   {
