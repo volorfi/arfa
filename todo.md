@@ -66,3 +66,16 @@
 - [x] Add light/dark theme toggle (light theme by default)
 - [x] Rename site from "Stock Analysis" to "ARFA Global Markets"
 - [x] Add EURUSD, Gold, WTI, Brent, UST10 YTM to the top ticker bar with mini-chart and last price
+
+- [x] Reorder sidebar menu: Home, Watchlist, News, Stocks, ETFs, Fixed Income, then rest
+- [x] Create news database table (title, summary, source, url, publishedAt, tickers, category)
+- [x] Build news scraping service to parse from multiple RSS/API sources
+- [x] Schedule news scraping 3x daily (morning, afternoon, evening)
+- [x] News page: add filters (source, ticker, date, category/keyword search)
+- [x] News page: clickable headlines linking to original article
+- [x] News page: show 1-2 sentence summary from source
+- [x] News sources: Google News RSS (Business, Markets, Economy, Earnings, Fixed Income, Commodities, IPO, Crypto)
+- [x] Add News tab to stock detail page (/stocks/:symbol)
+- [x] Stock News tab: filter by keyword, date range, source
+- [x] Stock News tab: show all news mentioning the specific ticker
+- [x] Write vitest tests for news routes (17 tests, all passing)

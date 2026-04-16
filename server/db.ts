@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, desc, like, gte, lte, sql, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, watchlist } from "../drizzle/schema";
+import { InsertUser, users, watchlist, newsArticles, InsertNewsArticle } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -113,4 +113,78 @@ export async function isInWatchlist(userId: number, symbol: string): Promise<boo
   if (!db) return false;
   const result = await db.select().from(watchlist).where(and(eq(watchlist.userId, userId), eq(watchlist.symbol, symbol.toUpperCase()))).limit(1);
   return result.length > 0;
+}
+
+// News helpers
+export async function insertNewsArticles(articles: InsertNewsArticle[]): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  let inserted = 0;
+  for (const article of articles) {
+    try {
+      await db.insert(newsArticles).values(article).onDuplicateKeyUpdate({ set: { title: article.title } });
+      inserted++;
+    } catch (e) {
+      // skip duplicates
+    }
+  }
+  return inserted;
+}
+
+export async function getNewsArticles(opts: {
+  source?: string;
+  ticker?: string;
+  category?: string;
+  search?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  limit?: number;
+  offset?: number;
+}) {
+  const db = await getDb();
+  if (!db) return { articles: [], total: 0 };
+
+  const conditions = [];
+  if (opts.source) conditions.push(eq(newsArticles.source, opts.source));
+  if (opts.ticker) {
+    const t = opts.ticker.toUpperCase();
+    // Match exact ticker in comma-separated list: start, middle, or end
+    conditions.push(
+      or(
+        eq(newsArticles.tickers, t),
+        like(newsArticles.tickers, `${t},%`),
+        like(newsArticles.tickers, `%,${t},%`),
+        like(newsArticles.tickers, `%,${t}`)
+      )
+    );
+  }
+  if (opts.category) conditions.push(eq(newsArticles.category, opts.category));
+  if (opts.search) conditions.push(or(like(newsArticles.title, `%${opts.search}%`), like(newsArticles.summary, `%${opts.search}%`)));
+  if (opts.dateFrom) conditions.push(gte(newsArticles.publishedAt, opts.dateFrom));
+  if (opts.dateTo) conditions.push(lte(newsArticles.publishedAt, opts.dateTo));
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const limit = opts.limit || 50;
+  const offset = opts.offset || 0;
+
+  const [articles, countResult] = await Promise.all([
+    db.select().from(newsArticles).where(where).orderBy(desc(newsArticles.publishedAt)).limit(limit).offset(offset),
+    db.select({ count: sql<number>`count(*)` }).from(newsArticles).where(where),
+  ]);
+
+  return { articles, total: (countResult[0]?.count ?? 0) as number };
+}
+
+export async function getNewsSources(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const result = await db.selectDistinct({ source: newsArticles.source }).from(newsArticles).orderBy(newsArticles.source);
+  return result.map(r => r.source);
+}
+
+export async function getNewsCategories(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const result = await db.selectDistinct({ category: newsArticles.category }).from(newsArticles).orderBy(newsArticles.category);
+  return result.filter(r => r.category).map(r => r.category as string);
 }

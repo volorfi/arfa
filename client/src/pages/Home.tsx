@@ -200,8 +200,26 @@ function LosersTable() {
   );
 }
 
+function formatTimeAgo(dateStr: string | Date): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 function NewsSection() {
-  const { data: news, isLoading } = trpc.market.news.useQuery();
+  const { data: dbNews, isLoading: dbLoading } = trpc.news.list.useQuery({ pageSize: 15 });
+  const { data: fallbackNews, isLoading: fallbackLoading } = trpc.market.news.useQuery();
+
+  // Use DB news if available, otherwise fall back to static news
+  const hasDbNews = dbNews && dbNews.articles.length > 0;
+  const isLoading = dbLoading && fallbackLoading;
 
   return (
     <div className="bg-card border border-border rounded-lg overflow-hidden">
@@ -220,8 +238,45 @@ function NewsSection() {
               <div className="h-3 w-24 bg-muted rounded animate-pulse" />
             </div>
           ))
+        ) : hasDbNews ? (
+          dbNews.articles.map((article) => (
+            <a
+              key={article.id}
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block px-4 py-2.5 hover:bg-accent/30 transition-colors group"
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-[11px] text-muted-foreground shrink-0 w-12 pt-0.5">{formatTimeAgo(article.publishedAt)}</span>
+                <div className="min-w-0">
+                  <p className="text-sm text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">{article.title}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[11px] text-muted-foreground">{article.source}</span>
+                    {article.tickers && (
+                      <div className="flex gap-1">
+                        {article.tickers.split(",").slice(0, 3).map((s) => (
+                          <span
+                            key={s}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              window.location.href = `/stocks/${s}`;
+                            }}
+                            className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded font-medium hover:bg-primary/20 cursor-pointer"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))
         ) : (
-          news?.slice(0, 15).map((item, i) => (
+          fallbackNews?.slice(0, 15).map((item, i) => (
             <div key={i} className="px-4 py-2.5 hover:bg-accent/30 transition-colors">
               <div className="flex items-start gap-3">
                 <span className="text-[11px] text-muted-foreground shrink-0 w-10 pt-0.5">{item.timestamp}</span>

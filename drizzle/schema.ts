@@ -25,3 +25,19 @@ export const watchlist = mysqlTable("watchlist", {
 
 export type Watchlist = typeof watchlist.$inferSelect;
 export type InsertWatchlist = typeof watchlist.$inferInsert;
+
+export const newsArticles = mysqlTable("news_articles", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 512 }).notNull(),
+  summary: text("summary"),
+  url: varchar("url", { length: 1024 }).notNull(),
+  source: varchar("source", { length: 128 }).notNull(),
+  category: varchar("category", { length: 128 }),
+  tickers: varchar("tickers", { length: 512 }),
+  publishedAt: timestamp("publishedAt").notNull(),
+  fetchedAt: timestamp("fetchedAt").defaultNow().notNull(),
+  urlHash: varchar("urlHash", { length: 64 }).notNull().unique(),
+});
+
+export type NewsArticle = typeof newsArticles.$inferSelect;
+export type InsertNewsArticle = typeof newsArticles.$inferInsert;

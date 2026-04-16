@@ -70,6 +70,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Star, label: "Watchlist", path: "/watchlist" },
+  { icon: Newspaper, label: "News", path: "/news" },
   {
     icon: BarChart3,
     label: "Stocks",
@@ -77,6 +78,20 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "Stock Screener", path: "/screener", icon: Filter },
       { label: "All Stocks", path: "/stocks", icon: ListOrdered },
+    ],
+  },
+  {
+    icon: Layers,
+    label: "ETFs",
+    path: "/etfs",
+  },
+  {
+    icon: Landmark,
+    label: "Fixed Income",
+    path: "/fixed-income",
+    children: [
+      { label: "Sovereign", path: "/fixed-income/sovereign", icon: Flag },
+      { label: "Corporate", path: "/fixed-income/corporate", icon: Shield },
     ],
   },
   {
@@ -88,12 +103,6 @@ const menuItems: MenuItem[] = [
       { label: "Upcoming IPOs", path: "/ipos?tab=upcoming", icon: CalendarPlus },
     ],
   },
-  {
-    icon: Layers,
-    label: "ETFs",
-    path: "/etfs",
-  },
-  { icon: Newspaper, label: "News", path: "/news" },
   { icon: TrendingUp, label: "Trending", path: "/trending" },
   {
     icon: ArrowUpDown,
@@ -102,15 +111,6 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "Top Gainers", path: "/movers?tab=gainers", icon: ArrowUp },
       { label: "Top Losers", path: "/movers?tab=losers", icon: ArrowDown },
-    ],
-  },
-  {
-    icon: Landmark,
-    label: "Fixed Income",
-    path: "/fixed-income",
-    children: [
-      { label: "Sovereign", path: "/fixed-income/sovereign", icon: Flag },
-      { label: "Corporate", path: "/fixed-income/corporate", icon: Shield },
     ],
   },
   {

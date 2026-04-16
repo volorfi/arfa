@@ -23,6 +23,12 @@ import {
   getSovereignFilters,
   getSovereignSummary,
 } from "./sovereignService";
+import {
+  queryNews,
+  queryNewsSources,
+  queryNewsCategories,
+  scrapeAllNews,
+} from "./newsService";
 
 export const appRouter = router({
   system: systemRouter,
@@ -150,6 +156,36 @@ export const appRouter = router({
 
     summary: publicProcedure.query(async () => {
       return getSovereignSummary();
+    }),
+  }),
+
+  news: router({
+    list: publicProcedure
+      .input(z.object({
+        source: z.string().optional(),
+        ticker: z.string().optional(),
+        category: z.string().optional(),
+        search: z.string().optional(),
+        dateFrom: z.string().optional(),
+        dateTo: z.string().optional(),
+        page: z.number().optional(),
+        pageSize: z.number().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        return queryNews(input || {});
+      }),
+
+    sources: publicProcedure.query(async () => {
+      return queryNewsSources();
+    }),
+
+    categories: publicProcedure.query(async () => {
+      return queryNewsCategories();
+    }),
+
+    scrape: protectedProcedure.mutation(async () => {
+      const count = await scrapeAllNews();
+      return { success: true, articlesProcessed: count };
     }),
   }),
 
