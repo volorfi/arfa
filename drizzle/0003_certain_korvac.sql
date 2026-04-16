@@ -1,0 +1,1 @@
+ALTER TABLE `news_articles` ADD `sentiment` enum('bullish','bearish','neutral');

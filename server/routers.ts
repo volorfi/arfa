@@ -29,6 +29,7 @@ import {
   queryNewsCategories,
   scrapeAllNews,
 } from "./newsService";
+import { analyzeUnprocessedArticles, getSentimentStats } from "./sentimentService";
 
 export const appRouter = router({
   system: systemRouter,
@@ -166,6 +167,7 @@ export const appRouter = router({
         ticker: z.string().optional(),
         category: z.string().optional(),
         search: z.string().optional(),
+        sentiment: z.enum(["bullish", "bearish", "neutral"]).optional(),
         dateFrom: z.string().optional(),
         dateTo: z.string().optional(),
         page: z.number().optional(),
@@ -185,8 +187,21 @@ export const appRouter = router({
 
     scrape: protectedProcedure.mutation(async () => {
       const count = await scrapeAllNews();
-      return { success: true, articlesProcessed: count };
+      // Run sentiment analysis on newly scraped articles
+      const analyzed = await analyzeUnprocessedArticles();
+      return { success: true, articlesProcessed: count, sentimentAnalyzed: analyzed };
     }),
+
+    analyzeSentiment: protectedProcedure.mutation(async () => {
+      const count = await analyzeUnprocessedArticles();
+      return { success: true, articlesAnalyzed: count };
+    }),
+
+    sentimentStats: publicProcedure
+      .input(z.object({ ticker: z.string().optional() }).optional())
+      .query(async ({ input }) => {
+        return getSentimentStats(input?.ticker);
+      }),
   }),
 
   watchlist: router({

@@ -136,6 +136,7 @@ export async function getNewsArticles(opts: {
   ticker?: string;
   category?: string;
   search?: string;
+  sentiment?: string;
   dateFrom?: Date;
   dateTo?: Date;
   limit?: number;
@@ -160,6 +161,9 @@ export async function getNewsArticles(opts: {
   }
   if (opts.category) conditions.push(eq(newsArticles.category, opts.category));
   if (opts.search) conditions.push(or(like(newsArticles.title, `%${opts.search}%`), like(newsArticles.summary, `%${opts.search}%`)));
+  if (opts.sentiment && ["bullish", "bearish", "neutral"].includes(opts.sentiment)) {
+    conditions.push(sql`${newsArticles.sentiment} = ${opts.sentiment}`);
+  }
   if (opts.dateFrom) conditions.push(gte(newsArticles.publishedAt, opts.dateFrom));
   if (opts.dateTo) conditions.push(lte(newsArticles.publishedAt, opts.dateTo));
 

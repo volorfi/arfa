@@ -8,10 +8,12 @@ import {
   ArrowUpDown,
   Layers,
   TrendingUp,
+  TrendingDown,
   ArrowUp,
   ArrowDown,
   Newspaper,
   Calendar,
+  Minus,
 } from "lucide-react";
 
 export default function Home() {
@@ -251,9 +253,24 @@ function NewsSection() {
                 <span className="text-[11px] text-muted-foreground shrink-0 w-12 pt-0.5">{formatTimeAgo(article.publishedAt)}</span>
                 <div className="min-w-0">
                   <p className="text-sm text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">{article.title}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[11px] text-muted-foreground">{article.source}</span>
-                    {article.tickers && (
+                   <div className="flex items-center gap-2 mt-1">
+                     {article.sentiment === "bullish" && (
+                       <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1 py-0.5 rounded border bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                         <TrendingUp className="h-2.5 w-2.5" />Bullish
+                       </span>
+                     )}
+                     {article.sentiment === "bearish" && (
+                       <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1 py-0.5 rounded border bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20">
+                         <TrendingDown className="h-2.5 w-2.5" />Bearish
+                       </span>
+                     )}
+                     {article.sentiment === "neutral" && (
+                       <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1 py-0.5 rounded border bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/20">
+                         <Minus className="h-2.5 w-2.5" />Neutral
+                       </span>
+                     )}
+                     <span className="text-[11px] text-muted-foreground">{article.source}</span>
+                     {article.tickers && (
                       <div className="flex gap-1">
                         {article.tickers.split(",").slice(0, 3).map((s) => (
                           <span

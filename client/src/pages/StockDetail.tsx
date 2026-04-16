@@ -22,6 +22,7 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  Minus,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -626,10 +627,45 @@ function ProfileTab({ quote, insights, symbol }: any) {
 
 const NEWS_PAGE_SIZE = 20;
 
+type SentimentType = "bullish" | "bearish" | "neutral" | null;
+
+const SENTIMENT_CONFIG = {
+  bullish: {
+    label: "Bullish",
+    icon: TrendingUp,
+    className: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  },
+  bearish: {
+    label: "Bearish",
+    icon: TrendingDown,
+    className: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20",
+  },
+  neutral: {
+    label: "Neutral",
+    icon: Minus,
+    className: "bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/20",
+  },
+} as const;
+
+function SentimentBadge({ sentiment }: { sentiment: SentimentType }) {
+  if (!sentiment || !SENTIMENT_CONFIG[sentiment]) return null;
+  const config = SENTIMENT_CONFIG[sentiment];
+  const Icon = config.icon;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border ${config.className}`}
+    >
+      <Icon className="h-2.5 w-2.5" />
+      {config.label}
+    </span>
+  );
+}
+
 function StockNewsTab({ symbol }: { symbol: string }) {
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [source, setSource] = useState("");
+  const [sentiment, setSentiment] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
@@ -639,16 +675,18 @@ function StockNewsTab({ symbol }: { symbol: string }) {
       ticker: symbol,
       search: search || undefined,
       source: source || undefined,
+      sentiment: (sentiment || undefined) as "bullish" | "bearish" | "neutral" | undefined,
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
       page,
       pageSize: NEWS_PAGE_SIZE,
     }),
-    [symbol, search, source, dateFrom, dateTo, page]
+    [symbol, search, source, sentiment, dateFrom, dateTo, page]
   );
 
   const { data, isLoading } = trpc.news.list.useQuery(queryInput);
   const { data: sources } = trpc.news.sources.useQuery();
+  const { data: sentimentStats } = trpc.news.sentimentStats.useQuery({ ticker: symbol });
 
   const articles = data?.articles || [];
   const total = data?.total || 0;
@@ -669,6 +707,59 @@ function StockNewsTab({ symbol }: { symbol: string }) {
 
   return (
     <div>
+      {/* Sentiment Summary */}
+      {sentimentStats && sentimentStats.total > 0 && (
+        <div className="flex items-center gap-2.5 mb-4 p-3 bg-card border border-border rounded-lg">
+          <span className="text-xs font-medium text-muted-foreground">Sentiment:</span>
+          <button
+            onClick={() => { setSentiment(sentiment === "bullish" ? "" : "bullish"); setPage(1); }}
+            className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+              sentiment === "bullish"
+                ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30"
+                : "bg-emerald-500/8 text-emerald-600/70 dark:text-emerald-400/70 hover:bg-emerald-500/15"
+            }`}
+          >
+            <TrendingUp className="h-3 w-3" />
+            <span className="font-semibold">{sentimentStats.bullish}</span>
+          </button>
+          <button
+            onClick={() => { setSentiment(sentiment === "bearish" ? "" : "bearish"); setPage(1); }}
+            className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+              sentiment === "bearish"
+                ? "bg-red-500/20 text-red-600 dark:text-red-400 ring-1 ring-red-500/30"
+                : "bg-red-500/8 text-red-600/70 dark:text-red-400/70 hover:bg-red-500/15"
+            }`}
+          >
+            <TrendingDown className="h-3 w-3" />
+            <span className="font-semibold">{sentimentStats.bearish}</span>
+          </button>
+          <button
+            onClick={() => { setSentiment(sentiment === "neutral" ? "" : "neutral"); setPage(1); }}
+            className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+              sentiment === "neutral"
+                ? "bg-slate-500/20 text-slate-600 dark:text-slate-400 ring-1 ring-slate-500/30"
+                : "bg-slate-500/8 text-slate-600/70 dark:text-slate-400/70 hover:bg-slate-500/15"
+            }`}
+          >
+            <Minus className="h-3 w-3" />
+            <span className="font-semibold">{sentimentStats.neutral}</span>
+          </button>
+          <div className="flex-1">
+            <div className="flex h-1.5 rounded-full overflow-hidden bg-muted">
+              {sentimentStats.bullish > 0 && (
+                <div className="bg-emerald-500" style={{ width: `${(sentimentStats.bullish / sentimentStats.total) * 100}%` }} />
+              )}
+              {sentimentStats.neutral > 0 && (
+                <div className="bg-slate-400" style={{ width: `${(sentimentStats.neutral / sentimentStats.total) * 100}%` }} />
+              )}
+              {sentimentStats.bearish > 0 && (
+                <div className="bg-red-500" style={{ width: `${(sentimentStats.bearish / sentimentStats.total) * 100}%` }} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="bg-card border border-border rounded-lg p-4 mb-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -806,7 +897,8 @@ function StockNewsTab({ symbol }: { symbol: string }) {
                     {article.summary}
                   </p>
                 )}
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <SentimentBadge sentiment={article.sentiment as SentimentType} />
                   <span className="text-[11px] font-medium text-primary/80 bg-primary/8 px-1.5 py-0.5 rounded">
                     {article.source}
                   </span>

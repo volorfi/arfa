@@ -79,3 +79,13 @@
 - [x] Stock News tab: filter by keyword, date range, source
 - [x] Stock News tab: show all news mentioning the specific ticker
 - [x] Write vitest tests for news routes (17 tests, all passing)
+
+- [x] Add sentiment column to newsArticles DB schema (bullish/bearish/neutral)
+- [x] Build sentiment analysis service using built-in LLM (batch processing)
+- [x] Integrate sentiment analysis into news scraping pipeline
+- [x] Add sentiment filter to news.list tRPC route
+- [x] Display sentiment badges on News page (bullish=green, bearish=red, neutral=gray)
+- [x] Display sentiment badges on Stock News tab in StockDetail
+- [x] Add sentiment filter dropdown to News page and Stock News tab
+- [x] Run sentiment analysis on existing articles (backfill complete: 315 bullish, 138 bearish, 490 neutral)
+- [x] Write vitest tests for sentiment analysis routes (27 news tests, 64 total)

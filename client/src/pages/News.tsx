@@ -11,6 +11,9 @@ import {
   Filter,
   Clock,
   Tag,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
 import MarketTickerBar from "@/components/MarketTickerBar";
 import { Button } from "@/components/ui/button";
@@ -25,9 +28,44 @@ import {
 
 const PAGE_SIZE = 30;
 
+type SentimentType = "bullish" | "bearish" | "neutral" | null;
+
+const SENTIMENT_CONFIG = {
+  bullish: {
+    label: "Bullish",
+    icon: TrendingUp,
+    className: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  },
+  bearish: {
+    label: "Bearish",
+    icon: TrendingDown,
+    className: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20",
+  },
+  neutral: {
+    label: "Neutral",
+    icon: Minus,
+    className: "bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/20",
+  },
+} as const;
+
+function SentimentBadge({ sentiment }: { sentiment: SentimentType }) {
+  if (!sentiment || !SENTIMENT_CONFIG[sentiment]) return null;
+  const config = SENTIMENT_CONFIG[sentiment];
+  const Icon = config.icon;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border ${config.className}`}
+    >
+      <Icon className="h-2.5 w-2.5" />
+      {config.label}
+    </span>
+  );
+}
+
 export default function News() {
   const [source, setSource] = useState<string>("");
   const [category, setCategory] = useState<string>("");
+  const [sentiment, setSentiment] = useState<string>("");
   const [ticker, setTicker] = useState<string>("");
   const [search, setSearch] = useState<string>("");
   const [searchInput, setSearchInput] = useState<string>("");
@@ -39,6 +77,7 @@ export default function News() {
     () => ({
       source: source || undefined,
       category: category || undefined,
+      sentiment: (sentiment || undefined) as "bullish" | "bearish" | "neutral" | undefined,
       ticker: ticker || undefined,
       search: search || undefined,
       dateFrom: dateFrom || undefined,
@@ -46,12 +85,13 @@ export default function News() {
       page,
       pageSize: PAGE_SIZE,
     }),
-    [source, category, ticker, search, dateFrom, dateTo, page]
+    [source, category, sentiment, ticker, search, dateFrom, dateTo, page]
   );
 
   const { data, isLoading } = trpc.news.list.useQuery(queryInput);
   const { data: sources } = trpc.news.sources.useQuery();
   const { data: categories } = trpc.news.categories.useQuery();
+  const { data: sentimentStats } = trpc.news.sentimentStats.useQuery({});
 
   const articles = data?.articles || [];
   const total = data?.total || 0;
@@ -65,6 +105,7 @@ export default function News() {
   const clearFilters = () => {
     setSource("");
     setCategory("");
+    setSentiment("");
     setTicker("");
     setSearch("");
     setSearchInput("");
@@ -73,7 +114,7 @@ export default function News() {
     setPage(1);
   };
 
-  const hasFilters = source || category || ticker || search || dateFrom || dateTo;
+  const hasFilters = source || category || sentiment || ticker || search || dateFrom || dateTo;
 
   function formatTimeAgo(dateStr: string | Date): string {
     const date = new Date(dateStr);
@@ -101,6 +142,72 @@ export default function News() {
             {total > 0 && `${total.toLocaleString()} articles`}
           </span>
         </div>
+
+        {/* Sentiment Summary Bar */}
+        {sentimentStats && sentimentStats.total > 0 && (
+          <div className="flex items-center gap-3 mb-4 p-3 bg-card border border-border rounded-lg">
+            <span className="text-xs font-medium text-muted-foreground mr-1">Market Sentiment:</span>
+            <button
+              onClick={() => { setSentiment(sentiment === "bullish" ? "" : "bullish"); setPage(1); }}
+              className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                sentiment === "bullish"
+                  ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30"
+                  : "bg-emerald-500/8 text-emerald-600/70 dark:text-emerald-400/70 hover:bg-emerald-500/15"
+              }`}
+            >
+              <TrendingUp className="h-3 w-3" />
+              <span className="font-semibold">{sentimentStats.bullish}</span>
+              <span>Bullish</span>
+            </button>
+            <button
+              onClick={() => { setSentiment(sentiment === "bearish" ? "" : "bearish"); setPage(1); }}
+              className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                sentiment === "bearish"
+                  ? "bg-red-500/20 text-red-600 dark:text-red-400 ring-1 ring-red-500/30"
+                  : "bg-red-500/8 text-red-600/70 dark:text-red-400/70 hover:bg-red-500/15"
+              }`}
+            >
+              <TrendingDown className="h-3 w-3" />
+              <span className="font-semibold">{sentimentStats.bearish}</span>
+              <span>Bearish</span>
+            </button>
+            <button
+              onClick={() => { setSentiment(sentiment === "neutral" ? "" : "neutral"); setPage(1); }}
+              className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                sentiment === "neutral"
+                  ? "bg-slate-500/20 text-slate-600 dark:text-slate-400 ring-1 ring-slate-500/30"
+                  : "bg-slate-500/8 text-slate-600/70 dark:text-slate-400/70 hover:bg-slate-500/15"
+              }`}
+            >
+              <Minus className="h-3 w-3" />
+              <span className="font-semibold">{sentimentStats.neutral}</span>
+              <span>Neutral</span>
+            </button>
+            {/* Sentiment bar visualization */}
+            <div className="flex-1 ml-2">
+              <div className="flex h-2 rounded-full overflow-hidden bg-muted">
+                {sentimentStats.bullish > 0 && (
+                  <div
+                    className="bg-emerald-500 transition-all"
+                    style={{ width: `${(sentimentStats.bullish / sentimentStats.total) * 100}%` }}
+                  />
+                )}
+                {sentimentStats.neutral > 0 && (
+                  <div
+                    className="bg-slate-400 transition-all"
+                    style={{ width: `${(sentimentStats.neutral / sentimentStats.total) * 100}%` }}
+                  />
+                )}
+                {sentimentStats.bearish > 0 && (
+                  <div
+                    className="bg-red-500 transition-all"
+                    style={{ width: `${(sentimentStats.bearish / sentimentStats.total) * 100}%` }}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="bg-card border border-border rounded-lg p-4 mb-5">
@@ -179,6 +286,40 @@ export default function News() {
                     {c}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+
+            {/* Sentiment filter */}
+            <Select
+              value={sentiment}
+              onValueChange={(v) => {
+                setSentiment(v === "all" ? "" : v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue placeholder="All Sentiment" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sentiment</SelectItem>
+                <SelectItem value="bullish">
+                  <span className="flex items-center gap-1.5">
+                    <TrendingUp className="h-3 w-3 text-emerald-500" />
+                    Bullish
+                  </span>
+                </SelectItem>
+                <SelectItem value="bearish">
+                  <span className="flex items-center gap-1.5">
+                    <TrendingDown className="h-3 w-3 text-red-500" />
+                    Bearish
+                  </span>
+                </SelectItem>
+                <SelectItem value="neutral">
+                  <span className="flex items-center gap-1.5">
+                    <Minus className="h-3 w-3 text-slate-500" />
+                    Neutral
+                  </span>
+                </SelectItem>
               </SelectContent>
             </Select>
 
@@ -261,16 +402,19 @@ export default function News() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-medium text-foreground leading-snug mb-1.5 group-hover:text-primary transition-colors">
-                        {article.title}
-                        <ExternalLink className="inline-block h-3 w-3 ml-1.5 opacity-0 group-hover:opacity-60 transition-opacity" />
-                      </h3>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <h3 className="text-sm font-medium text-foreground leading-snug group-hover:text-primary transition-colors">
+                          {article.title}
+                          <ExternalLink className="inline-block h-3 w-3 ml-1.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+                        </h3>
+                      </div>
                       {article.summary && (
                         <p className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">
                           {article.summary}
                         </p>
                       )}
-                      <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <SentimentBadge sentiment={article.sentiment as SentimentType} />
                         <span className="text-[11px] font-medium text-primary/80 bg-primary/8 px-1.5 py-0.5 rounded">
                           {article.source}
                         </span>

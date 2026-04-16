@@ -3,6 +3,7 @@ import Parser from "rss-parser";
 import cron from "node-cron";
 import { insertNewsArticles, getNewsArticles, getNewsSources, getNewsCategories } from "./db";
 import type { InsertNewsArticle } from "../drizzle/schema";
+import { analyzeUnprocessedArticles } from "./sentimentService";
 
 const parser = new Parser({
   timeout: 15000,
@@ -231,6 +232,8 @@ export function startNewsScheduler() {
   scheduledTask = cron.schedule("0 7,13,19 * * *", async () => {
     try {
       await scrapeAllNews();
+      // Run sentiment analysis on newly scraped articles
+      await analyzeUnprocessedArticles();
     } catch (error) {
       console.error("[NewsService] Scheduled scrape failed:", error);
     }
@@ -242,6 +245,8 @@ export function startNewsScheduler() {
   setTimeout(async () => {
     try {
       await scrapeAllNews();
+      // Run sentiment analysis after initial scrape
+      await analyzeUnprocessedArticles();
     } catch (error) {
       console.error("[NewsService] Initial scrape failed:", error);
     }
@@ -263,6 +268,7 @@ export async function queryNews(opts: {
   ticker?: string;
   category?: string;
   search?: string;
+  sentiment?: string;
   dateFrom?: string;
   dateTo?: string;
   page?: number;
@@ -276,6 +282,7 @@ export async function queryNews(opts: {
     ticker: opts.ticker,
     category: opts.category,
     search: opts.search,
+    sentiment: opts.sentiment,
     dateFrom: opts.dateFrom ? new Date(opts.dateFrom) : undefined,
     dateTo: opts.dateTo ? new Date(opts.dateTo) : undefined,
     limit,

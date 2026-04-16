@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
-// Sample news articles for mocking
+// Sample news articles for mocking (now with sentiment)
 const mockArticles = [
   {
     id: 1,
@@ -12,6 +12,7 @@ const mockArticles = [
     source: "Yahoo Finance",
     category: "Earnings",
     tickers: "AAPL",
+    sentiment: "bullish",
     publishedAt: new Date("2026-04-15T10:00:00Z"),
     fetchedAt: new Date("2026-04-15T12:00:00Z"),
     urlHash: "abc123",
@@ -24,6 +25,7 @@ const mockArticles = [
     source: "Reuters",
     category: "Markets",
     tickers: "TSLA",
+    sentiment: "bullish",
     publishedAt: new Date("2026-04-15T08:00:00Z"),
     fetchedAt: new Date("2026-04-15T12:00:00Z"),
     urlHash: "def456",
@@ -36,6 +38,7 @@ const mockArticles = [
     source: "Bloomberg",
     category: "Markets",
     tickers: "AAPL,MSFT,GOOGL",
+    sentiment: "bullish",
     publishedAt: new Date("2026-04-14T14:00:00Z"),
     fetchedAt: new Date("2026-04-14T16:00:00Z"),
     urlHash: "ghi789",
@@ -48,6 +51,7 @@ const mockArticles = [
     source: "CNBC",
     category: "Economy",
     tickers: null,
+    sentiment: "neutral",
     publishedAt: new Date("2026-04-14T09:00:00Z"),
     fetchedAt: new Date("2026-04-14T10:00:00Z"),
     urlHash: "jkl012",
@@ -60,9 +64,23 @@ const mockArticles = [
     source: "Reuters",
     category: "Commodities",
     tickers: null,
+    sentiment: "bearish",
     publishedAt: new Date("2026-04-13T11:00:00Z"),
     fetchedAt: new Date("2026-04-13T12:00:00Z"),
     urlHash: "mno345",
+  },
+  {
+    id: 6,
+    title: "Tech Sector Faces Regulatory Headwinds",
+    summary: "New regulations could impact major tech companies' revenue growth.",
+    url: "https://example.com/tech-regulation",
+    source: "Bloomberg",
+    category: "Markets",
+    tickers: "AAPL,GOOGL,META",
+    sentiment: "bearish",
+    publishedAt: new Date("2026-04-13T09:00:00Z"),
+    fetchedAt: new Date("2026-04-13T10:00:00Z"),
+    urlHash: "pqr678",
   },
 ];
 
@@ -115,6 +133,9 @@ vi.mock("./newsService", () => ({
     if (opts.category) {
       filtered = filtered.filter((a) => a.category === opts.category);
     }
+    if (opts.sentiment) {
+      filtered = filtered.filter((a) => a.sentiment === opts.sentiment);
+    }
     if (opts.search) {
       const s = opts.search.toLowerCase();
       filtered = filtered.filter(
@@ -141,6 +162,28 @@ vi.mock("./newsService", () => ({
   queryNewsSources: vi.fn().mockResolvedValue(["Bloomberg", "CNBC", "Reuters", "Yahoo Finance"]),
   queryNewsCategories: vi.fn().mockResolvedValue(["Commodities", "Earnings", "Economy", "Markets"]),
   scrapeAllNews: vi.fn().mockResolvedValue(50),
+}));
+
+vi.mock("./sentimentService", () => ({
+  analyzeUnprocessedArticles: vi.fn().mockResolvedValue(10),
+  getSentimentStats: vi.fn().mockImplementation((ticker?: string) => {
+    let articles = [...mockArticles];
+    if (ticker) {
+      const t = ticker.toUpperCase();
+      articles = articles.filter((a) => {
+        if (!a.tickers) return false;
+        return a.tickers.split(",").includes(t);
+      });
+    }
+    const stats = { bullish: 0, bearish: 0, neutral: 0, total: 0 };
+    for (const a of articles) {
+      if (a.sentiment === "bullish") stats.bullish++;
+      else if (a.sentiment === "bearish") stats.bearish++;
+      else if (a.sentiment === "neutral") stats.neutral++;
+      stats.total++;
+    }
+    return Promise.resolve(stats);
+  }),
 }));
 
 vi.mock("./db", () => ({
@@ -187,11 +230,11 @@ describe("news.list", () => {
 
     expect(result).toBeDefined();
     expect(result.articles).toBeInstanceOf(Array);
-    expect(result.articles.length).toBe(5);
-    expect(result.total).toBe(5);
+    expect(result.articles.length).toBe(6);
+    expect(result.total).toBe(6);
   });
 
-  it("returns articles with correct structure", async () => {
+  it("returns articles with sentiment field", async () => {
     const caller = appRouter.createCaller(createPublicContext());
     const result = await caller.news.list({});
 
@@ -202,7 +245,9 @@ describe("news.list", () => {
     expect(article).toHaveProperty("url");
     expect(article).toHaveProperty("source");
     expect(article).toHaveProperty("category");
+    expect(article).toHaveProperty("sentiment");
     expect(article).toHaveProperty("publishedAt");
+    expect(["bullish", "bearish", "neutral"]).toContain(article.sentiment);
   });
 
   it("filters by source", async () => {
@@ -220,9 +265,8 @@ describe("news.list", () => {
     const caller = appRouter.createCaller(createPublicContext());
     const result = await caller.news.list({ ticker: "AAPL" });
 
-    expect(result.articles.length).toBe(2);
-    expect(result.total).toBe(2);
-    // All returned articles should mention AAPL
+    expect(result.articles.length).toBe(3);
+    expect(result.total).toBe(3);
     result.articles.forEach((a) => {
       expect(a.tickers).toBeTruthy();
       expect(a.tickers!.split(",")).toContain("AAPL");
@@ -233,7 +277,6 @@ describe("news.list", () => {
     const caller = appRouter.createCaller(createPublicContext());
     const result = await caller.news.list({ ticker: "MSFT" });
 
-    // Only article 3 has MSFT in its tickers
     expect(result.articles.length).toBe(1);
     expect(result.articles[0].title).toContain("S&P 500");
   });
@@ -242,8 +285,52 @@ describe("news.list", () => {
     const caller = appRouter.createCaller(createPublicContext());
     const result = await caller.news.list({ category: "Markets" });
 
+    expect(result.articles.length).toBe(3);
+    result.articles.forEach((a) => {
+      expect(a.category).toBe("Markets");
+    });
+  });
+
+  it("filters by sentiment - bullish", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.list({ sentiment: "bullish" });
+
+    expect(result.articles.length).toBe(3);
+    result.articles.forEach((a) => {
+      expect(a.sentiment).toBe("bullish");
+    });
+  });
+
+  it("filters by sentiment - bearish", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.list({ sentiment: "bearish" });
+
     expect(result.articles.length).toBe(2);
     result.articles.forEach((a) => {
+      expect(a.sentiment).toBe("bearish");
+    });
+  });
+
+  it("filters by sentiment - neutral", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.list({ sentiment: "neutral" });
+
+    expect(result.articles.length).toBe(1);
+    result.articles.forEach((a) => {
+      expect(a.sentiment).toBe("neutral");
+    });
+  });
+
+  it("combines sentiment with other filters", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.list({
+      sentiment: "bullish",
+      category: "Markets",
+    });
+
+    expect(result.articles.length).toBe(2);
+    result.articles.forEach((a) => {
+      expect(a.sentiment).toBe("bullish");
       expect(a.category).toBe("Markets");
     });
   });
@@ -294,7 +381,7 @@ describe("news.list", () => {
     const result = await caller.news.list({ pageSize: 2, page: 1 });
 
     expect(result.articles.length).toBe(2);
-    expect(result.total).toBe(5);
+    expect(result.total).toBe(6);
   });
 
   it("returns empty for non-matching filters", async () => {
@@ -342,6 +429,50 @@ describe("news.categories", () => {
   });
 });
 
+// ─── Sentiment Stats Tests ───────────────────────────────────────────────
+
+describe("news.sentimentStats", () => {
+  it("returns overall sentiment distribution", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.sentimentStats({});
+
+    expect(result).toBeDefined();
+    expect(result.bullish).toBe(3);
+    expect(result.bearish).toBe(2);
+    expect(result.neutral).toBe(1);
+    expect(result.total).toBe(6);
+  });
+
+  it("returns sentiment stats filtered by ticker", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.sentimentStats({ ticker: "AAPL" });
+
+    expect(result).toBeDefined();
+    expect(result.bullish).toBe(2); // articles 1, 3
+    expect(result.bearish).toBe(1); // article 6
+    expect(result.neutral).toBe(0);
+    expect(result.total).toBe(3);
+  });
+
+  it("returns zeros for ticker with no articles", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.sentimentStats({ ticker: "XYZ" });
+
+    expect(result.bullish).toBe(0);
+    expect(result.bearish).toBe(0);
+    expect(result.neutral).toBe(0);
+    expect(result.total).toBe(0);
+  });
+
+  it("works without input", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.sentimentStats(undefined);
+
+    expect(result).toBeDefined();
+    expect(result.total).toBe(6);
+  });
+});
+
 // ─── News Scrape Tests ────────────────────────────────────────────────────
 
 describe("news.scrape", () => {
@@ -351,10 +482,30 @@ describe("news.scrape", () => {
     await expect(caller.news.scrape()).rejects.toThrow();
   });
 
-  it("returns success with article count for authenticated user", async () => {
+  it("returns success with article count and sentiment count for authenticated user", async () => {
     const caller = appRouter.createCaller(createAuthContext());
     const result = await caller.news.scrape();
 
-    expect(result).toEqual({ success: true, articlesProcessed: 50 });
+    expect(result.success).toBe(true);
+    expect(result.articlesProcessed).toBe(50);
+    expect(result.sentimentAnalyzed).toBe(10);
+  });
+});
+
+// ─── Sentiment Analysis Mutation Tests ───────────────────────────────────
+
+describe("news.analyzeSentiment", () => {
+  it("requires authentication", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+
+    await expect(caller.news.analyzeSentiment()).rejects.toThrow();
+  });
+
+  it("returns success with analyzed count for authenticated user", async () => {
+    const caller = appRouter.createCaller(createAuthContext());
+    const result = await caller.news.analyzeSentiment();
+
+    expect(result.success).toBe(true);
+    expect(result.articlesAnalyzed).toBe(10);
   });
 });
