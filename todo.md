@@ -1,0 +1,26 @@
+# Project TODO
+
+- [x] Homepage with market index ticker bar (S&P 500, Nasdaq, Dow Jones, Russell 2000)
+- [x] Homepage hero search bar
+- [x] Homepage top gainers and losers tables
+- [x] Homepage market news feed
+- [x] Homepage recent and upcoming IPO tables
+- [x] Left sidebar navigation with collapsible menu (Home, Watchlist, Stocks, IPOs, ETFs, News, Trending, Market Movers, Tools)
+- [x] Expandable sub-menus in sidebar
+- [x] Stock detail page with real-time price and after-hours price
+- [x] Stock detail key metrics table (Market Cap, Revenue, EPS, PE Ratio, Dividend, etc.)
+- [x] Stock detail tabbed sections (Overview, Financials, Forecast, Statistics, Dividends, History, Profile)
+- [x] Interactive price chart with Recharts (1D, 5D, 1M, YTD, 3M, 6M, 1Y, 5Y, Max)
+- [x] Global stock search with autocomplete (company name or ticker)
+- [x] Stock screener page with filterable/sortable data table (sector, market cap, PE ratio, price, volume)
+- [x] Market Movers page (top gainers and top losers with symbol, price, % change)
+- [x] IPO calendar page (recent IPOs and upcoming IPOs tables with date, symbol, company name)
+- [x] News page with market news feed (title, source, timestamp)
+- [x] User authentication (login/signup)
+- [x] Personal watchlist feature (save and track favorite stocks)
+- [x] Professional financial platform visual design
+- [x] Dark theme support
+- [x] Vitest tests for backend routers
+- [x] Fix profile API data extraction (quoteSummary.result[0].summaryProfile)
+- [x] Add known financial data (shares, EPS) for popular stocks
+- [x] Enrich screener with market cap and PE ratio data

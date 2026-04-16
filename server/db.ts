@@ -1,11 +1,10 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, watchlist } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -89,4 +88,29 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Watchlist helpers
+export async function getWatchlistByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const result = await db.select().from(watchlist).where(eq(watchlist.userId, userId));
+  return result;
+}
+
+export async function addToWatchlist(userId: number, symbol: string, companyName?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(watchlist).values({ userId, symbol: symbol.toUpperCase(), companyName: companyName || null }).onDuplicateKeyUpdate({ set: { companyName: companyName || null } });
+}
+
+export async function removeFromWatchlist(userId: number, symbol: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(watchlist).where(and(eq(watchlist.userId, userId), eq(watchlist.symbol, symbol.toUpperCase())));
+}
+
+export async function isInWatchlist(userId: number, symbol: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.select().from(watchlist).where(and(eq(watchlist.userId, userId), eq(watchlist.symbol, symbol.toUpperCase()))).limit(1);
+  return result.length > 0;
+}

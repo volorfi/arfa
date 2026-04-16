@@ -4,32 +4,53 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import AppLayout from "./components/AppLayout";
 import Home from "./pages/Home";
+import StockDetail from "./pages/StockDetail";
+import Screener from "./pages/Screener";
+import MarketMovers from "./pages/MarketMovers";
+import IPOCalendar from "./pages/IPOCalendar";
+import News from "./pages/News";
+import Watchlist from "./pages/Watchlist";
+import Trending from "./pages/Trending";
+import ETFs from "./pages/ETFs";
+import PlaceholderPage from "./pages/PlaceholderPage";
+import { LineChart, Calculator, BarChart3 } from "lucide-react";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
+    <AppLayout>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/stocks/:symbol" component={StockDetail} />
+        <Route path="/stocks" component={Screener} />
+        <Route path="/screener" component={Screener} />
+        <Route path="/movers" component={MarketMovers} />
+        <Route path="/ipos" component={IPOCalendar} />
+        <Route path="/news" component={News} />
+        <Route path="/watchlist" component={Watchlist} />
+        <Route path="/trending" component={Trending} />
+        <Route path="/etfs" component={ETFs} />
+        <Route path="/chart">
+          {() => <PlaceholderPage title="Technical Chart" icon={LineChart} />}
+        </Route>
+        <Route path="/compare">
+          {() => <PlaceholderPage title="Stock Comparison" icon={Calculator} />}
+        </Route>
+        <Route path="/tools">
+          {() => <PlaceholderPage title="Tools" icon={BarChart3} />}
+        </Route>
+        <Route path="/404" component={NotFound} />
+        <Route component={NotFound} />
+      </Switch>
+    </AppLayout>
   );
 }
-
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="dark" switchable>
         <TooltipProvider>
           <Toaster />
           <Router />
