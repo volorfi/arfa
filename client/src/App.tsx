@@ -17,6 +17,8 @@ import ETFs from "./pages/ETFs";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import InvestmentGrade from "./pages/InvestmentGrade";
 import IssuerDetail from "./pages/IssuerDetail";
+import Sovereign from "./pages/Sovereign";
+import SovereignBondDetail from "./pages/SovereignBondDetail";
 import { LineChart, Calculator, BarChart3 } from "lucide-react";
 
 function Router() {
@@ -35,6 +37,8 @@ function Router() {
         <Route path="/etfs" component={ETFs} />
         <Route path="/fixed-income/investment-grade" component={InvestmentGrade} />
         <Route path="/fixed-income/issuer/:slug" component={IssuerDetail} />
+        <Route path="/fixed-income/sovereign/:slug" component={SovereignBondDetail} />
+        <Route path="/fixed-income/sovereign" component={Sovereign} />
         <Route path="/chart">
           {() => <PlaceholderPage title="Technical Chart" icon={LineChart} />}
         </Route>

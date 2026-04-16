@@ -201,6 +201,102 @@ vi.mock("./bondService", () => ({
   }),
 }));
 
+// Mock the sovereign service module
+vi.mock("./sovereignService", () => ({
+  getSovereignBonds: vi.fn().mockReturnValue([
+    {
+      ticker: "TURKEY 6.5 09/20/33",
+      name: "Republic of Turkey",
+      isin: "US900123CK22",
+      slug: "republic-of-turkey-6-5-09-20-33",
+      rtgSP: "BB-",
+      rtgSPOutlook: "POSITIVE",
+      rtgMoody: "B1",
+      rtgMoodyOutlook: "POSITIVE",
+      rtgFitch: "BB-",
+      rtgFitchOutlook: "STABLE",
+      compositeRating: "BB-",
+      igHyIndicator: "HY",
+      series: null,
+      paymentRank: "Sr Unsecured",
+      coupon: 6.5,
+      couponFreq: 2,
+      couponType: "FIXED",
+      maturity: "09/20/2033",
+      currency: "USD",
+      amtIssued: 3500,
+      minPiece: 200000,
+      amtOutstanding: 3500,
+      price: 101.25,
+      yieldToMaturity: 6.32,
+      duration: 5.8,
+      maturityYears: 7.4,
+      zSpread: 280,
+      oasSpread: 265,
+      change1M: 0.45,
+      change3M: 1.2,
+      totalReturnYTD: 3.5,
+      creditAssessment: "POS",
+      score: 12,
+      defaultProb: 0.035,
+      publicDebtGDP2025: 35,
+      publicDebtGDP2024: 33,
+      debtTrajectory: 2,
+      externalDebtGDP: 45,
+      fiscalBalance: -3.5,
+      inflation: 35,
+      disinflation: -10,
+      moneyGrowth: 40,
+      currentAccount: -3.8,
+      fxStability: "D",
+      reservesTrend: "U",
+      realGDPGrowth: 3.2,
+      reservesExtDebt: 0.35,
+      interestExpGovRev: 12,
+      reservesMonths: 4.5,
+      reservesBln: 98,
+      externalDebtBln: 280,
+      country: "Turkey",
+      region: "Middle East",
+      creditComment: "Republic of Turkey\nCredit Rating: BB-/Positive (S&P)\nTurkey has shown improving macro fundamentals.",
+    },
+  ]),
+  getSovereignBondBySlug: vi.fn().mockImplementation((slug: string) => {
+    if (slug === "republic-of-turkey-6-5-09-20-33") {
+      return {
+        ticker: "TURKEY 6.5 09/20/33",
+        name: "Republic of Turkey",
+        slug: "republic-of-turkey-6-5-09-20-33",
+        compositeRating: "BB-",
+        yieldToMaturity: 6.32,
+        duration: 5.8,
+        price: 101.25,
+        country: "Turkey",
+        region: "Middle East",
+        creditComment: "Republic of Turkey\nCredit Rating: BB-/Positive (S&P)",
+      };
+    }
+    return null;
+  }),
+  getSovereignFilters: vi.fn().mockReturnValue({
+    regions: ["Middle East", "Europe", "Africa", "Americas", "Asia"],
+    countries: ["Turkey", "Brazil", "Mexico", "South Africa"],
+    currencies: ["USD", "EUR"],
+    ratings: ["AAA", "AA+", "AA", "BBB", "BB-", "B+"],
+    igHyOptions: ["IG", "HY"],
+    creditAssessments: ["POS", "STA", "NEG"],
+  }),
+  getSovereignSummary: vi.fn().mockReturnValue({
+    totalBonds: 150,
+    uniqueCountries: 45,
+    avgYield: "6.85",
+    avgSpread: "285",
+    avgDuration: "6.2",
+    ratingDistribution: { "BBB": 40, "BB-": 30, "B+": 25 },
+    regionDistribution: { "Middle East": 35, "Europe": 30, "Africa": 25 },
+  }),
+}));
+
 // Mock the db module
 vi.mock("./db", () => ({
   getWatchlistByUserId: vi.fn().mockResolvedValue([
@@ -571,6 +667,81 @@ describe("bonds.summary", () => {
     expect(result).toHaveProperty("ratingDistribution");
     expect(result).toHaveProperty("regionDistribution");
     expect(result).toHaveProperty("sectorDistribution");
+  });
+});
+
+describe("sovereign.list", () => {
+  it("returns sovereign bonds list", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.sovereign.list({});
+
+    expect(result).toBeInstanceOf(Array);
+    expect(result.length).toBeGreaterThan(0);
+    expect(result[0]).toHaveProperty("ticker");
+    expect(result[0]).toHaveProperty("name");
+    expect(result[0]).toHaveProperty("compositeRating");
+    expect(result[0]).toHaveProperty("yieldToMaturity");
+    expect(result[0]).toHaveProperty("duration");
+    expect(result[0]).toHaveProperty("country");
+    expect(result[0]).toHaveProperty("region");
+    expect(result[0]).toHaveProperty("creditComment");
+  });
+
+  it("accepts filter parameters", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.sovereign.list({ region: "Middle East", currency: "USD" });
+
+    expect(result).toBeInstanceOf(Array);
+  });
+});
+
+describe("sovereign.detail", () => {
+  it("returns bond data for valid slug", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.sovereign.detail({ slug: "republic-of-turkey-6-5-09-20-33" });
+
+    expect(result).toBeDefined();
+    expect(result?.name).toBe("Republic of Turkey");
+    expect(result?.compositeRating).toBe("BB-");
+    expect(result?.creditComment).toContain("Republic of Turkey");
+  });
+
+  it("returns null for unknown slug", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.sovereign.detail({ slug: "nonexistent" });
+
+    expect(result).toBeNull();
+  });
+});
+
+describe("sovereign.filters", () => {
+  it("returns filter options", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.sovereign.filters();
+
+    expect(result).toHaveProperty("regions");
+    expect(result).toHaveProperty("countries");
+    expect(result).toHaveProperty("currencies");
+    expect(result).toHaveProperty("ratings");
+    expect(result).toHaveProperty("igHyOptions");
+    expect(result).toHaveProperty("creditAssessments");
+    expect(result.regions).toBeInstanceOf(Array);
+    expect(result.regions.length).toBeGreaterThan(0);
+  });
+});
+
+describe("sovereign.summary", () => {
+  it("returns summary statistics", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.sovereign.summary();
+
+    expect(result).toHaveProperty("totalBonds", 150);
+    expect(result).toHaveProperty("uniqueCountries", 45);
+    expect(result).toHaveProperty("avgYield");
+    expect(result).toHaveProperty("avgSpread");
+    expect(result).toHaveProperty("avgDuration");
+    expect(result).toHaveProperty("ratingDistribution");
+    expect(result).toHaveProperty("regionDistribution");
   });
 });
 

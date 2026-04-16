@@ -51,6 +51,7 @@ import {
   LineChart,
   Landmark,
   Shield,
+  Flag,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "wouter";
@@ -105,7 +106,8 @@ const menuItems: MenuItem[] = [
     label: "Fixed Income",
     path: "/fixed-income",
     children: [
-      { label: "Investment Grade", path: "/fixed-income/investment-grade", icon: Shield },
+      { label: "Corporate", path: "/fixed-income/investment-grade", icon: Shield },
+      { label: "Sovereign", path: "/fixed-income/sovereign", icon: Flag },
     ],
   },
   {

@@ -46,3 +46,15 @@
 - [x] Issuer page: bond list for the issuer
 - [x] Navigation from main table to issuer detail page
 - [x] Write vitest tests for bond/fixed income routes
+
+- [x] Rename Fixed Income -> Investment Grade to Fixed Income -> Corporate
+- [x] Parse Sovereign.xlsx and create sovereign bond data service
+- [x] Create tRPC routes for sovereign bonds (list, detail, filters, summary)
+- [x] Build Sovereign main page with interactive table (pricing-relevant columns only)
+- [x] Add filters: region, country, currency, rating, IG/HY, credit trend
+- [x] Build market map scatter chart (Duration vs Yield) below table, synced with filters
+- [x] Build sovereign bond detail page with full data, macro fundamentals, and commentary
+- [x] Add Fixed Income -> Sovereign menu item in sidebar
+- [x] Support data refresh by uploading new Sovereign.xlsx (via scripts/import-sovereign.mjs)
+- [x] Support data refresh for Corporate bonds (via scripts/import-corporate.mjs)
+- [x] Write vitest tests for sovereign bond routes

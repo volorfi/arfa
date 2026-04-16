@@ -17,6 +17,12 @@ import {
 } from "./stockService";
 import { getFinancialStatements } from "./financialsService";
 import { getBonds, getIssuerBySlug, getFilterOptions, getBondsSummary } from "./bondService";
+import {
+  getSovereignBonds,
+  getSovereignBondBySlug,
+  getSovereignFilters,
+  getSovereignSummary,
+} from "./sovereignService";
 
 export const appRouter = router({
   system: systemRouter,
@@ -114,6 +120,36 @@ export const appRouter = router({
 
     summary: publicProcedure.query(async () => {
       return getBondsSummary();
+    }),
+  }),
+
+  sovereign: router({
+    list: publicProcedure
+      .input(z.object({
+        region: z.string().optional(),
+        country: z.string().optional(),
+        currency: z.string().optional(),
+        rating: z.string().optional(),
+        igHy: z.string().optional(),
+        creditAssessment: z.string().optional(),
+        search: z.string().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        return getSovereignBonds(input || undefined);
+      }),
+
+    detail: publicProcedure
+      .input(z.object({ slug: z.string() }))
+      .query(async ({ input }) => {
+        return getSovereignBondBySlug(input.slug);
+      }),
+
+    filters: publicProcedure.query(async () => {
+      return getSovereignFilters();
+    }),
+
+    summary: publicProcedure.query(async () => {
+      return getSovereignSummary();
     }),
   }),
 
