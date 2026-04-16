@@ -220,9 +220,9 @@ export default function IssuerDetail() {
         <AlertTriangle className="h-12 w-12 text-muted-foreground" />
         <h2 className="text-xl font-semibold text-foreground">Issuer Not Found</h2>
         <p className="text-muted-foreground">The issuer you're looking for doesn't exist.</p>
-        <Link href="/fixed-income/investment-grade">
+        <Link href="/fixed-income/corporate">
           <Button variant="outline" className="gap-2">
-            <ArrowLeft className="h-4 w-4" /> Back to Investment Grade
+            <ArrowLeft className="h-4 w-4" /> Back to Corporate
           </Button>
         </Link>
       </div>
@@ -250,9 +250,9 @@ export default function IssuerDetail() {
   return (
     <div className="space-y-6">
       {/* Back navigation */}
-      <Link href="/fixed-income/investment-grade">
+      <Link href="/fixed-income/corporate">
         <Button variant="ghost" size="sm" className="gap-2 -ml-2 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Back to Investment Grade
+          <ArrowLeft className="h-4 w-4" /> Back to Corporate
         </Button>
       </Link>
 

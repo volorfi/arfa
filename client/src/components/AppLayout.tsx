@@ -52,7 +52,10 @@ import {
   Landmark,
   Shield,
   Flag,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -107,7 +110,7 @@ const menuItems: MenuItem[] = [
     path: "/fixed-income",
     children: [
       { label: "Sovereign", path: "/fixed-income/sovereign", icon: Flag },
-      { label: "Corporate", path: "/fixed-income/investment-grade", icon: Shield },
+      { label: "Corporate", path: "/fixed-income/corporate", icon: Shield },
     ],
   },
   {
@@ -145,6 +148,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </AppSidebarContent>
     </SidebarProvider>
+  );
+}
+
+function ThemeToggleButton() {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <button
+      onClick={toggleTheme}
+      className="flex items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-sidebar-accent transition-colors w-full text-left text-[13px] text-sidebar-foreground group-data-[collapsible=icon]:justify-center focus:outline-none"
+      aria-label="Toggle theme"
+    >
+      {theme === "dark" ? (
+        <Sun className="h-4 w-4 shrink-0" />
+      ) : (
+        <Moon className="h-4 w-4 shrink-0" />
+      )}
+      <span className="group-data-[collapsible=icon]:hidden">
+        {theme === "dark" ? "Light Mode" : "Dark Mode"}
+      </span>
+    </button>
   );
 }
 
@@ -208,10 +231,10 @@ function AppSidebarContent({
               {!isCollapsed && (
                 <Link href="/" className="flex items-center gap-2 min-w-0">
                   <div className="h-7 w-7 rounded bg-primary flex items-center justify-center shrink-0">
-                    <span className="text-primary-foreground font-bold text-xs">SA</span>
+                    <span className="text-primary-foreground font-bold text-[9px]">AG</span>
                   </div>
                   <span className="font-semibold text-sm tracking-tight truncate text-sidebar-foreground">
-                    Stock Analysis
+                    ARFA Global Markets
                   </span>
                 </Link>
               )}
@@ -278,6 +301,7 @@ function AppSidebarContent({
           </SidebarContent>
 
           <SidebarFooter className="p-2 border-t border-sidebar-border">
+            <ThemeToggleButton />
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -325,9 +349,9 @@ function AppSidebarContent({
             <SidebarTrigger className="h-8 w-8 rounded-md" />
             <div className="ml-2 flex items-center gap-2">
               <div className="h-6 w-6 rounded bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-[10px]">SA</span>
+                <span className="text-primary-foreground font-bold text-[9px]">AG</span>
               </div>
-              <span className="font-semibold text-sm">Stock Analysis</span>
+              <span className="font-semibold text-sm">ARFA Global Markets</span>
             </div>
           </div>
         )}

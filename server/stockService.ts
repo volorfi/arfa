@@ -202,11 +202,16 @@ export async function getMarketIndices(): Promise<MarketIndex[]> {
   const cached = getCached<MarketIndex[]>(cacheKey);
   if (cached) return cached;
 
-  const indices = [
-    { symbol: "^GSPC", name: "S&P 500" },
-    { symbol: "^NDX", name: "Nasdaq 100" },
-    { symbol: "^DJI", name: "Dow Jones" },
-    { symbol: "^RUT", name: "Russell 2000" },
+  const indices: { symbol: string; name: string; assetType: string; formatPrice: (p: number) => string }[] = [
+    { symbol: "^GSPC", name: "S&P 500", assetType: "index", formatPrice: (p) => p.toFixed(0) },
+    { symbol: "^NDX", name: "Nasdaq 100", assetType: "index", formatPrice: (p) => p.toFixed(0) },
+    { symbol: "^DJI", name: "Dow Jones", assetType: "index", formatPrice: (p) => p.toFixed(0) },
+    { symbol: "^RUT", name: "Russell 2000", assetType: "index", formatPrice: (p) => p.toFixed(0) },
+    { symbol: "EURUSD=X", name: "EUR/USD", assetType: "fx", formatPrice: (p) => p.toFixed(4) },
+    { symbol: "GC=F", name: "Gold", assetType: "commodity", formatPrice: (p) => `$${p.toFixed(0)}` },
+    { symbol: "CL=F", name: "WTI", assetType: "commodity", formatPrice: (p) => `$${p.toFixed(2)}` },
+    { symbol: "BZ=F", name: "Brent", assetType: "commodity", formatPrice: (p) => `$${p.toFixed(2)}` },
+    { symbol: "^TNX", name: "UST10 YTM", assetType: "yield", formatPrice: (p) => `${p.toFixed(2)}%` },
   ];
 
   const results: MarketIndex[] = [];
@@ -238,6 +243,8 @@ export async function getMarketIndices(): Promise<MarketIndex[]> {
           change: currentPrice - prevClose,
           changePercent: prevClose ? ((currentPrice - prevClose) / prevClose) * 100 : 0,
           chartData,
+          assetType: idx.assetType,
+          displayValue: idx.formatPrice(currentPrice),
         });
       }
     } catch (error) {

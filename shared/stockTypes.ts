@@ -59,6 +59,10 @@ export interface MarketIndex {
   change: number;
   changePercent: number;
   chartData: { time: number; value: number }[];
+  /** 'index' | 'fx' | 'commodity' | 'yield' */
+  assetType?: string;
+  /** Formatted display value, e.g. "1.1234" for FX, "$85.20" for commodities, "4.35%" for yields */
+  displayValue?: string;
 }
 
 export interface NewsItem {

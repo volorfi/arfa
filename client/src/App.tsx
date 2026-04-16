@@ -35,7 +35,7 @@ function Router() {
         <Route path="/watchlist" component={Watchlist} />
         <Route path="/trending" component={Trending} />
         <Route path="/etfs" component={ETFs} />
-        <Route path="/fixed-income/investment-grade" component={InvestmentGrade} />
+        <Route path="/fixed-income/corporate" component={InvestmentGrade} />
         <Route path="/fixed-income/issuer/:slug" component={IssuerDetail} />
         <Route path="/fixed-income/sovereign/:slug" component={SovereignBondDetail} />
         <Route path="/fixed-income/sovereign" component={Sovereign} />
@@ -58,7 +58,7 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark" switchable>
+      <ThemeProvider defaultTheme="light" switchable>
         <TooltipProvider>
           <Toaster />
           <Router />

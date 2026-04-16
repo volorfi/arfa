@@ -319,7 +319,7 @@ export default function Sovereign() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
           <span className="cursor-pointer hover:text-foreground" onClick={() => setLocation("/")}>Home</span>
           <span>/</span>
-          <span className="cursor-pointer hover:text-foreground" onClick={() => setLocation("/fixed-income/investment-grade")}>Fixed Income</span>
+          <span className="cursor-pointer hover:text-foreground" onClick={() => setLocation("/fixed-income/sovereign")}>Fixed Income</span>
           <span>/</span>
           <span className="text-foreground font-medium">Sovereign</span>
         </div>

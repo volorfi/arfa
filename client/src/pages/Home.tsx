@@ -47,7 +47,7 @@ function HeroSection() {
           Search for a stock to start your analysis
         </h1>
         <p className="text-muted-foreground text-sm md:text-base leading-relaxed">
-          Accurate information on 130,000+ stocks and funds, including all the companies in the S&P 500 index. See stock prices, news, financials, forecasts, charts and more.
+          Your professional platform for global markets analysis. Track stocks, bonds, commodities, and currencies with real-time data, financial reports, and expert insights.
         </p>
         <GlobalSearch large className="max-w-lg mx-auto" />
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">

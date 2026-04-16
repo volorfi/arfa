@@ -62,3 +62,7 @@
 - [x] Fix max Score display to 15/15 across all pages (Sovereign, SovereignBondDetail, InvestmentGrade, IssuerDetail)
 - [x] Add country flags (flagcdn.com) instead of orange globe icon on Sovereign table and bond detail pages
 - [x] Move Sovereign above Corporate in sidebar Fixed Income menu
+
+- [x] Add light/dark theme toggle (light theme by default)
+- [x] Rename site from "Stock Analysis" to "ARFA Global Markets"
+- [x] Add EURUSD, Gold, WTI, Brent, UST10 YTM to the top ticker bar with mini-chart and last price
