@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import MarketTickerBar from "@/components/MarketTickerBar";
+import FinancialsTabComponent from "@/components/FinancialsTab";
 
 const PERIOD_OPTIONS = [
   { label: "1D", interval: "5m", range: "1d" },
@@ -204,7 +205,7 @@ export default function StockDetail() {
             symbol={symbol}
           />
         )}
-        {activeTab === "Financials" && <FinancialsTab symbol={symbol} quote={quote} />}
+        {activeTab === "Financials" && <FinancialsTabComponent symbol={symbol} />}
         {activeTab === "Forecast" && <ForecastTab insights={insights} symbol={symbol} />}
         {activeTab === "Statistics" && <StatisticsTab quote={quote} />}
         {activeTab === "Dividends" && <DividendsTab quote={quote} />}
@@ -388,31 +389,6 @@ function StockChart({ data, loading, periodIdx, setPeriodIdx, isPositive }: any)
   );
 }
 
-function FinancialsTab({ symbol, quote }: any) {
-  return (
-    <div className="bg-card border border-border rounded-lg p-6">
-      <h3 className="font-semibold text-lg mb-4 text-foreground">Financial Statements</h3>
-      <p className="text-sm text-muted-foreground mb-6">
-        Key financial data for {symbol}. Detailed quarterly and annual financial statements are available for analysis.
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          { label: "Revenue (ttm)", value: quote?.revenue ? formatLargeNumber(quote.revenue) : "N/A", icon: DollarSign },
-          { label: "Net Income", value: quote?.netIncome ? formatLargeNumber(quote.netIncome) : "N/A", icon: BarChart3 },
-          { label: "EPS", value: quote?.trailingEps ? `$${quote.trailingEps.toFixed(2)}` : "N/A", icon: Activity },
-        ].map((item) => (
-          <div key={item.label} className="bg-secondary/50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <item.icon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">{item.label}</span>
-            </div>
-            <span className="text-xl font-bold text-foreground">{item.value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function ForecastTab({ insights, symbol }: any) {
   const finResult = insights?.finance?.result;

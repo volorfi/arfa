@@ -15,6 +15,7 @@ import {
   getIPOData,
   getMarketNews,
 } from "./stockService";
+import { getFinancialStatements } from "./financialsService";
 
 export const appRouter = router({
   system: systemRouter,
@@ -60,6 +61,12 @@ export const appRouter = router({
     screener: publicProcedure.query(async () => {
       return getScreenerData();
     }),
+
+    financials: publicProcedure
+      .input(z.object({ symbol: z.string() }))
+      .query(async ({ input }) => {
+        return getFinancialStatements(input.symbol);
+      }),
   }),
 
   market: router({

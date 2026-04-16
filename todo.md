@@ -24,3 +24,12 @@
 - [x] Fix profile API data extraction (quoteSummary.result[0].summaryProfile)
 - [x] Add known financial data (shares, EPS) for popular stocks
 - [x] Enrich screener with market cap and PE ratio data
+
+- [x] Provide financial statements data via curated datasets and LLM fallback (income statement, balance sheet, cash flow)
+- [x] Backend: create financials service with getFinancialStatements function
+- [x] Backend: add tRPC route for stock.financials
+- [x] Frontend: rebuild Financials tab with sub-tabs (Income Statement, Balance Sheet, Cash Flow)
+- [x] Frontend: support quarterly and annual view toggle
+- [x] Frontend: display financial data in professional table format with period columns
+- [x] Verify FinancialsTab UI renders correctly (Income Statement, Balance Sheet, Cash Flow, Annual/Quarterly)
+- [x] Write vitest tests for the new financials endpoint

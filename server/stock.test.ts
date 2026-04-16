@@ -63,6 +63,38 @@ vi.mock("./stockService", () => ({
   ]),
 }));
 
+// Mock the financials service module
+vi.mock("./financialsService", () => ({
+  getFinancialStatements: vi.fn().mockResolvedValue({
+    symbol: "AAPL",
+    currency: "USD",
+    incomeStatement: {
+      annual: [
+        { period: "2025", endDate: "2025-09-27", totalRevenue: 410e9, costOfRevenue: 225e9, grossProfit: 185e9, operatingExpenses: 60e9, operatingIncome: 125e9, interestExpense: 3.5e9, incomeBeforeTax: 123e9, incomeTaxExpense: 18.5e9, netIncome: 104.5e9, eps: 6.91, epsD: 6.87, sharesOutstanding: 15.12e9, ebitda: 137e9, grossMargin: 45.1, operatingMargin: 30.5, netMargin: 25.5 },
+      ],
+      quarterly: [
+        { period: "Q1 2026", endDate: "2025-12-28", totalRevenue: 124e9, costOfRevenue: 67e9, grossProfit: 57e9, operatingExpenses: 16e9, operatingIncome: 41e9, interestExpense: 0.9e9, incomeBeforeTax: 40.5e9, incomeTaxExpense: 6.1e9, netIncome: 34.4e9, eps: 2.28, epsD: 2.26, sharesOutstanding: 15.04e9, ebitda: 44e9, grossMargin: 46.0, operatingMargin: 33.1, netMargin: 27.7 },
+      ],
+    },
+    balanceSheet: {
+      annual: [
+        { period: "2025", endDate: "2025-09-27", totalAssets: 365e9, totalCurrentAssets: 143e9, cashAndEquivalents: 30e9, shortTermInvestments: 31e9, accountsReceivable: 60e9, inventory: 7e9, totalNonCurrentAssets: 222e9, propertyPlantEquipment: 44e9, goodwill: 0, intangibleAssets: 0, totalLiabilities: 290e9, totalCurrentLiabilities: 153e9, accountsPayable: 62e9, shortTermDebt: 16e9, totalNonCurrentLiabilities: 137e9, longTermDebt: 97e9, totalEquity: 75e9, retainedEarnings: 4e9, totalDebt: 113e9, bookValuePerShare: 4.96 },
+      ],
+      quarterly: [
+        { period: "Q1 2026", endDate: "2025-12-28", totalAssets: 395e9, totalCurrentAssets: 163e9, cashAndEquivalents: 32e9, shortTermInvestments: 28e9, accountsReceivable: 76e9, inventory: 8e9, totalNonCurrentAssets: 232e9, propertyPlantEquipment: 46e9, goodwill: 0, intangibleAssets: 0, totalLiabilities: 312e9, totalCurrentLiabilities: 172e9, accountsPayable: 70e9, shortTermDebt: 12e9, totalNonCurrentLiabilities: 140e9, longTermDebt: 95e9, totalEquity: 83e9, retainedEarnings: 12e9, totalDebt: 107e9, bookValuePerShare: 5.52 },
+      ],
+    },
+    cashFlow: {
+      annual: [
+        { period: "2025", endDate: "2025-09-27", operatingCashFlow: 118e9, depreciationAmortization: 12e9, changeInWorkingCapital: -2e9, capitalExpenditures: -10e9, investingCashFlow: -5e9, acquisitions: 0, financingCashFlow: -110e9, debtRepayment: -10e9, shareRepurchases: -90e9, dividendsPaid: -15.5e9, freeCashFlow: 108e9, netChangeInCash: 3e9 },
+      ],
+      quarterly: [
+        { period: "Q1 2026", endDate: "2025-12-28", operatingCashFlow: 40e9, depreciationAmortization: 3e9, changeInWorkingCapital: 5e9, capitalExpenditures: -3e9, investingCashFlow: -2e9, acquisitions: 0, financingCashFlow: -33e9, debtRepayment: -3e9, shareRepurchases: -25e9, dividendsPaid: -4e9, freeCashFlow: 37e9, netChangeInCash: 5e9 },
+      ],
+    },
+  }),
+}));
+
 // Mock the db module
 vi.mock("./db", () => ({
   getWatchlistByUserId: vi.fn().mockResolvedValue([
@@ -296,6 +328,61 @@ describe("watchlist", () => {
   it("remove requires authentication", async () => {
     const caller = appRouter.createCaller(createPublicContext());
     await expect(caller.watchlist.remove({ symbol: "AAPL" })).rejects.toThrow();
+  });
+});
+
+describe("stock.financials", () => {
+  it("returns financial statements for a valid symbol", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.stock.financials({ symbol: "AAPL" });
+
+    expect(result).toBeDefined();
+    expect(result?.symbol).toBe("AAPL");
+    expect(result?.currency).toBe("USD");
+  });
+
+  it("returns income statement with annual and quarterly data", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.stock.financials({ symbol: "AAPL" });
+
+    expect(result?.incomeStatement).toBeDefined();
+    expect(result?.incomeStatement.annual).toBeInstanceOf(Array);
+    expect(result?.incomeStatement.quarterly).toBeInstanceOf(Array);
+    expect(result?.incomeStatement.annual.length).toBeGreaterThan(0);
+    expect(result?.incomeStatement.annual[0]).toHaveProperty("totalRevenue");
+    expect(result?.incomeStatement.annual[0]).toHaveProperty("netIncome");
+    expect(result?.incomeStatement.annual[0]).toHaveProperty("eps");
+    expect(result?.incomeStatement.annual[0]).toHaveProperty("grossMargin");
+    expect(result?.incomeStatement.annual[0]).toHaveProperty("operatingMargin");
+    expect(result?.incomeStatement.annual[0]).toHaveProperty("netMargin");
+  });
+
+  it("returns balance sheet with annual and quarterly data", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.stock.financials({ symbol: "AAPL" });
+
+    expect(result?.balanceSheet).toBeDefined();
+    expect(result?.balanceSheet.annual).toBeInstanceOf(Array);
+    expect(result?.balanceSheet.quarterly).toBeInstanceOf(Array);
+    expect(result?.balanceSheet.annual[0]).toHaveProperty("totalAssets");
+    expect(result?.balanceSheet.annual[0]).toHaveProperty("totalLiabilities");
+    expect(result?.balanceSheet.annual[0]).toHaveProperty("totalEquity");
+    expect(result?.balanceSheet.annual[0]).toHaveProperty("cashAndEquivalents");
+    expect(result?.balanceSheet.annual[0]).toHaveProperty("longTermDebt");
+  });
+
+  it("returns cash flow with annual and quarterly data", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.stock.financials({ symbol: "AAPL" });
+
+    expect(result?.cashFlow).toBeDefined();
+    expect(result?.cashFlow.annual).toBeInstanceOf(Array);
+    expect(result?.cashFlow.quarterly).toBeInstanceOf(Array);
+    expect(result?.cashFlow.annual[0]).toHaveProperty("operatingCashFlow");
+    expect(result?.cashFlow.annual[0]).toHaveProperty("capitalExpenditures");
+    expect(result?.cashFlow.annual[0]).toHaveProperty("freeCashFlow");
+    expect(result?.cashFlow.annual[0]).toHaveProperty("dividendsPaid");
+    expect(result?.cashFlow.annual[0]).toHaveProperty("shareRepurchases");
   });
 });
 
