@@ -49,6 +49,8 @@ import {
   ArrowDown,
   Calculator,
   LineChart,
+  Landmark,
+  Shield,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "wouter";
@@ -96,6 +98,14 @@ const menuItems: MenuItem[] = [
     children: [
       { label: "Top Gainers", path: "/movers?tab=gainers", icon: ArrowUp },
       { label: "Top Losers", path: "/movers?tab=losers", icon: ArrowDown },
+    ],
+  },
+  {
+    icon: Landmark,
+    label: "Fixed Income",
+    path: "/fixed-income",
+    children: [
+      { label: "Investment Grade", path: "/fixed-income/investment-grade", icon: Shield },
     ],
   },
   {
@@ -211,7 +221,7 @@ function AppSidebarContent({
               <SidebarGroupContent>
                 <SidebarMenu>
                   {menuItems.map((item) => {
-                    const isActive = location === item.path || location.startsWith(item.path + "/");
+                    const isActive = location === item.path || (item.path !== "/" && location.startsWith(item.path));
                     if (item.children) {
                       return (
                         <Collapsible key={item.path} defaultOpen={isActive} className="group/collapsible">

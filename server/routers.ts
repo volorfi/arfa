@@ -16,6 +16,7 @@ import {
   getMarketNews,
 } from "./stockService";
 import { getFinancialStatements } from "./financialsService";
+import { getBonds, getIssuerBySlug, getFilterOptions, getBondsSummary } from "./bondService";
 
 export const appRouter = router({
   system: systemRouter,
@@ -84,6 +85,35 @@ export const appRouter = router({
 
     ipos: publicProcedure.query(async () => {
       return getIPOData();
+    }),
+  }),
+
+  bonds: router({
+    list: publicProcedure
+      .input(z.object({
+        rating: z.string().optional(),
+        region: z.string().optional(),
+        sector: z.string().optional(),
+        creditTrend: z.string().optional(),
+        recommendation: z.string().optional(),
+        search: z.string().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        return getBonds(input || undefined);
+      }),
+
+    issuer: publicProcedure
+      .input(z.object({ slug: z.string() }))
+      .query(async ({ input }) => {
+        return getIssuerBySlug(input.slug);
+      }),
+
+    filters: publicProcedure.query(async () => {
+      return getFilterOptions();
+    }),
+
+    summary: publicProcedure.query(async () => {
+      return getBondsSummary();
     }),
   }),
 

@@ -15,6 +15,8 @@ import Watchlist from "./pages/Watchlist";
 import Trending from "./pages/Trending";
 import ETFs from "./pages/ETFs";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import InvestmentGrade from "./pages/InvestmentGrade";
+import IssuerDetail from "./pages/IssuerDetail";
 import { LineChart, Calculator, BarChart3 } from "lucide-react";
 
 function Router() {
@@ -31,6 +33,8 @@ function Router() {
         <Route path="/watchlist" component={Watchlist} />
         <Route path="/trending" component={Trending} />
         <Route path="/etfs" component={ETFs} />
+        <Route path="/fixed-income/investment-grade" component={InvestmentGrade} />
+        <Route path="/fixed-income/issuer/:slug" component={IssuerDetail} />
         <Route path="/chart">
           {() => <PlaceholderPage title="Technical Chart" icon={LineChart} />}
         </Route>

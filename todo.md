@@ -33,3 +33,16 @@
 - [x] Frontend: display financial data in professional table format with period columns
 - [x] Verify FinancialsTab UI renders correctly (Income Statement, Balance Sheet, Cash Flow, Annual/Quarterly)
 - [x] Write vitest tests for the new financials endpoint
+
+- [x] Add Fixed Income -> Investment Grade menu items in sidebar navigation
+- [x] Parse USDIG.xlsx data and create bond data service on backend
+- [x] Create tRPC routes for bonds list, issuer detail, filters, and summary
+- [x] Build Investment Grade main page with interactive sortable/filterable table
+- [x] Table columns: Ticker, Issuer, Rating, YTM, Duration, OAS, Z-Spread, Price, 1M Chg, Total Rtn, Trend, Rec, Score, Sector, Region, Size
+- [x] Table filters: rating, region, sector, credit trend, recommendation
+- [x] Build Issuer detail page with credit commentary
+- [x] Issuer page: fundamental metrics (leverage, coverage, margins)
+- [x] Issuer page: credit rating and outlook display
+- [x] Issuer page: bond list for the issuer
+- [x] Navigation from main table to issuer detail page
+- [x] Write vitest tests for bond/fixed income routes

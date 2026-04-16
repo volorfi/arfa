@@ -95,6 +95,112 @@ vi.mock("./financialsService", () => ({
   }),
 }));
 
+// Mock the bond service module
+vi.mock("./bondService", () => ({
+  getBonds: vi.fn().mockReturnValue([
+    {
+      ticker: "AAPL 3.25 02/23/26 Corp",
+      issuerName: "APPLE INC",
+      issuerSlug: "apple-inc",
+      isin: "US037833DX42",
+      rating: "AA+",
+      currency: "USD",
+      amountOutstanding: 2000,
+      price: 99.5,
+      yieldToMaturity: 4.12,
+      duration: 3.25,
+      zSpread: 45,
+      oasSpread: 38,
+      change1M: -0.25,
+      totalReturn: 0.15,
+      region: "N America",
+      country: "US",
+      industryGroup: "Technology",
+      sector: "Technology",
+      creditTrend: "STA",
+      recommendation: "OW",
+      score: 15,
+      bval: null,
+      defaultProb3Y: 0.001,
+      lossGivenDefault: 0.35,
+      cdsSpread: 42,
+      cdsRateOfChange: -0.02,
+      totalDebtToEbitda: 1.5,
+      netDebtToEbitda: 0.8,
+      totalDebtToEquity: 1.2,
+      ebitdaToInterest: 25,
+      cashToShortTermDebt: 3.5,
+      shortTermDebtToTotalDebt: 0.1,
+      ebitdaMargin: 0.35,
+      fcfYield: 0.04,
+      waccCostDebt: 0.03,
+      cashNearCash: 30000,
+      shortTermBorrow: 5000,
+      longTermBorrow: 100000,
+      scores: [2, 2, 2, 1, 1, 2, 1, 1, 1, 1, 0, 1],
+      totalScore: 15,
+    },
+  ]),
+  getIssuerBySlug: vi.fn().mockImplementation((slug: string) => {
+    if (slug === "apple-inc") {
+      return {
+        name: "APPLE INC",
+        slug: "apple-inc",
+        rating: "AA+",
+        region: "N America",
+        country: "US",
+        industryGroup: "Technology",
+        sector: "Technology",
+        creditTrend: "STA",
+        recommendation: "OW",
+        creditComment: "APPLE INC\nCredit Rating: AA+/Stable (S&P)\nCredit Momentum: Stable",
+        equityTicker: "AAPL US Equity",
+        bonds: [
+          { ticker: "AAPL 3.25 02/23/26 Corp", isin: "US037833DX42", rating: "AA+", price: 99.5, yieldToMaturity: 4.12, duration: 3.25, zSpread: 45, oasSpread: 38, amountOutstanding: 2000, change1M: -0.25, totalReturn: 0.15 },
+        ],
+        totalDebtToEbitda: 1.5,
+        netDebtToEbitda: 0.8,
+        totalDebtToEquity: 1.2,
+        ebitdaToInterest: 25,
+        cashToShortTermDebt: 3.5,
+        shortTermDebtToTotalDebt: 0.1,
+        ebitdaMargin: 0.35,
+        fcfYield: 0.04,
+        waccCostDebt: 0.03,
+        cashNearCash: 30000,
+        shortTermBorrow: 5000,
+        longTermBorrow: 100000,
+        defaultProb3Y: 0.001,
+        lossGivenDefault: 0.35,
+        cdsSpread: 42,
+        score: 15,
+        totalScore: 15,
+        scores: [2, 2, 2, 1, 1, 2, 1, 1, 1, 1, 0, 1],
+      };
+    }
+    return null;
+  }),
+  getFilterOptions: vi.fn().mockReturnValue({
+    ratings: ["AAA", "AA+", "AA", "AA-", "A+", "A", "A-", "BBB+", "BBB", "BBB-"],
+    regions: ["Asia", "Europe", "Latam", "N America"],
+    sectors: ["Consumer", "Energy", "Technology", "Utilities"],
+    creditTrends: ["POS", "STA", "NEG"],
+    recommendations: ["OW", "MW", "UW"],
+    countries: ["US", "UK", "Japan"],
+  }),
+  getBondsSummary: vi.fn().mockReturnValue({
+    totalBonds: 702,
+    totalIssuers: 701,
+    avgYield: 5.12,
+    avgSpread: 120.5,
+    avgDuration: 5.8,
+    totalOutstanding: 500000,
+    ratingDistribution: { "AA+": 50, "A": 100, "BBB+": 200, "BBB": 150 },
+    regionDistribution: { "N America": 300, "Europe": 200, "Asia": 100 },
+    sectorDistribution: { "Technology": 100, "Utilities": 150, "Energy": 80 },
+  }),
+}));
+
 // Mock the db module
 vi.mock("./db", () => ({
   getWatchlistByUserId: vi.fn().mockResolvedValue([
@@ -383,6 +489,88 @@ describe("stock.financials", () => {
     expect(result?.cashFlow.annual[0]).toHaveProperty("freeCashFlow");
     expect(result?.cashFlow.annual[0]).toHaveProperty("dividendsPaid");
     expect(result?.cashFlow.annual[0]).toHaveProperty("shareRepurchases");
+  });
+});
+
+describe("bonds.list", () => {
+  it("returns bond list data", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.bonds.list();
+
+    expect(result).toBeInstanceOf(Array);
+    expect(result.length).toBeGreaterThan(0);
+    expect(result[0]).toHaveProperty("ticker");
+    expect(result[0]).toHaveProperty("issuerName");
+    expect(result[0]).toHaveProperty("issuerSlug");
+    expect(result[0]).toHaveProperty("rating");
+    expect(result[0]).toHaveProperty("yieldToMaturity");
+    expect(result[0]).toHaveProperty("duration");
+    expect(result[0]).toHaveProperty("oasSpread");
+    expect(result[0]).toHaveProperty("price");
+    expect(result[0]).toHaveProperty("creditTrend");
+    expect(result[0]).toHaveProperty("recommendation");
+    expect(result[0]).toHaveProperty("score");
+  });
+
+  it("accepts filter parameters", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.bonds.list({ rating: "AA+", region: "N America" });
+
+    expect(result).toBeInstanceOf(Array);
+  });
+});
+
+describe("bonds.issuer", () => {
+  it("returns issuer data for valid slug", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.bonds.issuer({ slug: "apple-inc" });
+
+    expect(result).toBeDefined();
+    expect(result?.name).toBe("APPLE INC");
+    expect(result?.rating).toBe("AA+");
+    expect(result?.creditComment).toContain("APPLE INC");
+    expect(result?.bonds).toBeInstanceOf(Array);
+    expect(result?.bonds.length).toBeGreaterThan(0);
+    expect(result?.totalDebtToEbitda).toBe(1.5);
+    expect(result?.ebitdaMargin).toBe(0.35);
+  });
+
+  it("returns null for unknown slug", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.bonds.issuer({ slug: "nonexistent" });
+
+    expect(result).toBeNull();
+  });
+});
+
+describe("bonds.filters", () => {
+  it("returns filter options", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.bonds.filters();
+
+    expect(result).toHaveProperty("ratings");
+    expect(result).toHaveProperty("regions");
+    expect(result).toHaveProperty("sectors");
+    expect(result).toHaveProperty("creditTrends");
+    expect(result).toHaveProperty("recommendations");
+    expect(result.ratings).toBeInstanceOf(Array);
+    expect(result.ratings.length).toBeGreaterThan(0);
+  });
+});
+
+describe("bonds.summary", () => {
+  it("returns summary statistics", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.bonds.summary();
+
+    expect(result).toHaveProperty("totalBonds", 702);
+    expect(result).toHaveProperty("totalIssuers", 701);
+    expect(result).toHaveProperty("avgYield");
+    expect(result).toHaveProperty("avgSpread");
+    expect(result).toHaveProperty("avgDuration");
+    expect(result).toHaveProperty("ratingDistribution");
+    expect(result).toHaveProperty("regionDistribution");
+    expect(result).toHaveProperty("sectorDistribution");
   });
 });
 
