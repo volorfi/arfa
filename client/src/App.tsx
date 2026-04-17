@@ -32,6 +32,7 @@ import Disclaimer from "./pages/Disclaimer";
 import CookieNotice from "./pages/CookieNotice";
 import Contact from "./pages/Contact";
 import { LineChart, Calculator, BarChart3 } from "lucide-react";
+import CookieConsent from "./components/CookieConsent";
 
 function Router() {
   return (
@@ -86,6 +87,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
+          <CookieConsent />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

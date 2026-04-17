@@ -128,3 +128,11 @@
 - [x] Add all legal/info page routes to App.tsx
 - [x] Integrate Footer into AppLayout on all pages
 - [x] Style footer modern and clean
+
+## Cookie Consent Banner (GDPR)
+- [x] Create CookieConsent component with accept/decline buttons
+- [x] Store user preference in localStorage
+- [x] Show banner only on first visit (or until user makes a choice)
+- [x] Link to Cookie Notice page from the banner
+- [x] Modern, non-intrusive design matching site theme
+- [x] Integrate into App.tsx so it appears on all pages
