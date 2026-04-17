@@ -37,8 +37,10 @@ import {
   queryNewsSources,
   queryNewsCategories,
   scrapeAllNews,
+  cleanupOldArticles,
 } from "./newsService";
 import { analyzeUnprocessedArticles, getSentimentStats } from "./sentimentService";
+import { getSentimentAggregation } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -225,6 +227,7 @@ export const appRouter = router({
         category: z.string().optional(),
         search: z.string().optional(),
         sentiment: z.enum(["bullish", "bearish", "neutral"]).optional(),
+        articleType: z.enum(["news", "blog"]).optional(),
         dateFrom: z.string().optional(),
         dateTo: z.string().optional(),
         page: z.number().optional(),
@@ -244,7 +247,6 @@ export const appRouter = router({
 
     scrape: protectedProcedure.mutation(async () => {
       const count = await scrapeAllNews();
-      // Run sentiment analysis on newly scraped articles
       const analyzed = await analyzeUnprocessedArticles();
       return { success: true, articlesProcessed: count, sentimentAnalyzed: analyzed };
     }),
@@ -254,10 +256,40 @@ export const appRouter = router({
       return { success: true, articlesAnalyzed: count };
     }),
 
+    cleanup: protectedProcedure.mutation(async () => {
+      const deleted = await cleanupOldArticles();
+      return { success: true, articlesDeleted: deleted };
+    }),
+
     sentimentStats: publicProcedure
-      .input(z.object({ ticker: z.string().optional() }).optional())
+      .input(z.object({
+        ticker: z.string().optional(),
+        articleType: z.enum(["news", "blog"]).optional(),
+      }).optional())
       .query(async ({ input }) => {
         return getSentimentStats(input?.ticker);
+      }),
+
+    sentimentDashboard: publicProcedure
+      .input(z.object({
+        articleType: z.enum(["news", "blog"]).optional(),
+        period: z.enum(["today", "week", "month", "all"]).default("week"),
+      }).optional())
+      .query(async ({ input }) => {
+        const period = input?.period || "week";
+        let dateFrom: Date | undefined;
+        const now = new Date();
+        if (period === "today") {
+          dateFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        } else if (period === "week") {
+          dateFrom = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        } else if (period === "month") {
+          dateFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        }
+        return getSentimentAggregation({
+          articleType: input?.articleType,
+          dateFrom,
+        });
       }),
   }),
 

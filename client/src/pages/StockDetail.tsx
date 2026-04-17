@@ -23,6 +23,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Minus,
+  BookOpen,
+  LayoutGrid,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -664,6 +666,7 @@ function StockNewsTab({ symbol }: { symbol: string }) {
   const [searchInput, setSearchInput] = useState("");
   const [source, setSource] = useState("");
   const [sentiment, setSentiment] = useState("");
+  const [articleType, setArticleType] = useState<"" | "news" | "blog">("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
@@ -674,12 +677,13 @@ function StockNewsTab({ symbol }: { symbol: string }) {
       search: search || undefined,
       source: source || undefined,
       sentiment: (sentiment || undefined) as "bullish" | "bearish" | "neutral" | undefined,
+      articleType: (articleType || undefined) as "news" | "blog" | undefined,
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
       page,
       pageSize: NEWS_PAGE_SIZE,
     }),
-    [symbol, search, source, sentiment, dateFrom, dateTo, page]
+    [symbol, search, source, sentiment, articleType, dateFrom, dateTo, page]
   );
 
   const { data, isLoading } = trpc.news.list.useQuery(queryInput);
@@ -705,6 +709,37 @@ function StockNewsTab({ symbol }: { symbol: string }) {
 
   return (
     <div>
+      {/* Type Toggle: All / News / Blogs */}
+      <div className="flex items-center gap-1 mb-4 bg-muted/50 p-1 rounded-lg w-fit">
+        <button
+          onClick={() => { setArticleType(""); setPage(1); }}
+          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-all ${
+            articleType === "" ? "bg-background text-foreground font-semibold shadow-sm" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <LayoutGrid className="h-3.5 w-3.5" />
+          All
+        </button>
+        <button
+          onClick={() => { setArticleType("news"); setPage(1); }}
+          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-all ${
+            articleType === "news" ? "bg-background text-foreground font-semibold shadow-sm" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Globe className="h-3.5 w-3.5" />
+          News
+        </button>
+        <button
+          onClick={() => { setArticleType("blog"); setPage(1); }}
+          className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-all ${
+            articleType === "blog" ? "bg-background text-foreground font-semibold shadow-sm" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <BookOpen className="h-3.5 w-3.5" />
+          Blogs
+        </button>
+      </div>
+
       {/* Sentiment Summary */}
       {sentimentStats && sentimentStats.total > 0 && (
         <div className="flex items-center gap-2.5 mb-4 p-3 bg-card border border-border rounded-lg">
@@ -897,6 +932,12 @@ function StockNewsTab({ symbol }: { symbol: string }) {
                 )}
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <SentimentBadge sentiment={article.sentiment as SentimentType} />
+                  {(article as any).articleType === "blog" && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/20">
+                      <BookOpen className="h-2.5 w-2.5" />
+                      Blog
+                    </span>
+                  )}
                   <span className="text-[11px] font-medium text-primary/80 bg-primary/8 px-1.5 py-0.5 rounded">
                     {article.source}
                   </span>

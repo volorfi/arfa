@@ -165,3 +165,18 @@
 - [x] Add proper responsive containers for all charts on macro pages (verified: all charts use fixed-height wrapper + ResponsiveContainer)
 - [x] All Countries page: indicator selector above map + summary table below with sorting, search, and links to country pages
 - [x] Cross-link macroeconomics and sovereign bonds sections (bond detail -> macro country, macro country -> sovereign bonds, footer link)
+
+## News Section Overhaul
+- [x] Add RSS feeds from financial blogs (sources from finviz.com/news.ashx - Seeking Alpha, Motley Fool, Benzinga, etc.)
+- [x] Blog articles: extract tickers and match to company pages (same logic as news)
+- [x] Blog articles: apply same sentiment analysis as news
+- [x] Add news/blog type field to distinguish news vs blogs
+- [x] Auto-delete news/blogs older than 90 days to control data volume
+- [x] Update blog feeds 3x daily (same schedule as news)
+- [x] News page tabs: All News&Blogs, World News, Blogs
+- [x] Sentiment analytics dashboard on each tab with creative visualizations
+- [x] Dashboard: aggregated sentiment by assets/sectors/tickers (today + weekly)
+- [x] Dashboard: bubble chart or creative visualization for sentiment distribution
+- [x] Dashboard: ticker mentions and keyword frequency visualization
+- [x] Integrate blogs into stock detail page News tab (same ticker matching)
+- [x] Toggle to switch between news, blogs, or all combined

@@ -14,6 +14,10 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Globe,
+  BookOpen,
+  LayoutGrid,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,44 +28,437 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  ResponsiveContainer,
+  Treemap,
+  Tooltip as RechartsTooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Cell,
+  ScatterChart,
+  Scatter,
+  ZAxis,
+} from "recharts";
 
 const PAGE_SIZE = 30;
 
 type SentimentType = "bullish" | "bearish" | "neutral" | null;
+type TabType = "all" | "world" | "blogs";
+type DashboardPeriod = "today" | "week" | "month" | "all";
 
 const SENTIMENT_CONFIG = {
   bullish: {
     label: "Bullish",
     icon: TrendingUp,
     className: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    color: "#10b981",
   },
   bearish: {
     label: "Bearish",
     icon: TrendingDown,
     className: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20",
+    color: "#ef4444",
   },
   neutral: {
     label: "Neutral",
     icon: Minus,
     className: "bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/20",
+    color: "#64748b",
   },
 } as const;
+
+const TAB_CONFIG = [
+  { key: "all" as TabType, label: "All News & Blogs", icon: LayoutGrid },
+  { key: "world" as TabType, label: "World News", icon: Globe },
+  { key: "blogs" as TabType, label: "Blogs", icon: BookOpen },
+];
 
 function SentimentBadge({ sentiment }: { sentiment: SentimentType }) {
   if (!sentiment || !SENTIMENT_CONFIG[sentiment]) return null;
   const config = SENTIMENT_CONFIG[sentiment];
   const Icon = config.icon;
   return (
-    <span
-      className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border ${config.className}`}
-    >
+    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border ${config.className}`}>
       <Icon className="h-2.5 w-2.5" />
       {config.label}
     </span>
   );
 }
 
+function ArticleTypeBadge({ type }: { type: string }) {
+  if (type === "blog") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/20">
+        <BookOpen className="h-2.5 w-2.5" />
+        Blog
+      </span>
+    );
+  }
+  return null;
+}
+
+function formatTimeAgo(dateStr: string | Date): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+// ─── Sentiment Dashboard Component ───────────────────────────────────────
+
+function SentimentDashboard({ tab, period, onPeriodChange }: {
+  tab: TabType;
+  period: DashboardPeriod;
+  onPeriodChange: (p: DashboardPeriod) => void;
+}) {
+  const articleType = tab === "blogs" ? "blog" as const : tab === "world" ? "news" as const : undefined;
+  const { data, isLoading } = trpc.news.sentimentDashboard.useQuery({ articleType, period });
+
+  if (isLoading) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-4 mb-5">
+        <div className="h-6 w-48 bg-muted rounded animate-pulse mb-4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="h-[250px] bg-muted rounded animate-pulse" />
+          <div className="h-[250px] bg-muted rounded animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const { byTicker, bySource, byCategory, bySentiment } = data;
+  const totalSentiment = bySentiment.bullish + bySentiment.bearish + bySentiment.neutral;
+
+  // Bubble chart data for tickers
+  const bubbleData = byTicker.slice(0, 20).map((t) => {
+    const score = t.total > 0 ? (t.bullish - t.bearish) / t.total : 0;
+    return {
+      name: t.ticker,
+      x: score,
+      y: t.total,
+      z: t.total,
+      bullish: t.bullish,
+      bearish: t.bearish,
+      neutral: t.neutral,
+      fill: score > 0.15 ? "#10b981" : score < -0.15 ? "#ef4444" : "#64748b",
+    };
+  });
+
+  // Category treemap data
+  const treemapData = byCategory.map((c) => {
+    const score = c.total > 0 ? (c.bullish - c.bearish) / c.total : 0;
+    return {
+      name: c.category,
+      size: c.total,
+      bullish: c.bullish,
+      bearish: c.bearish,
+      neutral: c.neutral,
+      fill: score > 0.15 ? "#10b981" : score < -0.15 ? "#ef4444" : "#64748b",
+    };
+  });
+
+  // Source bar chart data
+  const sourceBarData = bySource.slice(0, 10).map((s) => ({
+    name: s.source.length > 15 ? s.source.substring(0, 14) + "..." : s.source,
+    fullName: s.source,
+    bullish: s.bullish,
+    bearish: s.bearish,
+    neutral: s.neutral,
+  }));
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 mb-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold text-foreground">Sentiment Analytics</h2>
+        </div>
+        <div className="flex items-center gap-1">
+          {(["today", "week", "month", "all"] as DashboardPeriod[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => onPeriodChange(p)}
+              className={`text-[11px] px-2.5 py-1 rounded-md transition-colors ${
+                period === p
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              {p === "today" ? "Today" : p === "week" ? "7 Days" : p === "month" ? "30 Days" : "All Time"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Overall Sentiment Ring + Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
+        <div className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg">
+          <div className="relative w-16 h-16">
+            <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
+              <circle cx="18" cy="18" r="14" fill="none" stroke="currentColor" className="text-muted" strokeWidth="3" />
+              {totalSentiment > 0 && (
+                <>
+                  <circle cx="18" cy="18" r="14" fill="none" stroke="#10b981" strokeWidth="3"
+                    strokeDasharray={`${(bySentiment.bullish / totalSentiment) * 88} 88`} strokeDashoffset="0" />
+                  <circle cx="18" cy="18" r="14" fill="none" stroke="#64748b" strokeWidth="3"
+                    strokeDasharray={`${(bySentiment.neutral / totalSentiment) * 88} 88`}
+                    strokeDashoffset={`${-(bySentiment.bullish / totalSentiment) * 88}`} />
+                  <circle cx="18" cy="18" r="14" fill="none" stroke="#ef4444" strokeWidth="3"
+                    strokeDasharray={`${(bySentiment.bearish / totalSentiment) * 88} 88`}
+                    strokeDashoffset={`${-((bySentiment.bullish + bySentiment.neutral) / totalSentiment) * 88}`} />
+                </>
+              )}
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-xs font-bold text-foreground">{totalSentiment}</span>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-xs text-muted-foreground">Bullish</span>
+              <span className="text-xs font-semibold text-foreground">{bySentiment.bullish}</span>
+              <span className="text-[10px] text-muted-foreground">
+                ({totalSentiment > 0 ? Math.round((bySentiment.bullish / totalSentiment) * 100) : 0}%)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-slate-500" />
+              <span className="text-xs text-muted-foreground">Neutral</span>
+              <span className="text-xs font-semibold text-foreground">{bySentiment.neutral}</span>
+              <span className="text-[10px] text-muted-foreground">
+                ({totalSentiment > 0 ? Math.round((bySentiment.neutral / totalSentiment) * 100) : 0}%)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-500" />
+              <span className="text-xs text-muted-foreground">Bearish</span>
+              <span className="text-xs font-semibold text-foreground">{bySentiment.bearish}</span>
+              <span className="text-[10px] text-muted-foreground">
+                ({totalSentiment > 0 ? Math.round((bySentiment.bearish / totalSentiment) * 100) : 0}%)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Top 3 Bullish Tickers */}
+        <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-lg">
+          <div className="flex items-center gap-1.5 mb-2">
+            <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Most Bullish</span>
+          </div>
+          <div className="space-y-1.5">
+            {byTicker
+              .filter((t) => t.bullish > 0)
+              .sort((a, b) => (b.total > 0 ? b.bullish / b.total : 0) - (a.total > 0 ? a.bullish / a.total : 0))
+              .slice(0, 3)
+              .map((t) => (
+                <div key={t.ticker} className="flex items-center justify-between">
+                  <Link href={`/stocks/${t.ticker}`} className="text-xs font-medium text-foreground hover:text-primary">
+                    {t.ticker}
+                  </Link>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                    {t.total > 0 ? Math.round((t.bullish / t.total) * 100) : 0}% bull
+                  </span>
+                </div>
+              ))}
+            {byTicker.filter((t) => t.bullish > 0).length === 0 && (
+              <span className="text-[10px] text-muted-foreground">No data</span>
+            )}
+          </div>
+        </div>
+
+        {/* Top 3 Bearish Tickers */}
+        <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-lg">
+          <div className="flex items-center gap-1.5 mb-2">
+            <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+            <span className="text-[11px] font-semibold text-red-600 dark:text-red-400">Most Bearish</span>
+          </div>
+          <div className="space-y-1.5">
+            {byTicker
+              .filter((t) => t.bearish > 0)
+              .sort((a, b) => (b.total > 0 ? b.bearish / b.total : 0) - (a.total > 0 ? a.bearish / a.total : 0))
+              .slice(0, 3)
+              .map((t) => (
+                <div key={t.ticker} className="flex items-center justify-between">
+                  <Link href={`/stocks/${t.ticker}`} className="text-xs font-medium text-foreground hover:text-primary">
+                    {t.ticker}
+                  </Link>
+                  <span className="text-[10px] text-red-600 dark:text-red-400 font-semibold">
+                    {t.total > 0 ? Math.round((t.bearish / t.total) * 100) : 0}% bear
+                  </span>
+                </div>
+              ))}
+            {byTicker.filter((t) => t.bearish > 0).length === 0 && (
+              <span className="text-[10px] text-muted-foreground">No data</span>
+            )}
+          </div>
+        </div>
+
+        {/* Most Mentioned */}
+        <div className="p-3 bg-primary/5 border border-primary/10 rounded-lg">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Tag className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[11px] font-semibold text-primary">Most Mentioned</span>
+          </div>
+          <div className="space-y-1.5">
+            {byTicker.slice(0, 5).map((t) => (
+              <div key={t.ticker} className="flex items-center justify-between">
+                <Link href={`/stocks/${t.ticker}`} className="text-xs font-medium text-foreground hover:text-primary">
+                  {t.ticker}
+                </Link>
+                <span className="text-[10px] text-muted-foreground font-semibold">
+                  {t.total} mentions
+                </span>
+              </div>
+            ))}
+            {byTicker.length === 0 && (
+              <span className="text-[10px] text-muted-foreground">No data</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Ticker Sentiment Bubble Chart */}
+        <div className="bg-muted/20 border border-border/50 rounded-lg p-3">
+          <h3 className="text-xs font-semibold text-foreground mb-2">Ticker Sentiment Map</h3>
+          <p className="text-[10px] text-muted-foreground mb-2">Bubble size = mention count, X = sentiment score (-1 bearish to +1 bullish)</p>
+          {bubbleData.length > 0 ? (
+            <div className="h-[220px]" style={{ minWidth: "200px" }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
+                  <XAxis type="number" dataKey="x" domain={[-1, 1]} tickCount={5}
+                    tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                    label={{ value: "Sentiment Score", position: "bottom", offset: 0, style: { fontSize: 10, fill: "var(--muted-foreground)" } }} />
+                  <YAxis type="number" dataKey="y"
+                    tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                    label={{ value: "Mentions", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: "var(--muted-foreground)" } }} />
+                  <ZAxis type="number" dataKey="z" range={[40, 400]} />
+                  <RechartsTooltip
+                    content={({ payload }) => {
+                      if (!payload?.[0]) return null;
+                      const d = payload[0].payload;
+                      return (
+                        <div className="bg-popover text-popover-foreground border border-border rounded-lg p-2 shadow-lg text-xs">
+                          <div className="font-semibold mb-1">{d.name}</div>
+                          <div className="text-emerald-500">Bullish: {d.bullish}</div>
+                          <div className="text-red-500">Bearish: {d.bearish}</div>
+                          <div className="text-slate-500">Neutral: {d.neutral}</div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Scatter data={bubbleData}>
+                    {bubbleData.map((entry, i) => (
+                      <Cell key={i} fill={entry.fill} fillOpacity={0.7} stroke={entry.fill} strokeWidth={1} />
+                    ))}
+                  </Scatter>
+                </ScatterChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">No ticker data available</div>
+          )}
+        </div>
+
+        {/* Source Sentiment Stacked Bar Chart */}
+        <div className="bg-muted/20 border border-border/50 rounded-lg p-3">
+          <h3 className="text-xs font-semibold text-foreground mb-2">Sentiment by Source</h3>
+          <p className="text-[10px] text-muted-foreground mb-2">Stacked bar: bullish / neutral / bearish per source</p>
+          {sourceBarData.length > 0 ? (
+            <div className="h-[220px]" style={{ minWidth: "200px" }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={sourceBarData} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+                  <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+                  <RechartsTooltip
+                    content={({ payload, label }) => {
+                      if (!payload?.length) return null;
+                      const d = payload[0]?.payload;
+                      return (
+                        <div className="bg-popover text-popover-foreground border border-border rounded-lg p-2 shadow-lg text-xs">
+                          <div className="font-semibold mb-1">{d?.fullName || label}</div>
+                          <div className="text-emerald-500">Bullish: {d?.bullish}</div>
+                          <div className="text-slate-500">Neutral: {d?.neutral}</div>
+                          <div className="text-red-500">Bearish: {d?.bearish}</div>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="bullish" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="neutral" stackId="a" fill="#64748b" />
+                  <Bar dataKey="bearish" stackId="a" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">No source data available</div>
+          )}
+        </div>
+      </div>
+
+      {/* Category Treemap */}
+      {treemapData.length > 0 && (
+        <div className="mt-4 bg-muted/20 border border-border/50 rounded-lg p-3">
+          <h3 className="text-xs font-semibold text-foreground mb-2">Category Sentiment Treemap</h3>
+          <p className="text-[10px] text-muted-foreground mb-2">
+            Size = article count. Color: <span className="text-emerald-500">green</span> = bullish, <span className="text-slate-500">gray</span> = neutral, <span className="text-red-500">red</span> = bearish
+          </p>
+          <div className="h-[180px]" style={{ minWidth: "200px" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <Treemap
+                data={treemapData}
+                dataKey="size"
+                aspectRatio={4 / 3}
+                stroke="var(--background)"
+                content={<TreemapCell />}
+              />
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TreemapCell(props: any) {
+  const { x, y, width, height, name, fill } = props;
+  if (!width || !height || width < 30 || height < 20) return null;
+  return (
+    <g>
+      <rect x={x} y={y} width={width} height={height} fill={fill} fillOpacity={0.25} stroke={fill} strokeWidth={1} rx={4} />
+      {width > 50 && height > 25 && (
+        <text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="central"
+          fill="currentColor" fontSize={11} fontWeight={600}>
+          {name}
+        </text>
+      )}
+    </g>
+  );
+}
+
+// ─── Main News Page ──────────────────────────────────────────────────────
+
 export default function News() {
+  const [activeTab, setActiveTab] = useState<TabType>("all");
+  const [showDashboard, setShowDashboard] = useState(true);
+  const [dashboardPeriod, setDashboardPeriod] = useState<DashboardPeriod>("week");
   const [source, setSource] = useState<string>("");
   const [category, setCategory] = useState<string>("");
   const [sentiment, setSentiment] = useState<string>("");
@@ -72,11 +469,19 @@ export default function News() {
   const [dateTo, setDateTo] = useState<string>("");
   const [page, setPage] = useState(1);
 
+  // Map tab to articleType filter
+  const articleTypeFilter = useMemo(() => {
+    if (activeTab === "blogs") return "blog" as const;
+    if (activeTab === "world") return "news" as const;
+    return undefined;
+  }, [activeTab]);
+
   const queryInput = useMemo(
     () => ({
       source: source || undefined,
       category: category || undefined,
       sentiment: (sentiment || undefined) as "bullish" | "bearish" | "neutral" | undefined,
+      articleType: articleTypeFilter,
       ticker: ticker || undefined,
       search: search || undefined,
       dateFrom: dateFrom || undefined,
@@ -84,7 +489,7 @@ export default function News() {
       page,
       pageSize: PAGE_SIZE,
     }),
-    [source, category, sentiment, ticker, search, dateFrom, dateTo, page]
+    [source, category, sentiment, articleTypeFilter, ticker, search, dateFrom, dateTo, page]
   );
 
   const { data, isLoading } = trpc.news.list.useQuery(queryInput);
@@ -115,31 +520,58 @@ export default function News() {
 
   const hasFilters = source || category || sentiment || ticker || search || dateFrom || dateTo;
 
-  function formatTimeAgo(dateStr: string | Date): string {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  }
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setPage(1);
+  };
 
   return (
     <div className="min-h-screen">
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         {/* Header */}
-        <div className="flex items-center gap-2 mb-5">
-          <Newspaper className="h-5 w-5 text-primary" />
-          <h1 className="text-xl font-bold text-foreground">Market News</h1>
-          <span className="text-xs text-muted-foreground ml-2">
-            {total > 0 && `${total.toLocaleString()} articles`}
-          </span>
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <Newspaper className="h-5 w-5 text-primary" />
+            <h1 className="text-xl font-bold text-foreground">Market News & Blogs</h1>
+            <span className="text-xs text-muted-foreground ml-2">
+              {total > 0 && `${total.toLocaleString()} articles`}
+            </span>
+          </div>
+          <button
+            onClick={() => setShowDashboard(!showDashboard)}
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-colors ${
+              showDashboard
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+            Analytics
+          </button>
         </div>
+
+        {/* Tabs */}
+        <div className="flex items-center gap-1 mb-5 bg-muted/50 p-1 rounded-lg w-fit">
+          {TAB_CONFIG.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => handleTabChange(key)}
+              className={`flex items-center gap-1.5 text-xs px-4 py-2 rounded-md transition-all ${
+                activeTab === key
+                  ? "bg-background text-foreground font-semibold shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Sentiment Dashboard (collapsible) */}
+        {showDashboard && (
+          <SentimentDashboard tab={activeTab} period={dashboardPeriod} onPeriodChange={setDashboardPeriod} />
+        )}
 
         {/* Sentiment Summary Bar */}
         {sentimentStats && sentimentStats.total > 0 && (
@@ -185,22 +617,13 @@ export default function News() {
             <div className="flex-1 ml-2">
               <div className="flex h-2 rounded-full overflow-hidden bg-muted">
                 {sentimentStats.bullish > 0 && (
-                  <div
-                    className="bg-emerald-500 transition-all"
-                    style={{ width: `${(sentimentStats.bullish / sentimentStats.total) * 100}%` }}
-                  />
+                  <div className="bg-emerald-500 transition-all" style={{ width: `${(sentimentStats.bullish / sentimentStats.total) * 100}%` }} />
                 )}
                 {sentimentStats.neutral > 0 && (
-                  <div
-                    className="bg-slate-400 transition-all"
-                    style={{ width: `${(sentimentStats.neutral / sentimentStats.total) * 100}%` }}
-                  />
+                  <div className="bg-slate-400 transition-all" style={{ width: `${(sentimentStats.neutral / sentimentStats.total) * 100}%` }} />
                 )}
                 {sentimentStats.bearish > 0 && (
-                  <div
-                    className="bg-red-500 transition-all"
-                    style={{ width: `${(sentimentStats.bearish / sentimentStats.total) * 100}%` }}
-                  />
+                  <div className="bg-red-500 transition-all" style={{ width: `${(sentimentStats.bearish / sentimentStats.total) * 100}%` }} />
                 )}
               </div>
             </div>
@@ -213,10 +636,7 @@ export default function News() {
             <Filter className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">Filters</span>
             {hasFilters && (
-              <button
-                onClick={clearFilters}
-                className="ml-auto text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-              >
+              <button onClick={clearFilters} className="ml-auto text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
                 <X className="h-3 w-3" />
                 Clear all
               </button>
@@ -233,136 +653,61 @@ export default function News() {
                     placeholder="Search headlines..."
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSearch();
-                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
                     className="pl-8 h-9 text-sm"
                   />
                 </div>
-                <Button size="sm" onClick={handleSearch} className="h-9 px-4">
-                  Search
-                </Button>
+                <Button size="sm" onClick={handleSearch} className="h-9 px-4">Search</Button>
               </div>
             </div>
 
             {/* Source filter */}
-            <Select
-              value={source}
-              onValueChange={(v) => {
-                setSource(v === "all" ? "" : v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="All Sources" />
-              </SelectTrigger>
+            <Select value={source} onValueChange={(v) => { setSource(v === "all" ? "" : v); setPage(1); }}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="All Sources" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Sources</SelectItem>
-                {sources?.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
+                {sources?.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
               </SelectContent>
             </Select>
 
             {/* Category filter */}
-            <Select
-              value={category}
-              onValueChange={(v) => {
-                setCategory(v === "all" ? "" : v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
+            <Select value={category} onValueChange={(v) => { setCategory(v === "all" ? "" : v); setPage(1); }}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="All Categories" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {categories?.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
+                {categories?.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
               </SelectContent>
             </Select>
 
             {/* Sentiment filter */}
-            <Select
-              value={sentiment}
-              onValueChange={(v) => {
-                setSentiment(v === "all" ? "" : v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="All Sentiment" />
-              </SelectTrigger>
+            <Select value={sentiment} onValueChange={(v) => { setSentiment(v === "all" ? "" : v); setPage(1); }}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="All Sentiment" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Sentiment</SelectItem>
-                <SelectItem value="bullish">
-                  <span className="flex items-center gap-1.5">
-                    <TrendingUp className="h-3 w-3 text-emerald-500" />
-                    Bullish
-                  </span>
-                </SelectItem>
-                <SelectItem value="bearish">
-                  <span className="flex items-center gap-1.5">
-                    <TrendingDown className="h-3 w-3 text-red-500" />
-                    Bearish
-                  </span>
-                </SelectItem>
-                <SelectItem value="neutral">
-                  <span className="flex items-center gap-1.5">
-                    <Minus className="h-3 w-3 text-slate-500" />
-                    Neutral
-                  </span>
-                </SelectItem>
+                <SelectItem value="bullish"><span className="flex items-center gap-1.5"><TrendingUp className="h-3 w-3 text-emerald-500" />Bullish</span></SelectItem>
+                <SelectItem value="bearish"><span className="flex items-center gap-1.5"><TrendingDown className="h-3 w-3 text-red-500" />Bearish</span></SelectItem>
+                <SelectItem value="neutral"><span className="flex items-center gap-1.5"><Minus className="h-3 w-3 text-slate-500" />Neutral</span></SelectItem>
               </SelectContent>
             </Select>
 
             {/* Ticker filter */}
             <div className="relative">
               <Tag className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Ticker (e.g. AAPL)"
-                value={ticker}
-                onChange={(e) => {
-                  setTicker(e.target.value.toUpperCase());
-                  setPage(1);
-                }}
-                className="pl-8 h-9 text-sm"
-              />
+              <Input placeholder="Ticker (e.g. AAPL)" value={ticker} onChange={(e) => { setTicker(e.target.value.toUpperCase()); setPage(1); }} className="pl-8 h-9 text-sm" />
             </div>
 
             {/* Date from */}
             <div className="relative">
               <Clock className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => {
-                  setDateFrom(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full h-9 pl-8 pr-3 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="From date"
-              />
+              <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+                className="w-full h-9 pl-8 pr-3 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
             </div>
 
             {/* Date to */}
             <div className="relative">
               <Clock className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => {
-                  setDateTo(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full h-9 pl-8 pr-3 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="To date"
-              />
+              <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+                className="w-full h-9 pl-8 pr-3 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
             </div>
           </div>
         </div>
@@ -385,7 +730,7 @@ export default function News() {
               <p className="text-sm text-muted-foreground">
                 {hasFilters
                   ? "No articles match your filters. Try adjusting your search criteria."
-                  : "No news articles yet. Articles will appear after the next scheduled scrape."}
+                  : "No articles yet. Articles will appear after the next scheduled scrape."}
               </p>
             </div>
           ) : (
@@ -407,33 +752,22 @@ export default function News() {
                         </h3>
                       </div>
                       {article.summary && (
-                        <p className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">
-                          {article.summary}
-                        </p>
+                        <p className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">{article.summary}</p>
                       )}
                       <div className="flex items-center gap-2.5 flex-wrap">
                         <SentimentBadge sentiment={article.sentiment as SentimentType} />
-                        <span className="text-[11px] font-medium text-primary/80 bg-primary/8 px-1.5 py-0.5 rounded">
-                          {article.source}
-                        </span>
+                        <ArticleTypeBadge type={(article as any).articleType || "news"} />
+                        <span className="text-[11px] font-medium text-primary/80 bg-primary/8 px-1.5 py-0.5 rounded">{article.source}</span>
                         {article.category && (
-                          <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                            {article.category}
-                          </span>
+                          <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{article.category}</span>
                         )}
-                        <span className="text-[11px] text-muted-foreground">
-                          {formatTimeAgo(article.publishedAt)}
-                        </span>
+                        <span className="text-[11px] text-muted-foreground">{formatTimeAgo(article.publishedAt)}</span>
                         {article.tickers && (
                           <div className="flex gap-1">
                             {article.tickers.split(",").slice(0, 5).map((t) => (
                               <span
                                 key={t}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  window.location.href = `/stocks/${t}`;
-                                }}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/stocks/${t}`; }}
                                 className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded font-medium hover:bg-primary/20 cursor-pointer"
                               >
                                 {t}
@@ -452,29 +786,13 @@ export default function News() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-muted/30">
-              <span className="text-xs text-muted-foreground">
-                Page {page} of {totalPages}
-              </span>
+              <span className="text-xs text-muted-foreground">Page {page} of {totalPages}</span>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1}
-                  className="h-8 px-3 text-xs"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5 mr-1" />
-                  Previous
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="h-8 px-3 text-xs">
+                  <ChevronLeft className="h-3.5 w-3.5 mr-1" />Previous
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages}
-                  className="h-8 px-3 text-xs"
-                >
-                  Next
-                  <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="h-8 px-3 text-xs">
+                  Next<ChevronRight className="h-3.5 w-3.5 ml-1" />
                 </Button>
               </div>
             </div>

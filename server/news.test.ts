@@ -136,6 +136,9 @@ vi.mock("./newsService", () => ({
     if (opts.sentiment) {
       filtered = filtered.filter((a) => a.sentiment === opts.sentiment);
     }
+    if (opts.articleType) {
+      filtered = filtered.filter((a) => (a as any).articleType === opts.articleType);
+    }
     if (opts.search) {
       const s = opts.search.toLowerCase();
       filtered = filtered.filter(
@@ -162,6 +165,7 @@ vi.mock("./newsService", () => ({
   queryNewsSources: vi.fn().mockResolvedValue(["Bloomberg", "CNBC", "Reuters", "Yahoo Finance"]),
   queryNewsCategories: vi.fn().mockResolvedValue(["Commodities", "Earnings", "Economy", "Markets"]),
   scrapeAllNews: vi.fn().mockResolvedValue(50),
+  cleanupOldArticles: vi.fn().mockResolvedValue(5),
 }));
 
 vi.mock("./sentimentService", () => ({
@@ -193,6 +197,21 @@ vi.mock("./db", () => ({
   isInWatchlist: vi.fn().mockResolvedValue(false),
   upsertUser: vi.fn().mockResolvedValue(undefined),
   getUserByOpenId: vi.fn().mockResolvedValue(undefined),
+  getSentimentAggregation: vi.fn().mockResolvedValue({
+    byTicker: [
+      { ticker: "AAPL", bullish: 2, bearish: 1, neutral: 0, total: 3 },
+      { ticker: "TSLA", bullish: 1, bearish: 0, neutral: 0, total: 1 },
+    ],
+    bySource: [
+      { source: "Bloomberg", bullish: 1, bearish: 1, neutral: 0, total: 2 },
+      { source: "Reuters", bullish: 1, bearish: 1, neutral: 0, total: 2 },
+    ],
+    byCategory: [
+      { category: "Markets", bullish: 2, bearish: 1, neutral: 0, total: 3 },
+      { category: "Earnings", bullish: 1, bearish: 0, neutral: 0, total: 1 },
+    ],
+    bySentiment: { bullish: 3, bearish: 2, neutral: 1 },
+  }),
 }));
 
 function createPublicContext(): TrpcContext {
@@ -507,5 +526,119 @@ describe("news.analyzeSentiment", () => {
 
     expect(result.success).toBe(true);
     expect(result.articlesAnalyzed).toBe(10);
+  });
+});
+
+// ─── News Cleanup Tests ─────────────────────────────────────────────────
+
+describe("news.cleanup", () => {
+  it("requires authentication", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    await expect(caller.news.cleanup()).rejects.toThrow();
+  });
+
+  it("returns success with deleted count for authenticated user", async () => {
+    const caller = appRouter.createCaller(createAuthContext());
+    const result = await caller.news.cleanup();
+
+    expect(result.success).toBe(true);
+    expect(result.articlesDeleted).toBe(5);
+  });
+});
+
+// ─── Sentiment Dashboard Tests ──────────────────────────────────────────
+
+describe("news.sentimentDashboard", () => {
+  it("returns aggregated sentiment data with default period", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.sentimentDashboard({});
+
+    expect(result).toHaveProperty("byTicker");
+    expect(result).toHaveProperty("bySource");
+    expect(result).toHaveProperty("byCategory");
+    expect(result).toHaveProperty("bySentiment");
+    expect(Array.isArray(result.byTicker)).toBe(true);
+    expect(Array.isArray(result.bySource)).toBe(true);
+    expect(Array.isArray(result.byCategory)).toBe(true);
+    expect(result.bySentiment).toHaveProperty("bullish");
+    expect(result.bySentiment).toHaveProperty("bearish");
+    expect(result.bySentiment).toHaveProperty("neutral");
+  });
+
+  it("returns ticker aggregation with correct structure", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.sentimentDashboard({ period: "week" });
+
+    expect(result.byTicker.length).toBeGreaterThan(0);
+    const ticker = result.byTicker[0];
+    expect(ticker).toHaveProperty("ticker");
+    expect(ticker).toHaveProperty("bullish");
+    expect(ticker).toHaveProperty("bearish");
+    expect(ticker).toHaveProperty("neutral");
+    expect(ticker).toHaveProperty("total");
+  });
+
+  it("accepts today period", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.sentimentDashboard({ period: "today" });
+    expect(result).toHaveProperty("bySentiment");
+  });
+
+  it("accepts month period", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.sentimentDashboard({ period: "month" });
+    expect(result).toHaveProperty("bySentiment");
+  });
+
+  it("accepts all period", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.sentimentDashboard({ period: "all" });
+    expect(result).toHaveProperty("bySentiment");
+  });
+
+  it("filters by articleType blog", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.sentimentDashboard({ articleType: "blog", period: "week" });
+    expect(result).toHaveProperty("bySentiment");
+  });
+
+  it("filters by articleType news", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.sentimentDashboard({ articleType: "news", period: "week" });
+    expect(result).toHaveProperty("bySentiment");
+  });
+
+  it("works without input", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.sentimentDashboard(undefined);
+    expect(result).toHaveProperty("bySentiment");
+  });
+});
+
+// ─── ArticleType Filter Tests ───────────────────────────────────────────
+
+describe("news.list articleType filter", () => {
+  it("accepts articleType news filter", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.list({ articleType: "news" });
+    expect(result).toHaveProperty("articles");
+    expect(result).toHaveProperty("total");
+  });
+
+  it("accepts articleType blog filter", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.list({ articleType: "blog" });
+    expect(result).toHaveProperty("articles");
+    expect(result).toHaveProperty("total");
+  });
+
+  it("combines articleType with other filters", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.news.list({
+      articleType: "news",
+      sentiment: "bullish",
+      source: "Reuters",
+    });
+    expect(result).toHaveProperty("articles");
   });
 });

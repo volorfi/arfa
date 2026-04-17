@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import Parser from "rss-parser";
 import cron from "node-cron";
-import { insertNewsArticles, getNewsArticles, getNewsSources, getNewsCategories } from "./db";
+import { insertNewsArticles, getNewsArticles, getNewsSources, getNewsCategories, deleteOldArticles } from "./db";
 import type { InsertNewsArticle } from "../drizzle/schema";
 import { analyzeUnprocessedArticles } from "./sentimentService";
 
@@ -19,56 +19,180 @@ interface FeedConfig {
   url: string;
   source: string;
   category: string;
+  articleType: "news" | "blog";
 }
 
 const RSS_FEEDS: FeedConfig[] = [
+  // ─── NEWS FEEDS ───────────────────────────────────────────────────────
   // Google News - Business / Finance
   {
     url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en",
     source: "Google News",
     category: "Business",
+    articleType: "news",
   },
   // Google News - Stock Market search
   {
     url: "https://news.google.com/rss/search?q=stock+market&hl=en-US&gl=US&ceid=US:en",
     source: "Google News",
     category: "Markets",
+    articleType: "news",
   },
   // Google News - Economy
   {
     url: "https://news.google.com/rss/search?q=economy+finance&hl=en-US&gl=US&ceid=US:en",
     source: "Google News",
     category: "Economy",
+    articleType: "news",
   },
   // Google News - Earnings
   {
     url: "https://news.google.com/rss/search?q=earnings+report+quarterly&hl=en-US&gl=US&ceid=US:en",
     source: "Google News",
     category: "Earnings",
+    articleType: "news",
   },
   // Google News - Bonds & Fixed Income
   {
     url: "https://news.google.com/rss/search?q=bonds+fixed+income+treasury&hl=en-US&gl=US&ceid=US:en",
     source: "Google News",
     category: "Fixed Income",
+    articleType: "news",
   },
   // Google News - Commodities
   {
     url: "https://news.google.com/rss/search?q=oil+gold+commodities+prices&hl=en-US&gl=US&ceid=US:en",
     source: "Google News",
     category: "Commodities",
+    articleType: "news",
   },
   // Google News - IPO
   {
     url: "https://news.google.com/rss/search?q=IPO+initial+public+offering&hl=en-US&gl=US&ceid=US:en",
     source: "Google News",
     category: "IPO",
+    articleType: "news",
   },
   // Google News - Crypto
   {
     url: "https://news.google.com/rss/search?q=cryptocurrency+bitcoin+ethereum&hl=en-US&gl=US&ceid=US:en",
     source: "Google News",
     category: "Crypto",
+    articleType: "news",
+  },
+  // Google News - World / Geopolitics
+  {
+    url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp0Y1RjU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en",
+    source: "Google News",
+    category: "World",
+    articleType: "news",
+  },
+  // Google News - Technology
+  {
+    url: "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en",
+    source: "Google News",
+    category: "Technology",
+    articleType: "news",
+  },
+
+  // ─── BLOG FEEDS ───────────────────────────────────────────────────────
+  // Seeking Alpha
+  {
+    url: "https://seekingalpha.com/feed.xml",
+    source: "Seeking Alpha",
+    category: "Analysis",
+    articleType: "blog",
+  },
+  // Motley Fool
+  {
+    url: "https://www.fool.com/feeds/index.aspx",
+    source: "Motley Fool",
+    category: "Analysis",
+    articleType: "blog",
+  },
+  // Benzinga
+  {
+    url: "https://www.benzinga.com/feed",
+    source: "Benzinga",
+    category: "Markets",
+    articleType: "blog",
+  },
+  // MarketWatch Top Stories
+  {
+    url: "https://feeds.marketwatch.com/marketwatch/topstories",
+    source: "MarketWatch",
+    category: "Markets",
+    articleType: "blog",
+  },
+  // MarketWatch Bulletins
+  {
+    url: "https://feeds.marketwatch.com/marketwatch/bulletins",
+    source: "MarketWatch",
+    category: "Breaking",
+    articleType: "blog",
+  },
+  // Zero Hedge
+  {
+    url: "https://feeds.feedburner.com/zerohedge/feed",
+    source: "Zero Hedge",
+    category: "Markets",
+    articleType: "blog",
+  },
+  // Calculated Risk
+  {
+    url: "https://www.calculatedriskblog.com/feeds/posts/default?alt=rss",
+    source: "Calculated Risk",
+    category: "Economy",
+    articleType: "blog",
+  },
+  // Wolf Street
+  {
+    url: "https://wolfstreet.com/feed/",
+    source: "Wolf Street",
+    category: "Economy",
+    articleType: "blog",
+  },
+  // Abnormal Returns
+  {
+    url: "https://abnormalreturns.com/feed/",
+    source: "Abnormal Returns",
+    category: "Analysis",
+    articleType: "blog",
+  },
+  // The Reformed Broker (Josh Brown)
+  {
+    url: "https://thereformedbroker.com/feed/",
+    source: "The Reformed Broker",
+    category: "Analysis",
+    articleType: "blog",
+  },
+  // Daily Reckoning
+  {
+    url: "https://dailyreckoning.com/feed/",
+    source: "Daily Reckoning",
+    category: "Analysis",
+    articleType: "blog",
+  },
+  // Pragmatic Capitalism
+  {
+    url: "https://www.pragcap.com/feed/",
+    source: "Pragmatic Capitalism",
+    category: "Economy",
+    articleType: "blog",
+  },
+  // Financial Times blogs via Google News
+  {
+    url: "https://news.google.com/rss/search?q=site:ft.com+opinion&hl=en-US&gl=US&ceid=US:en",
+    source: "Financial Times",
+    category: "Opinion",
+    articleType: "blog",
+  },
+  // Bloomberg Opinion via Google News
+  {
+    url: "https://news.google.com/rss/search?q=site:bloomberg.com+opinion&hl=en-US&gl=US&ceid=US:en",
+    source: "Bloomberg Opinion",
+    category: "Opinion",
+    articleType: "blog",
   },
 ];
 
@@ -86,6 +210,25 @@ const KNOWN_TICKERS: Record<string, string> = {
   snowflake: "SNOW", coinbase: "COIN", robinhood: "HOOD",
   "s&p 500": "^GSPC", "s&p": "^GSPC", nasdaq: "^IXIC",
   "dow jones": "^DJI", dow: "^DJI",
+  broadcom: "AVGO", salesforce: "CRM", adobe: "ADBE",
+  "advanced micro": "AMD", qualcomm: "QCOM", micron: "MU",
+  visa: "V", mastercard: "MA", paypal: "PYPL",
+  "berkshire hathaway": "BRK-B", berkshire: "BRK-B",
+  oracle: "ORCL", ibm: "IBM", cisco: "CSCO",
+  "home depot": "HD", costco: "COST", target: "TGT",
+  nike: "NKE", starbucks: "SBUX", "mcdonald's": "MCD", mcdonalds: "MCD",
+  exxon: "XOM", chevron: "CVX", conocophillips: "COP",
+  "procter & gamble": "PG", "procter and gamble": "PG",
+  "eli lilly": "LLY", "unitedhealth": "UNH", merck: "MRK",
+  abbvie: "ABBV", amgen: "AMGN",
+  "wells fargo": "WFC", "charles schwab": "SCHW",
+  "general motors": "GM", ford: "F",
+  "at&t": "T", verizon: "VZ", "t-mobile": "TMUS",
+  crowdstrike: "CRWD", datadog: "DDOG", servicenow: "NOW",
+  shopify: "SHOP", "trade desk": "TTD",
+  rivian: "RIVN", lucid: "LCID",
+  "arm holdings": "ARM", arm: "ARM",
+  supermicro: "SMCI", dell: "DELL",
 };
 
 function extractTickers(title: string): string[] {
@@ -114,7 +257,11 @@ function extractTickers(title: string): string[] {
 
 // ─── Extract real source from Google News ─────────────────────────────────
 
-function extractRealSource(item: any): string {
+function extractRealSource(item: any, feedSource: string): string {
+  // For non-Google feeds, use the feed source directly
+  if (feedSource !== "Google News" && !feedSource.includes("via Google")) {
+    return feedSource;
+  }
   // Google News includes the real source in the <source> tag or at the end of the title
   if (item.creator) return item.creator;
   if (item["source"] && typeof item["source"] === "string") return item["source"];
@@ -125,14 +272,16 @@ function extractRealSource(item: any): string {
   if (dashIdx > 0) {
     return title.substring(dashIdx + 3).trim();
   }
-  return "Google News";
+  return feedSource;
 }
 
-function cleanTitle(title: string): string {
-  // Remove " - Source Name" suffix from Google News titles
-  const dashIdx = title.lastIndexOf(" - ");
-  if (dashIdx > 0) {
-    return title.substring(0, dashIdx).trim();
+function cleanTitle(title: string, feedSource: string): string {
+  // Only strip " - Source Name" suffix for Google News titles
+  if (feedSource === "Google News" || feedSource.includes("via Google")) {
+    const dashIdx = title.lastIndexOf(" - ");
+    if (dashIdx > 0) {
+      return title.substring(0, dashIdx).trim();
+    }
   }
   return title.trim();
 }
@@ -145,7 +294,7 @@ function extractSummary(description: string | undefined): string {
   let text = description.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ");
   // Clean up whitespace
   text = text.replace(/\s+/g, " ").trim();
-  // Limit to ~200 chars for summary
+  // Limit to ~250 chars for summary
   if (text.length > 250) {
     text = text.substring(0, 247) + "...";
   }
@@ -168,10 +317,10 @@ async function fetchFeed(config: FeedConfig): Promise<InsertNewsArticle[]> {
     for (const item of feed.items || []) {
       if (!item.title || !item.link) continue;
 
-      const realSource = extractRealSource(item);
-      const title = cleanTitle(item.title);
+      const realSource = extractRealSource(item, config.source);
+      const title = cleanTitle(item.title, config.source);
       const summary = extractSummary(item.contentSnippet || item.content || item.summary || "");
-      const tickers = extractTickers(item.title);
+      const tickers = extractTickers(item.title + " " + (item.contentSnippet || ""));
       const publishedAt = item.pubDate ? new Date(item.pubDate) : new Date();
 
       articles.push({
@@ -183,10 +332,11 @@ async function fetchFeed(config: FeedConfig): Promise<InsertNewsArticle[]> {
         tickers: tickers.length > 0 ? tickers.join(",") : null,
         publishedAt,
         urlHash: hashUrl(item.link),
+        articleType: config.articleType,
       });
     }
 
-    console.log(`[NewsService] Fetched ${articles.length} articles from ${config.source} (${config.category})`);
+    console.log(`[NewsService] Fetched ${articles.length} ${config.articleType} articles from ${config.source} (${config.category})`);
     return articles;
   } catch (error) {
     console.error(`[NewsService] Error fetching ${config.source} (${config.category}):`, error);
@@ -197,7 +347,7 @@ async function fetchFeed(config: FeedConfig): Promise<InsertNewsArticle[]> {
 // ─── Main scrape function ─────────────────────────────────────────────────
 
 export async function scrapeAllNews(): Promise<number> {
-  console.log("[NewsService] Starting news scrape...");
+  console.log("[NewsService] Starting news + blog scrape...");
   const allArticles: InsertNewsArticle[] = [];
 
   // Fetch feeds sequentially to avoid overwhelming servers
@@ -205,7 +355,7 @@ export async function scrapeAllNews(): Promise<number> {
     const articles = await fetchFeed(feedConfig);
     allArticles.push(...articles);
     // Small delay between feeds
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 300));
   }
 
   if (allArticles.length === 0) {
@@ -218,9 +368,25 @@ export async function scrapeAllNews(): Promise<number> {
   return inserted;
 }
 
+// ─── Cleanup old articles (>90 days) ──────────────────────────────────────
+
+export async function cleanupOldArticles(): Promise<number> {
+  try {
+    const deleted = await deleteOldArticles(90);
+    if (deleted > 0) {
+      console.log(`[NewsService] Cleaned up ${deleted} articles older than 90 days`);
+    }
+    return deleted;
+  } catch (error) {
+    console.error("[NewsService] Cleanup failed:", error);
+    return 0;
+  }
+}
+
 // ─── Schedule scraping 3x daily ───────────────────────────────────────────
 
 let scheduledTask: ReturnType<typeof cron.schedule> | null = null;
+let cleanupTask: ReturnType<typeof cron.schedule> | null = null;
 
 export function startNewsScheduler() {
   // Guard against duplicate registration
@@ -239,7 +405,16 @@ export function startNewsScheduler() {
     }
   });
 
-  console.log("[NewsService] Scheduler started (7:00, 13:00, 19:00 UTC)");
+  // Schedule cleanup once daily at 3:00 UTC
+  cleanupTask = cron.schedule("0 3 * * *", async () => {
+    try {
+      await cleanupOldArticles();
+    } catch (error) {
+      console.error("[NewsService] Scheduled cleanup failed:", error);
+    }
+  });
+
+  console.log("[NewsService] Scheduler started (scrape: 7:00, 13:00, 19:00 UTC | cleanup: 3:00 UTC)");
 
   // Also run an initial scrape on startup (delayed by 5 seconds)
   setTimeout(async () => {
@@ -247,6 +422,8 @@ export function startNewsScheduler() {
       await scrapeAllNews();
       // Run sentiment analysis after initial scrape
       await analyzeUnprocessedArticles();
+      // Also run cleanup on startup
+      await cleanupOldArticles();
     } catch (error) {
       console.error("[NewsService] Initial scrape failed:", error);
     }
@@ -257,8 +434,12 @@ export function stopNewsScheduler() {
   if (scheduledTask) {
     scheduledTask.stop();
     scheduledTask = null;
-    console.log("[NewsService] Scheduler stopped");
   }
+  if (cleanupTask) {
+    cleanupTask.stop();
+    cleanupTask = null;
+  }
+  console.log("[NewsService] Scheduler stopped");
 }
 
 // ─── Query functions (used by tRPC routes) ────────────────────────────────
@@ -269,6 +450,7 @@ export async function queryNews(opts: {
   category?: string;
   search?: string;
   sentiment?: string;
+  articleType?: string;
   dateFrom?: string;
   dateTo?: string;
   page?: number;
@@ -283,6 +465,7 @@ export async function queryNews(opts: {
     category: opts.category,
     search: opts.search,
     sentiment: opts.sentiment,
+    articleType: opts.articleType as "news" | "blog" | undefined,
     dateFrom: opts.dateFrom ? new Date(opts.dateFrom) : undefined,
     dateTo: opts.dateTo ? new Date(opts.dateTo) : undefined,
     limit,

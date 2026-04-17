@@ -38,6 +38,7 @@ export const newsArticles = mysqlTable("news_articles", {
   fetchedAt: timestamp("fetchedAt").defaultNow().notNull(),
   urlHash: varchar("urlHash", { length: 64 }).notNull().unique(),
   sentiment: mysqlEnum("sentiment", ["bullish", "bearish", "neutral"]),
+  articleType: mysqlEnum("articleType", ["news", "blog"]).default("news").notNull(),
 });
 
 export type NewsArticle = typeof newsArticles.$inferSelect;

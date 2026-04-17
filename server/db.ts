@@ -137,6 +137,7 @@ export async function getNewsArticles(opts: {
   category?: string;
   search?: string;
   sentiment?: string;
+  articleType?: "news" | "blog";
   dateFrom?: Date;
   dateTo?: Date;
   limit?: number;
@@ -164,6 +165,9 @@ export async function getNewsArticles(opts: {
   if (opts.sentiment && ["bullish", "bearish", "neutral"].includes(opts.sentiment)) {
     conditions.push(sql`${newsArticles.sentiment} = ${opts.sentiment}`);
   }
+  if (opts.articleType && ["news", "blog"].includes(opts.articleType)) {
+    conditions.push(eq(newsArticles.articleType, opts.articleType));
+  }
   if (opts.dateFrom) conditions.push(gte(newsArticles.publishedAt, opts.dateFrom));
   if (opts.dateTo) conditions.push(lte(newsArticles.publishedAt, opts.dateTo));
 
@@ -177,6 +181,133 @@ export async function getNewsArticles(opts: {
   ]);
 
   return { articles, total: (countResult[0]?.count ?? 0) as number };
+}
+
+export async function deleteOldArticles(daysOld: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const cutoff = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000);
+  const result = await db.delete(newsArticles).where(lte(newsArticles.publishedAt, cutoff));
+  return (result as any)[0]?.affectedRows ?? 0;
+}
+
+export async function getSentimentAggregation(opts: {
+  articleType?: "news" | "blog";
+  dateFrom?: Date;
+  dateTo?: Date;
+}) {
+  const db = await getDb();
+  if (!db) return { byTicker: [], bySource: [], byCategory: [], bySentiment: { bullish: 0, bearish: 0, neutral: 0 } };
+
+  const conditions = [];
+  if (opts.articleType) conditions.push(eq(newsArticles.articleType, opts.articleType));
+  if (opts.dateFrom) conditions.push(gte(newsArticles.publishedAt, opts.dateFrom));
+  if (opts.dateTo) conditions.push(lte(newsArticles.publishedAt, opts.dateTo));
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  // Sentiment by ticker (top tickers by mention count)
+  const tickerRows = await db
+    .select({
+      tickers: newsArticles.tickers,
+      sentiment: newsArticles.sentiment,
+      count: sql<number>`count(*)`,
+    })
+    .from(newsArticles)
+    .where(where ? and(where, sql`${newsArticles.tickers} IS NOT NULL AND ${newsArticles.tickers} != ''`) : sql`${newsArticles.tickers} IS NOT NULL AND ${newsArticles.tickers} != ''`)
+    .groupBy(newsArticles.tickers, newsArticles.sentiment);
+
+  // Aggregate tickers
+  const tickerMap = new Map<string, { bullish: number; bearish: number; neutral: number; total: number }>();
+  for (const row of tickerRows) {
+    if (!row.tickers) continue;
+    for (const ticker of row.tickers.split(",")) {
+      const t = ticker.trim().toUpperCase();
+      if (!t) continue;
+      if (!tickerMap.has(t)) tickerMap.set(t, { bullish: 0, bearish: 0, neutral: 0, total: 0 });
+      const entry = tickerMap.get(t)!;
+      const c = Number(row.count);
+      if (row.sentiment === "bullish") entry.bullish += c;
+      else if (row.sentiment === "bearish") entry.bearish += c;
+      else entry.neutral += c;
+      entry.total += c;
+    }
+  }
+  const byTicker = Array.from(tickerMap.entries())
+    .map(([ticker, stats]) => ({ ticker, ...stats }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 30);
+
+  // Sentiment by source
+  const sourceRows = await db
+    .select({
+      source: newsArticles.source,
+      sentiment: newsArticles.sentiment,
+      count: sql<number>`count(*)`,
+    })
+    .from(newsArticles)
+    .where(where)
+    .groupBy(newsArticles.source, newsArticles.sentiment);
+
+  const sourceMap = new Map<string, { bullish: number; bearish: number; neutral: number; total: number }>();
+  for (const row of sourceRows) {
+    if (!sourceMap.has(row.source)) sourceMap.set(row.source, { bullish: 0, bearish: 0, neutral: 0, total: 0 });
+    const entry = sourceMap.get(row.source)!;
+    const c = Number(row.count);
+    if (row.sentiment === "bullish") entry.bullish += c;
+    else if (row.sentiment === "bearish") entry.bearish += c;
+    else entry.neutral += c;
+    entry.total += c;
+  }
+  const bySource = Array.from(sourceMap.entries())
+    .map(([source, stats]) => ({ source, ...stats }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 20);
+
+  // Sentiment by category
+  const catRows = await db
+    .select({
+      category: newsArticles.category,
+      sentiment: newsArticles.sentiment,
+      count: sql<number>`count(*)`,
+    })
+    .from(newsArticles)
+    .where(where)
+    .groupBy(newsArticles.category, newsArticles.sentiment);
+
+  const catMap = new Map<string, { bullish: number; bearish: number; neutral: number; total: number }>();
+  for (const row of catRows) {
+    const cat = row.category || "Other";
+    if (!catMap.has(cat)) catMap.set(cat, { bullish: 0, bearish: 0, neutral: 0, total: 0 });
+    const entry = catMap.get(cat)!;
+    const c = Number(row.count);
+    if (row.sentiment === "bullish") entry.bullish += c;
+    else if (row.sentiment === "bearish") entry.bearish += c;
+    else entry.neutral += c;
+    entry.total += c;
+  }
+  const byCategory = Array.from(catMap.entries())
+    .map(([category, stats]) => ({ category, ...stats }))
+    .sort((a, b) => b.total - a.total);
+
+  // Overall sentiment
+  const overallRows = await db
+    .select({
+      sentiment: newsArticles.sentiment,
+      count: sql<number>`count(*)`,
+    })
+    .from(newsArticles)
+    .where(where)
+    .groupBy(newsArticles.sentiment);
+
+  const bySentiment = { bullish: 0, bearish: 0, neutral: 0 };
+  for (const row of overallRows) {
+    const c = Number(row.count);
+    if (row.sentiment === "bullish") bySentiment.bullish = c;
+    else if (row.sentiment === "bearish") bySentiment.bearish = c;
+    else if (row.sentiment === "neutral") bySentiment.neutral = c;
+  }
+
+  return { byTicker, bySource, byCategory, bySentiment };
 }
 
 export async function getNewsSources(): Promise<string[]> {
