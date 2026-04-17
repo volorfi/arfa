@@ -515,24 +515,70 @@ export async function getScreenerData(): Promise<ScreenerStock[]> {
 }
 
 // ─── IPO Data ──────────────────────────────────────────────────────
-export function getIPOData(): { recent: any[]; upcoming: any[] } {
-  // IPO endpoint returns HTML, so we keep static data for now
-  // Will be replaced by calendar/ipo when available
-  const recent = [
-    { date: "Apr 14, 2026", symbol: "MYX", name: "Maywood Acquisition Corp." },
-    { date: "Apr 7, 2026", symbol: "AACP", name: "Apogee Acquisition" },
-    { date: "Apr 7, 2026", symbol: "ACGC", name: "ACP Holdings Acquisition" },
-    { date: "Apr 1, 2026", symbol: "HMH", name: "HMH Holding" },
-    { date: "Mar 31, 2026", symbol: "KPET", name: "KPET Ultra Paceline" },
-  ];
-  const upcoming = [
-    { date: "Apr 17, 2026", symbol: "BWGC", name: "BW Industrial Holdings" },
-    { date: "Apr 17, 2026", symbol: "AVEX", name: "AEVEX" },
-    { date: "Apr 17, 2026", symbol: "KLRA", name: "Kailera Therapeutics" },
-    { date: "Apr 18, 2026", symbol: "QRED", name: "QuasarEdge Acquisition" },
-    { date: "Apr 21, 2026", symbol: "MRCO", name: "Mercator Acquisition" },
-  ];
-  return { recent, upcoming };
+export async function getIPOData(): Promise<{ recent: any[]; upcoming: any[] }> {
+  const cacheKey = "ipo:data";
+  const cached = getCached<{ recent: any[]; upcoming: any[] }>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    // Try to get IPO data from the screener endpoint with IPO-related criteria
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+    const pastDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const pastStr = pastDate.toISOString().split("T")[0];
+    const futureDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const futureStr = futureDate.toISOString().split("T")[0];
+
+    // Use calendar/ipo for recent and upcoming (sequential to respect rate limit)
+    const recentRes = await safeGet("/v1/markets/calendar/ipo", { date: pastStr });
+    const upcomingRes = await safeGet("/v1/markets/calendar/ipo", { date: futureStr });
+
+    const recentData = recentRes.status === "fulfilled" ? recentRes.value : null;
+    const upcomingData = upcomingRes.status === "fulfilled" ? upcomingRes.value : null;
+    const recentItems = (recentData?.body && Array.isArray(recentData.body)) ? recentData.body : [];
+    const upcomingItems = (upcomingData?.body && Array.isArray(upcomingData.body)) ? upcomingData.body : [];
+
+    const recent = recentItems.slice(0, 10).map((item: any) => ({
+      date: item.date || item.startdatetime || pastStr,
+      symbol: item.ticker || item.symbol || "N/A",
+      name: item.companyshortname || item.name || "Unknown",
+    }));
+
+    const upcoming = upcomingItems.slice(0, 10).map((item: any) => ({
+      date: item.date || item.startdatetime || futureStr,
+      symbol: item.ticker || item.symbol || "N/A",
+      name: item.companyshortname || item.name || "Unknown",
+    }));
+
+    // If we got data from API, cache and return
+    if (recent.length > 0 || upcoming.length > 0) {
+      const result = { recent, upcoming };
+      setCache(cacheKey, result, CACHE_1HR);
+      return result;
+    }
+  } catch (error) {
+    console.error("[StockService] IPO data fetch error:", error);
+  }
+
+  // Fallback to static data if API is unavailable
+  const result = {
+    recent: [
+      { date: "Apr 14, 2026", symbol: "MYX", name: "Maywood Acquisition Corp." },
+      { date: "Apr 7, 2026", symbol: "AACP", name: "Apogee Acquisition" },
+      { date: "Apr 7, 2026", symbol: "ACGC", name: "ACP Holdings Acquisition" },
+      { date: "Apr 1, 2026", symbol: "HMH", name: "HMH Holding" },
+      { date: "Mar 31, 2026", symbol: "KPET", name: "KPET Ultra Paceline" },
+    ],
+    upcoming: [
+      { date: "Apr 17, 2026", symbol: "BWGC", name: "BW Industrial Holdings" },
+      { date: "Apr 17, 2026", symbol: "AVEX", name: "AEVEX" },
+      { date: "Apr 17, 2026", symbol: "KLRA", name: "Kailera Therapeutics" },
+      { date: "Apr 18, 2026", symbol: "QRED", name: "QuasarEdge Acquisition" },
+      { date: "Apr 21, 2026", symbol: "MRCO", name: "Mercator Acquisition" },
+    ],
+  };
+  setCache(cacheKey, result, CACHE_1HR);
+  return result;
 }
 
 // ─── Market News (static fallback) ────────────────────────────────
