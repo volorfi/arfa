@@ -72,7 +72,7 @@ export default function GlobalSearch({ className = "", placeholder = "Search sto
   );
 
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div ref={containerRef} className={`relative z-50 ${className}`}>
       <form onSubmit={handleSubmit}>
         <div className={`relative flex items-center ${large ? "h-12" : "h-9"}`}>
           <Search className={`absolute left-3 text-muted-foreground ${large ? "h-5 w-5" : "h-4 w-4"}`} />

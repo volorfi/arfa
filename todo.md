@@ -232,3 +232,4 @@
 
 ## Bug Fixes
 - [x] Fix nested button error in sidebar: "<button> cannot contain a nested <button>" (React DOM nesting violation)
+- [x] Fix search dropdown z-index: results dropdown hides behind stat cards and other content below the search bar
