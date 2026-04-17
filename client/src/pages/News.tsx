@@ -263,7 +263,7 @@ function SentimentDashboard({ tab, period, onPeriodChange }: {
             {byTicker
               .filter((t) => t.bullish > 0 && !t.ticker.startsWith("^"))
               .sort((a, b) => (b.total > 0 ? b.bullish / b.total : 0) - (a.total > 0 ? a.bullish / a.total : 0))
-              .slice(0, 3)
+              .slice(0, 5)
               .map((t) => (
                 <div key={t.ticker} className="flex items-center justify-between">
                   <Link href={`/stocks/${t.ticker}`} className="text-xs font-medium text-foreground hover:text-primary">
@@ -290,7 +290,7 @@ function SentimentDashboard({ tab, period, onPeriodChange }: {
             {byTicker
               .filter((t) => t.bearish > 0 && !t.ticker.startsWith("^"))
               .sort((a, b) => (b.total > 0 ? b.bearish / b.total : 0) - (a.total > 0 ? a.bearish / a.total : 0))
-              .slice(0, 3)
+              .slice(0, 5)
               .map((t) => (
                 <div key={t.ticker} className="flex items-center justify-between">
                   <Link href={`/stocks/${t.ticker}`} className="text-xs font-medium text-foreground hover:text-primary">

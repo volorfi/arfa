@@ -40,6 +40,12 @@ export default function Home() {
 }
 
 function HeroSection() {
+  const { data: trendingTickers } = trpc.trendingTickers.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000, // Cache for 5 min
+  });
+  const fallbackTrending = ["AAPL", "NVDA", "MSFT", "TSLA", "AMZN"];
+  const trending = trendingTickers && trendingTickers.length > 0 ? trendingTickers : fallbackTrending;
+
   return (
     <div className="py-12 px-4">
       <div className="max-w-2xl mx-auto text-center space-y-5">
@@ -52,7 +58,7 @@ function HeroSection() {
         <GlobalSearch large className="max-w-lg mx-auto" />
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
           <span>Trending:</span>
-          {["AAPL", "NVDA", "MSFT", "TSLA", "AMZN"].map((s) => (
+          {trending.map((s) => (
             <Link key={s} href={`/stocks/${s}`} className="text-primary hover:underline font-medium">
               {s}
             </Link>

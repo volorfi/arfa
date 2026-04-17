@@ -185,3 +185,10 @@
 - [x] Most Mentioned: exclude market indices (^DJI, ^GSPC, ^IXIC etc.) - show only stock tickers
 - [x] Category Sentiment Treemap: improve label visibility (text hard to read on colored backgrounds)
 - [x] Keyword search filter: fix search not finding articles by keyword (e.g. "roger" not returning results)
+
+## Homepage Search & Trending Improvements
+- [x] Universal search: search across stocks, sovereign bonds (by country, ISIN, ticker), corporate bonds, macro countries/regions, and news headlines (keywords)
+- [x] Search results: group by category (Stocks, Sovereign Bonds, Corporate Bonds, Countries, News) with links to respective pages
+- [x] Trending tickers: replace static AAPL/NVDA/MSFT/TSLA/AMZN with dynamic top 5 Most Mentioned tickers from News Today
+- [x] Trending tickers: update automatically when sentiment data changes
+- [x] Most Bullish and Most Bearish cards: expand from 3 to 5 tickers

@@ -22,7 +22,7 @@ import {
   getCalendarPublicOfferings,
 } from "./stockService";
 import { getFinancialStatements } from "./financialsService";
-import { getBonds, getIssuerBySlug, getFilterOptions, getBondsSummary } from "./bondService";
+import { getBonds, getIssuerBySlug, getFilterOptions, getBondsSummary, getAllIssuers } from "./bondService";
 import {
   getSovereignBonds,
   getSovereignBondBySlug,
@@ -40,7 +40,7 @@ import {
   cleanupOldArticles,
 } from "./newsService";
 import { analyzeUnprocessedArticles, getSentimentStats } from "./sentimentService";
-import { getSentimentAggregation } from "./db";
+import { getSentimentAggregation, getNewsArticles } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -92,6 +92,81 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return getFinancialStatements(input.symbol);
       }),
+  }),
+
+  // Universal search across all asset classes
+  universalSearch: publicProcedure
+    .input(z.object({ query: z.string() }))
+    .query(async ({ input }) => {
+      const q = input.query.trim();
+      if (q.length < 1) return { stocks: [], sovereignBonds: [], corporateBonds: [], countries: [], news: [] };
+      const ql = q.toLowerCase();
+
+      // 1. Stock search (from Yahoo API)
+      let stocks: Array<{ symbol: string; name: string; exchange: string }> = [];
+      try {
+        const raw = await searchStocks(q);
+        stocks = raw.slice(0, 5);
+      } catch { stocks = []; }
+
+      // 2. Sovereign bonds (by ticker, name, ISIN, country, region)
+      const sovBonds = getSovereignBonds({ search: q });
+      const sovereignBonds = sovBonds.slice(0, 8).map(b => ({
+        ticker: b.ticker,
+        slug: b.slug,
+        country: b.country,
+        isin: b.isin,
+        rating: b.compositeRating,
+        ytm: b.yieldToMaturity,
+      }));
+
+      // 3. Corporate bonds (by ticker, issuer, ISIN)
+      const corpBonds = getBonds({ search: q });
+      const corporateBonds = corpBonds.slice(0, 8).map(b => ({
+        ticker: b.ticker,
+        issuerName: b.issuerName,
+        issuerSlug: b.issuerSlug,
+        isin: b.isin,
+        rating: b.rating,
+        ytm: b.yieldToMaturity,
+      }));
+
+      // 4. Countries (from sovereign data)
+      const allCountries = getSovereignCountries();
+      const countries = allCountries
+        .filter(c => c.country.toLowerCase().includes(ql) || (c.region && c.region.toLowerCase().includes(ql)))
+        .slice(0, 5)
+        .map(c => ({
+          country: c.country,
+          region: c.region,
+          rating: c.compositeRating,
+          bondCount: c.bondCount,
+        }));
+
+      // 5. News headlines (keyword search)
+      let news: Array<{ id: number; title: string; source: string; publishedAt: Date; sentiment: string | null; tickers: string | null }> = [];
+      try {
+        const result = await getNewsArticles({ search: q, limit: 5 });
+        news = result.articles.map(a => ({
+          id: a.id,
+          title: a.title,
+          source: a.source,
+          publishedAt: a.publishedAt,
+          sentiment: a.sentiment,
+          tickers: a.tickers,
+        }));
+      } catch { news = []; }
+
+      return { stocks, sovereignBonds, corporateBonds, countries, news };
+    }),
+
+  // Trending tickers from Most Mentioned Today
+  trendingTickers: publicProcedure.query(async () => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const agg = await getSentimentAggregation({ dateFrom: todayStart });
+    // Return top 5 most mentioned stock tickers (indices already filtered out in getSentimentAggregation)
+    return agg.byTicker.slice(0, 5).map(t => t.ticker);
   }),
 
   market: router({
