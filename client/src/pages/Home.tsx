@@ -85,7 +85,7 @@ function HeroSection() {
       <div className="relative max-w-[1400px] mx-auto px-4 py-10 md:py-14">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Left: Preamble + Search */}
-          <div className="lg:col-span-7 space-y-5 animate-fade-in-up">
+          <div className="lg:col-span-7 space-y-5 animate-fade-in-up relative z-10">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold tracking-wide border border-primary/20">
               <Activity className="h-3 w-3 animate-pulse" />
               Independent Analytical Platform
