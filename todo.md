@@ -216,3 +216,16 @@
 - [x] Design: unique card styles with section-glow borders, hover shadow lift, gradient backgrounds
 - [x] Design: micro-interactions (hover lift, icon scale, fade-in-up entrance animations)
 - [x] SEO: proper title, description, keywords
+
+## Sidebar Navigation Redesign
+- [x] Redesign sidebar to match new premium visual identity
+- [x] Add section grouping with subtle dividers and category labels (Overview, Markets, Research, Discover)
+- [x] Improve active state with blue left-bar indicator + accent background
+- [x] Add hover micro-interactions (smooth transitions, subtle background shifts)
+- [x] Refine typography: use display font for branding, compact 13px items, 10px labels
+- [x] Add collapsible icon-only mode with smooth transition
+- [x] Improve submenu expansion with smooth animation
+- [x] Polish bottom section: user avatar with gradient ring, theme toggle in footer, sign-out dropdown
+- [x] Ensure mobile responsiveness is maintained
+- [x] Add resize handle for adjustable sidebar width (200-360px, persisted in localStorage)
+- [x] Logo: Zap icon + "ARFA / Global Markets" with display font

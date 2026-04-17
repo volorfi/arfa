@@ -23,6 +23,8 @@ import {
   useSidebar,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
@@ -38,13 +40,11 @@ import {
   Wrench,
   LogOut,
   PanelLeft,
-  ChevronDown,
-  Search,
+  ChevronRight,
   Filter,
   ListOrdered,
   Clock,
   CalendarPlus,
-  Activity,
   ArrowUp,
   ArrowDown,
   Calculator,
@@ -58,6 +58,8 @@ import {
   Scissors,
   Globe,
   Rocket,
+  ChevronUp,
+  Zap,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -73,88 +75,109 @@ interface MenuItem {
   children?: { label: string; path: string; icon?: any }[];
 }
 
-const menuItems: MenuItem[] = [
-  { icon: Home, label: "Home", path: "/" },
-  { icon: Star, label: "Watchlist", path: "/watchlist" },
-  { icon: Newspaper, label: "News", path: "/news" },
+interface MenuSection {
+  label: string;
+  items: MenuItem[];
+}
+
+const menuSections: MenuSection[] = [
   {
-    icon: Calendar,
-    label: "Calendars",
-    path: "/calendars",
-    children: [
-      { label: "Earnings", path: "/calendars/earnings", icon: BarChart3 },
-      { label: "Dividends", path: "/calendars/dividends", icon: DollarSign },
-      { label: "Stock Splits", path: "/calendars/stock-splits", icon: Scissors },
-      { label: "Economic Events", path: "/calendars/economic-events", icon: Globe },
-      { label: "Public Offerings", path: "/calendars/public-offerings", icon: Rocket },
+    label: "Overview",
+    items: [
+      { icon: Home, label: "Home", path: "/" },
+      { icon: Star, label: "Watchlist", path: "/watchlist" },
+      { icon: Newspaper, label: "News & Blogs", path: "/news" },
     ],
   },
   {
-    icon: BarChart3,
-    label: "Stocks",
-    path: "/stocks",
-    children: [
-      { label: "Stock Screener", path: "/screener", icon: Filter },
-      { label: "All Stocks", path: "/stocks", icon: ListOrdered },
+    label: "Markets",
+    items: [
+      {
+        icon: BarChart3,
+        label: "Stocks",
+        path: "/stocks",
+        children: [
+          { label: "Stock Screener", path: "/screener", icon: Filter },
+          { label: "All Stocks", path: "/stocks", icon: ListOrdered },
+        ],
+      },
+      { icon: Layers, label: "ETFs", path: "/etfs" },
+      {
+        icon: Landmark,
+        label: "Fixed Income",
+        path: "/fixed-income",
+        children: [
+          { label: "Sovereign Bonds", path: "/fixed-income/sovereign", icon: Flag },
+          { label: "Corporate Bonds", path: "/fixed-income/corporate", icon: Shield },
+        ],
+      },
     ],
   },
   {
-    icon: Layers,
-    label: "ETFs",
-    path: "/etfs",
-  },
-  {
-    icon: Landmark,
-    label: "Fixed Income",
-    path: "/fixed-income",
-    children: [
-      { label: "Sovereign", path: "/fixed-income/sovereign", icon: Flag },
-      { label: "Corporate", path: "/fixed-income/corporate", icon: Shield },
+    label: "Research",
+    items: [
+      {
+        icon: Globe,
+        label: "Macroeconomics",
+        path: "/macro",
+        children: [
+          { label: "All Countries", path: "/macro", icon: Globe },
+          { label: "Africa", path: "/macro/region/Africa", icon: Flag },
+          { label: "Americas", path: "/macro/region/Americas", icon: Flag },
+          { label: "Asia", path: "/macro/region/Asia", icon: Flag },
+          { label: "CIS", path: "/macro/region/CIS", icon: Flag },
+          { label: "Europe", path: "/macro/region/Europe", icon: Flag },
+          { label: "Latam", path: "/macro/region/Latam", icon: Flag },
+          { label: "Middle East", path: "/macro/region/Middle%20East", icon: Flag },
+          { label: "Oceania", path: "/macro/region/Oceania", icon: Flag },
+        ],
+      },
+      {
+        icon: Calendar,
+        label: "Calendars",
+        path: "/calendars",
+        children: [
+          { label: "Earnings", path: "/calendars/earnings", icon: BarChart3 },
+          { label: "Dividends", path: "/calendars/dividends", icon: DollarSign },
+          { label: "Stock Splits", path: "/calendars/stock-splits", icon: Scissors },
+          { label: "Economic Events", path: "/calendars/economic-events", icon: Globe },
+          { label: "Public Offerings", path: "/calendars/public-offerings", icon: Rocket },
+        ],
+      },
+      {
+        icon: Rocket,
+        label: "IPOs",
+        path: "/ipos",
+        children: [
+          { label: "Recent IPOs", path: "/ipos?tab=recent", icon: Clock },
+          { label: "Upcoming IPOs", path: "/ipos?tab=upcoming", icon: CalendarPlus },
+        ],
+      },
     ],
   },
   {
-    icon: Globe,
-    label: "Macroeconomics",
-    path: "/macro",
-    children: [
-      { label: "All Countries", path: "/macro", icon: Globe },
-      { label: "Africa", path: "/macro/region/Africa", icon: Flag },
-      { label: "Americas", path: "/macro/region/Americas", icon: Flag },
-      { label: "Asia", path: "/macro/region/Asia", icon: Flag },
-      { label: "CIS", path: "/macro/region/CIS", icon: Flag },
-      { label: "Europe", path: "/macro/region/Europe", icon: Flag },
-      { label: "Latam", path: "/macro/region/Latam", icon: Flag },
-      { label: "Middle East", path: "/macro/region/Middle%20East", icon: Flag },
-      { label: "Oceania", path: "/macro/region/Oceania", icon: Flag },
-    ],
-  },
-  {
-    icon: Calendar,
-    label: "IPOs",
-    path: "/ipos",
-    children: [
-      { label: "Recent IPOs", path: "/ipos?tab=recent", icon: Clock },
-      { label: "Upcoming IPOs", path: "/ipos?tab=upcoming", icon: CalendarPlus },
-    ],
-  },
-  { icon: TrendingUp, label: "Trending", path: "/trending" },
-  {
-    icon: ArrowUpDown,
-    label: "Market Movers",
-    path: "/movers",
-    children: [
-      { label: "Top Gainers", path: "/movers?tab=gainers", icon: ArrowUp },
-      { label: "Top Losers", path: "/movers?tab=losers", icon: ArrowDown },
-    ],
-  },
-  {
-    icon: Wrench,
-    label: "Tools",
-    path: "/tools",
-    children: [
-      { label: "Stock Screener", path: "/screener", icon: Filter },
-      { label: "Technical Chart", path: "/chart", icon: LineChart },
-      { label: "Comparison", path: "/compare", icon: Calculator },
+    label: "Discover",
+    items: [
+      { icon: TrendingUp, label: "Trending", path: "/trending" },
+      {
+        icon: ArrowUpDown,
+        label: "Market Movers",
+        path: "/movers",
+        children: [
+          { label: "Top Gainers", path: "/movers?tab=gainers", icon: ArrowUp },
+          { label: "Top Losers", path: "/movers?tab=losers", icon: ArrowDown },
+        ],
+      },
+      {
+        icon: Wrench,
+        label: "Tools",
+        path: "/tools",
+        children: [
+          { label: "Stock Screener", path: "/screener", icon: Filter },
+          { label: "Technical Chart", path: "/chart", icon: LineChart },
+          { label: "Comparison", path: "/compare", icon: Calculator },
+        ],
+      },
     ],
   },
 ];
@@ -190,17 +213,14 @@ function ThemeToggleButton() {
   return (
     <button
       onClick={toggleTheme}
-      className="flex items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-sidebar-accent transition-colors w-full text-left text-[13px] text-sidebar-foreground group-data-[collapsible=icon]:justify-center focus:outline-none"
+      className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-sidebar-accent transition-all duration-200 focus:outline-none group/theme"
       aria-label="Toggle theme"
     >
       {theme === "dark" ? (
-        <Sun className="h-4 w-4 shrink-0" />
+        <Sun className="h-4 w-4 text-amber-400 group-hover/theme:rotate-45 transition-transform duration-300" />
       ) : (
-        <Moon className="h-4 w-4 shrink-0" />
+        <Moon className="h-4 w-4 text-sidebar-foreground/60 group-hover/theme:-rotate-12 transition-transform duration-300" />
       )}
-      <span className="group-data-[collapsible=icon]:hidden">
-        {theme === "dark" ? "Light Mode" : "Dark Mode"}
-      </span>
     </button>
   );
 }
@@ -253,125 +273,176 @@ function AppSidebarContent({
     <>
       <div className="relative" ref={sidebarRef}>
         <Sidebar collapsible="icon" className="border-r-0" disableTransition={isResizing}>
-          <SidebarHeader className="h-14 justify-center border-b border-sidebar-border">
+          {/* ── Header ── */}
+          <SidebarHeader className="h-14 justify-center">
             <div className="flex items-center gap-2.5 px-2 transition-all w-full">
               <button
                 onClick={toggleSidebar}
-                className="h-8 w-8 flex items-center justify-center hover:bg-sidebar-accent rounded-md transition-colors focus:outline-none shrink-0"
+                className="h-8 w-8 flex items-center justify-center hover:bg-sidebar-accent rounded-lg transition-all duration-200 focus:outline-none shrink-0 group/toggle"
                 aria-label="Toggle navigation"
               >
-                <PanelLeft className="h-4 w-4 text-sidebar-foreground/70" />
+                <PanelLeft className="h-4 w-4 text-sidebar-foreground/60 group-hover/toggle:text-sidebar-foreground transition-colors" />
               </button>
               {!isCollapsed && (
-                <Link href="/" className="flex items-center gap-2 min-w-0">
-                  <div className="h-7 w-7 rounded bg-primary flex items-center justify-center shrink-0">
-                    <span className="text-primary-foreground font-bold text-[9px]">AG</span>
+                <Link href="/" className="flex items-center gap-2.5 min-w-0 group/logo">
+                  <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0 shadow-sm group-hover/logo:shadow-md group-hover/logo:scale-105 transition-all duration-200">
+                    <Zap className="h-3.5 w-3.5 text-primary-foreground" />
                   </div>
-                  <span className="font-semibold text-sm tracking-tight truncate text-sidebar-foreground">
-                    ARFA Global Markets
-                  </span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-bold text-[13px] tracking-tight truncate text-sidebar-foreground leading-none" style={{ fontFamily: 'var(--font-display)' }}>
+                      ARFA
+                    </span>
+                    <span className="text-[9px] text-sidebar-foreground/50 tracking-widest uppercase leading-none mt-0.5">
+                      Global Markets
+                    </span>
+                  </div>
                 </Link>
               )}
             </div>
           </SidebarHeader>
 
-          <SidebarContent className="gap-0 px-2 py-2">
-            <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {menuItems.map((item) => {
-                    const isActive = location === item.path || (item.path !== "/" && location.startsWith(item.path));
-                    if (item.children) {
+          <SidebarSeparator className="mx-3 opacity-50" />
+
+          {/* ── Navigation ── */}
+          <SidebarContent className="gap-0 px-2 py-1 sidebar-nav">
+            {menuSections.map((section, sectionIdx) => (
+              <SidebarGroup key={section.label} className="py-1">
+                <SidebarGroupLabel className="text-[10px] font-semibold tracking-[0.08em] uppercase text-sidebar-foreground/40 h-7 px-3" style={{ fontFamily: 'var(--font-display)' }}>
+                  {section.label}
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu className="gap-0.5">
+                    {section.items.map((item) => {
+                      const isActive = location === item.path || (item.path !== "/" && location.startsWith(item.path));
+                      if (item.children) {
+                        return (
+                          <Collapsible key={item.path} defaultOpen={isActive} className="group/collapsible">
+                            <SidebarMenuItem>
+                              <CollapsibleTrigger asChild>
+                                <SidebarMenuButton
+                                  tooltip={item.label}
+                                  className={`h-8 text-[13px] rounded-lg transition-all duration-200 relative ${
+                                    isActive
+                                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                      : "text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                                  }`}
+                                >
+                                  {isActive && (
+                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary transition-all duration-300" />
+                                  )}
+                                  <item.icon className={`h-4 w-4 transition-colors duration-200 ${isActive ? "text-primary" : ""}`} />
+                                  <span className="flex-1">{item.label}</span>
+                                  <ChevronRight className="h-3 w-3 opacity-50 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                </SidebarMenuButton>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent className="animate-in slide-in-from-top-1 duration-200">
+                                <SidebarMenuSub className="ml-4 border-l border-sidebar-border/50 pl-0">
+                                  {item.children.map((child) => {
+                                    const isChildActive = location === child.path;
+                                    return (
+                                      <SidebarMenuSubItem key={child.path}>
+                                        <SidebarMenuSubButton
+                                          onClick={() => setLocation(child.path)}
+                                          isActive={isChildActive}
+                                          className={`text-[12px] h-7 rounded-md transition-all duration-200 ${
+                                            isChildActive
+                                              ? "text-primary font-medium bg-primary/5"
+                                              : "text-sidebar-foreground/55 hover:text-sidebar-foreground/80"
+                                          }`}
+                                        >
+                                          <div className={`h-1 w-1 rounded-full mr-2 shrink-0 transition-colors duration-200 ${
+                                            isChildActive ? "bg-primary" : "bg-sidebar-foreground/20"
+                                          }`} />
+                                          <span>{child.label}</span>
+                                        </SidebarMenuSubButton>
+                                      </SidebarMenuSubItem>
+                                    );
+                                  })}
+                                </SidebarMenuSub>
+                              </CollapsibleContent>
+                            </SidebarMenuItem>
+                          </Collapsible>
+                        );
+                      }
+                   
                       return (
-                        <Collapsible key={item.path} defaultOpen={isActive} className="group/collapsible">
-                          <SidebarMenuItem>
-                            <CollapsibleTrigger asChild>
-                              <SidebarMenuButton
-                                tooltip={item.label}
-                                className="h-9 text-[13px]"
-                              >
-                                <item.icon className="h-4 w-4" />
-                                <span className="flex-1">{item.label}</span>
-                                <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                              </SidebarMenuButton>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                              <SidebarMenuSub>
-                                {item.children.map((child) => (
-                                  <SidebarMenuSubItem key={child.path}>
-                                    <SidebarMenuSubButton
-                                      onClick={() => setLocation(child.path)}
-                                      isActive={location === child.path}
-                                      className="text-[13px]"
-                                    >
-                                      {child.icon && <child.icon className="h-3.5 w-3.5 mr-1.5" />}
-                                      <span>{child.label}</span>
-                                    </SidebarMenuSubButton>
-                                  </SidebarMenuSubItem>
-                                ))}
-                              </SidebarMenuSub>
-                            </CollapsibleContent>
-                          </SidebarMenuItem>
-                        </Collapsible>
+                        <SidebarMenuItem key={item.path}>
+                          <SidebarMenuButton
+                            isActive={isActive}
+                            onClick={() => setLocation(item.path)}
+                            tooltip={item.label}
+                            className={`h-8 text-[13px] rounded-lg transition-all duration-200 relative ${
+                              isActive
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                : "text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                            }`}
+                          >
+                            {isActive && (
+                              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary transition-all duration-300" />
+                            )}
+                            <item.icon className={`h-4 w-4 transition-colors duration-200 ${isActive ? "text-primary" : ""}`} />
+                            <span>{item.label}</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
                       );
-                    }
-                    return (
-                      <SidebarMenuItem key={item.path}>
-                        <SidebarMenuButton
-                          isActive={isActive}
-                          onClick={() => setLocation(item.path)}
-                          tooltip={item.label}
-                          className="h-9 text-[13px]"
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.label}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ))}
           </SidebarContent>
 
-          <SidebarFooter className="p-2 border-t border-sidebar-border">
-            <ThemeToggleButton />
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-sidebar-accent transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none">
-                    <Avatar className="h-7 w-7 border shrink-0">
-                      <AvatarFallback className="text-[10px] font-medium bg-primary/10 text-primary">
-                        {user.name?.charAt(0).toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                      <p className="text-xs font-medium truncate leading-none text-sidebar-foreground">
-                        {user.name || "User"}
-                      </p>
-                    </div>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive text-xs">
-                    <LogOut className="mr-2 h-3.5 w-3.5" />
-                    <span>Sign out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <SidebarMenuButton
-                onClick={() => { window.location.href = getLoginUrl(); }}
-                className="h-9 text-[13px]"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Log In</span>
-              </SidebarMenuButton>
-            )}
+          {/* ── Footer ── */}
+          <SidebarFooter className="p-2">
+            <SidebarSeparator className="mx-1 mb-2 opacity-50" />
+            <div className="rounded-xl bg-sidebar-accent/50 p-2 transition-colors duration-200">
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-sidebar-accent transition-all duration-200 w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none group/user">
+                      <Avatar className="h-7 w-7 shrink-0 ring-2 ring-primary/20 group-hover/user:ring-primary/40 transition-all duration-200">
+                        <AvatarFallback className="text-[10px] font-bold bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
+                          {user.name?.charAt(0).toUpperCase() || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+                        <p className="text-[12px] font-medium truncate leading-none text-sidebar-foreground">
+                          {user.name || "User"}
+                        </p>
+                        <p className="text-[10px] text-sidebar-foreground/40 truncate leading-none mt-0.5">
+                          {user.email || "Account"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
+                        <ThemeToggleButton />
+                        <ChevronUp className="h-3 w-3 text-sidebar-foreground/30" />
+                      </div>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" side="top" className="w-48 mb-1">
+                    <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive text-xs">
+                      <LogOut className="mr-2 h-3.5 w-3.5" />
+                      <span>Sign out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <SidebarMenuButton
+                    onClick={() => { window.location.href = getLoginUrl(); }}
+                    className="h-8 text-[13px] flex-1 rounded-lg"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Log In</span>
+                  </SidebarMenuButton>
+                  <ThemeToggleButton />
+                </div>
+              )}
+            </div>
           </SidebarFooter>
         </Sidebar>
         <div
-          className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${isCollapsed ? "hidden" : ""}`}
+          className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors duration-200 ${isCollapsed ? "hidden" : ""}`}
           onMouseDown={() => { if (!isCollapsed) setIsResizing(true); }}
           style={{ zIndex: 50 }}
         />
@@ -383,10 +454,10 @@ function AppSidebarContent({
             <div className="flex border-b h-12 items-center bg-background/95 px-3 backdrop-blur">
               <SidebarTrigger className="h-8 w-8 rounded-md" />
               <div className="ml-2 flex items-center gap-2">
-                <div className="h-6 w-6 rounded bg-primary flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-[9px]">AG</span>
+                <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
+                  <Zap className="h-3 w-3 text-primary-foreground" />
                 </div>
-                <span className="font-semibold text-sm">ARFA Global Markets</span>
+                <span className="font-bold text-sm" style={{ fontFamily: 'var(--font-display)' }}>ARFA</span>
               </div>
             </div>
           )}
