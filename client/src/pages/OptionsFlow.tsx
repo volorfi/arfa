@@ -6,12 +6,14 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowUpDown,
-  Filter,
   Search,
   Loader2,
   AlertTriangle,
   BarChart3,
   Activity,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 type SortKey = "optionsTotalVolume" | "percentChange" | "optionsImpliedVolatilityRank1y" | "optionsPutCallVolumeRatio" | "symbol";
@@ -27,11 +29,22 @@ export default function OptionsFlow() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [searchQuery, setSearchQuery] = useState("");
   const [sentimentFilter, setSentimentFilter] = useState<"all" | "bullish" | "bearish">("all");
+  const [minVolume, setMinVolume] = useState(0);
+  const [ivRankFilter, setIvRankFilter] = useState<"all" | "high" | "medium" | "low">("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
     else { setSortKey(key); setSortDir("desc"); }
   };
+
+  // Compute median volume for unusual activity detection
+  const medianVolume = useMemo(() => {
+    if (!mostActive || mostActive.length === 0) return 0;
+    const vols = mostActive.map((d) => parseInt(d.optionsTotalVolume?.replace(/,/g, "") || "0")).sort((a, b) => a - b);
+    const mid = Math.floor(vols.length / 2);
+    return vols.length % 2 === 0 ? (vols[mid - 1] + vols[mid]) / 2 : vols[mid];
+  }, [mostActive]);
 
   const filteredData = useMemo(() => {
     if (!mostActive) return [];
@@ -53,6 +66,24 @@ export default function OptionsFlow() {
       });
     }
 
+    // Volume threshold filter
+    if (minVolume > 0) {
+      data = data.filter((d) => {
+        const vol = parseInt(d.optionsTotalVolume?.replace(/,/g, "") || "0");
+        return vol >= minVolume;
+      });
+    }
+
+    // IV Rank filter
+    if (ivRankFilter !== "all") {
+      data = data.filter((d) => {
+        const ivRank = parseFloat(d.optionsImpliedVolatilityRank1y) || 0;
+        if (ivRankFilter === "high") return ivRank > 70;
+        if (ivRankFilter === "medium") return ivRank >= 30 && ivRank <= 70;
+        return ivRank < 30;
+      });
+    }
+
     // Sort
     data.sort((a, b) => {
       let av: number, bv: number;
@@ -65,7 +96,7 @@ export default function OptionsFlow() {
     });
 
     return data;
-  }, [mostActive, searchQuery, sentimentFilter, sortKey, sortDir]);
+  }, [mostActive, searchQuery, sentimentFilter, sortKey, sortDir, minVolume, ivRankFilter]);
 
   // Aggregate stats
   const stats = useMemo(() => {
@@ -81,6 +112,20 @@ export default function OptionsFlow() {
     });
     return { totalVol, bullishCount, bearishCount, highIVCount, total: mostActive.length };
   }, [mostActive]);
+
+  const volumePresets = [
+    { label: "All", value: 0 },
+    { label: ">100K", value: 100000 },
+    { label: ">250K", value: 250000 },
+    { label: ">500K", value: 500000 },
+    { label: ">1M", value: 1000000 },
+  ];
+
+  const activeFilterCount = [
+    sentimentFilter !== "all",
+    minVolume > 0,
+    ivRankFilter !== "all",
+  ].filter(Boolean).length;
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 py-6">
@@ -106,31 +151,104 @@ export default function OptionsFlow() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by symbol or name..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-          />
+      {/* Filters Row */}
+      <div className="flex flex-col gap-3 mb-5">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by symbol or name..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+          <div className="flex items-center gap-1.5 bg-muted/30 rounded-lg p-0.5">
+            {(["all", "bullish", "bearish"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setSentimentFilter(f)}
+                className={`px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+                  sentimentFilter === f ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {f === "all" ? "All" : f === "bullish" ? "Bullish" : "Bearish"}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
+              showFilters || activeFilterCount > 0 ? "border-primary/30 bg-primary/5 text-primary" : "border-border bg-card text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">{activeFilterCount}</span>
+            )}
+            {showFilters ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          </button>
         </div>
-        <div className="flex items-center gap-1.5 bg-muted/30 rounded-lg p-0.5">
-          {(["all", "bullish", "bearish"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setSentimentFilter(f)}
-              className={`px-3 py-2 rounded-md text-xs font-medium transition-colors ${
-                sentimentFilter === f ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {f === "all" ? "All" : f === "bullish" ? "🟢 Bullish" : "🔴 Bearish"}
-            </button>
-          ))}
-        </div>
+
+        {/* Expanded Filters */}
+        {showFilters && (
+          <div className="flex flex-wrap gap-4 p-3 rounded-lg bg-muted/20 border border-border/50">
+            {/* Volume Threshold */}
+            <div>
+              <label className="text-[10px] text-muted-foreground uppercase tracking-wider block mb-1.5">Min Volume</label>
+              <div className="flex items-center gap-1">
+                {volumePresets.map((p) => (
+                  <button
+                    key={p.value}
+                    onClick={() => setMinVolume(p.value)}
+                    className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      minVolume === p.value ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* IV Rank Filter */}
+            <div>
+              <label className="text-[10px] text-muted-foreground uppercase tracking-wider block mb-1.5">IV Rank</label>
+              <div className="flex items-center gap-1">
+                {([
+                  { key: "all" as const, label: "All" },
+                  { key: "high" as const, label: "High (>70)" },
+                  { key: "medium" as const, label: "Medium (30-70)" },
+                  { key: "low" as const, label: "Low (<30)" },
+                ]).map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => setIvRankFilter(f.key)}
+                    className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      ivRankFilter === f.key ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Clear All */}
+            {activeFilterCount > 0 && (
+              <div className="flex items-end">
+                <button
+                  onClick={() => { setSentimentFilter("all"); setMinVolume(0); setIvRankFilter("all"); }}
+                  className="px-3 py-1.5 rounded-md text-[11px] font-medium text-loss hover:bg-loss/10 transition-colors"
+                >
+                  Clear All
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Loading */}
@@ -138,6 +256,13 @@ export default function OptionsFlow() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <span className="ml-3 text-muted-foreground">Loading options flow data...</span>
+        </div>
+      )}
+
+      {/* Results count */}
+      {!isLoading && mostActive && (
+        <div className="text-xs text-muted-foreground mb-2">
+          Showing {filteredData.length} of {mostActive.length} symbols
         </div>
       )}
 
@@ -156,7 +281,7 @@ export default function OptionsFlow() {
                 <th className="px-3 py-2.5 text-right font-medium text-xs">Put %</th>
                 <SortHeader label="P/C Ratio" sortKey="optionsPutCallVolumeRatio" currentKey={sortKey} dir={sortDir} onClick={handleSort} align="right" />
                 <SortHeader label="IV Rank 1Y" sortKey="optionsImpliedVolatilityRank1y" currentKey={sortKey} dir={sortDir} onClick={handleSort} align="right" />
-                <th className="px-3 py-2.5 text-center font-medium text-xs">Sentiment</th>
+                <th className="px-3 py-2.5 text-center font-medium text-xs">Signals</th>
                 <th className="px-3 py-2.5 text-center font-medium text-xs">Chain</th>
               </tr>
             </thead>
@@ -168,6 +293,12 @@ export default function OptionsFlow() {
                 const pctChange = parseFloat(item.percentChange) || 0;
                 const ivRank = parseFloat(item.optionsImpliedVolatilityRank1y) || 0;
                 const pcRatio = parseFloat(item.optionsPutCallVolumeRatio) || 0;
+                const vol = parseInt(item.optionsTotalVolume?.replace(/,/g, "") || "0");
+
+                // Unusual activity signals
+                const isHighVolume = vol > medianVolume * 2;
+                const isHighIV = ivRank > 70;
+                const isExtremeSentiment = callPct > 85 || putPct > 60;
 
                 return (
                   <tr key={item.symbol} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
@@ -192,13 +323,30 @@ export default function OptionsFlow() {
                     <td className="px-3 py-2.5 text-right">
                       <IVBar value={ivRank} />
                     </td>
-                    <td className="px-3 py-2.5 text-center">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                        isBullish ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"
-                      }`}>
-                        {isBullish ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                        {isBullish ? "Bullish" : "Bearish"}
-                      </span>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center justify-center gap-1 flex-wrap">
+                        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${
+                          isBullish ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"
+                        }`}>
+                          {isBullish ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
+                          {isBullish ? "Bull" : "Bear"}
+                        </span>
+                        {isHighVolume && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-blue-500/10 text-blue-500" title="Volume >2x median — possible sweep or block trade">
+                            Sweep
+                          </span>
+                        )}
+                        {isHighIV && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-500/10 text-amber-500" title="IV Rank >70% — elevated implied volatility">
+                            High IV
+                          </span>
+                        )}
+                        {isExtremeSentiment && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-purple-500/10 text-purple-500" title="Extreme call/put skew — possible directional bet">
+                            Skew
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <Link href={`/options/chain?symbol=${item.symbol}`}>
@@ -220,8 +368,19 @@ export default function OptionsFlow() {
         </div>
       )}
 
-      {/* Disclaimer */}
-      <div className="mt-4 text-xs text-muted-foreground">
+      {/* Legend */}
+      <div className="mt-4 p-3 rounded-lg bg-muted/20 border border-border/50">
+        <h4 className="text-xs font-semibold mb-2">Signal Legend</h4>
+        <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded-full bg-gain/10 text-gain font-semibold">Bull</span> Call volume &gt; Put volume</span>
+          <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded-full bg-loss/10 text-loss font-semibold">Bear</span> Put volume &gt; Call volume</span>
+          <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-semibold">Sweep</span> Volume &gt;2x median (possible sweep/block)</span>
+          <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-semibold">High IV</span> IV Rank &gt;70%</span>
+          <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-500 font-semibold">Skew</span> Extreme call/put skew (&gt;85% calls or &gt;60% puts)</span>
+        </div>
+      </div>
+
+      <div className="mt-2 text-xs text-muted-foreground">
         Data refreshes every 2 minutes. Sentiment is derived from call/put volume ratio. High IV Rank indicates elevated implied volatility relative to the past year.
       </div>
     </div>

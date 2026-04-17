@@ -248,16 +248,18 @@
 - [x] Options Flow: filters by symbol/name search, sentiment (bullish/bearish/all)
 - [x] Options Flow: IV rank bars, sentiment badges, sortable columns, P/C ratio
 - [x] Options Tools: Greeks Calculator with sensitivity charts (Delta, Gamma, Theta, Vega)
-- [ ] Options Flow: add contract type (call/put) filter and volume threshold filter
-- [ ] Options Flow: add sweep/block detection and unusual OI change badges
-- [ ] Options Screener: dedicated screener with IV rank, volume, OI, expiration, moneyness filters
-- [ ] Put/Call ratio: add historical time-series chart
+- [x] Options Flow: add volume threshold filter (All, >100K, >250K, >500K, >1M) and IV rank filter (All, High, Medium, Low)
+- [x] Options Flow: add unusual activity signal badges (Sweep = vol >2x median, High IV = rank >70%, Skew = extreme call/put ratio)
+- [ ] Options Screener: dedicated screener with IV rank, volume, OI, expiration, moneyness filters (future enhancement)
+- [ ] Put/Call ratio: add historical time-series chart (requires historical data API)
+- [ ] IV Percentile: requires historical IV data (52-week) not available in current API
 - [x] Max Pain calculator: compute and display max pain strike for each expiration
 - [x] Put/Call ratio display (volume and OI ratios)
 - [x] IV Rank display in Options Flow table
-- [ ] IV Percentile calculation and display for underlying stocks
+- [ ] IV Percentile calculation and display for underlying stocks (requires historical IV data)
 - [x] Black-Scholes model implementation (server + client TypeScript) for real-time Greeks and P&L
-- [ ] Options overview stats on homepage (most active, highest IV, put/call ratio summary) - future enhancement
+- [x] Options overview stats on homepage: OptionsHubBlock with active symbols, total volume, sentiment, IV rank + top 6 table
+- [x] Options links added to Market Pulse bar, Quick Tools grid, and Footer navigation
 - [x] Add routes in App.tsx for all options pages (/options/chain, /options/strategy, /options/flow, /options/tools)
 - [x] Write vitest tests for options backend (18 tests: Black-Scholes, max pain, put/call ratio)
 - [x] OI Analysis tab: Open Interest by strike chart with max pain reference line

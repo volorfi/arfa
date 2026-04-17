@@ -43,11 +43,12 @@ const siteLinks = [
     ],
   },
   {
-    title: "Fixed Income",
+    title: "Options",
     links: [
-      { label: "Sovereign", path: "/fixed-income/sovereign" },
-      { label: "Corporate", path: "/fixed-income/corporate" },
-      { label: "Macroeconomics", path: "/macro" },
+      { label: "Options Chain", path: "/options/chain" },
+      { label: "Strategy Builder", path: "/options/strategy" },
+      { label: "Options Flow", path: "/options/flow" },
+      { label: "Options Tools", path: "/options/tools" },
     ],
   },
 ];

@@ -55,7 +55,9 @@ export default function Home() {
           <SovereignBondsSpotlight />
           <MacroSnapshot />
         </div>
-        {/* Row 3: IPO | Corporate | Quick Tools */}
+        {/* Row 3: Options Hub */}
+        <OptionsHubBlock />
+        {/* Row 4: IPO | Corporate | Quick Tools */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up-delay-2">
           <IPOCorner />
           <CorporateBondsHighlight />
@@ -196,6 +198,9 @@ function MarketPulse() {
           </Link>
           <Link href="/news" className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors shrink-0">
             <Newspaper className="h-3 w-3" /> News & Blogs
+          </Link>
+          <Link href="/options/flow" className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors shrink-0">
+            <Activity className="h-3 w-3" /> Options Flow
           </Link>
           <Link href="/macro" className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors shrink-0">
             <Globe className="h-3 w-3" /> Macroeconomics
@@ -795,6 +800,8 @@ function QuickToolsGrid() {
     { icon: Layers, label: "ETFs", desc: "Fund explorer", path: "/etfs", color: "text-violet-500", bg: "bg-violet-500/10" },
     { icon: TrendingUp, label: "Trending", desc: "Hot tickers", path: "/trending", color: "text-orange-500", bg: "bg-orange-500/10" },
     { icon: Globe, label: "Macro Map", desc: "World indicators", path: "/macro", color: "text-cyan-500", bg: "bg-cyan-500/10" },
+    { icon: Activity, label: "Options Flow", desc: "Unusual activity", path: "/options/flow", color: "text-rose-500", bg: "bg-rose-500/10" },
+    { icon: PieChart, label: "Options Chain", desc: "Calls & puts", path: "/options/chain", color: "text-indigo-500", bg: "bg-indigo-500/10" },
   ];
 
   return (
@@ -821,6 +828,133 @@ function QuickToolsGrid() {
             </div>
           </Link>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── OPTIONS HUB ─── */
+function OptionsHubBlock() {
+  const { data: mostActive } = trpc.options.mostActive.useQuery(undefined, { staleTime: 120000 });
+
+  const stats = useMemo(() => {
+    if (!mostActive || mostActive.length === 0) return null;
+    let totalVol = 0, bullishCount = 0, bearishCount = 0, highIVCount = 0;
+    let topByVol = mostActive[0];
+    let topByIV = mostActive[0];
+
+    mostActive.forEach((d: any) => {
+      const vol = parseInt(d.optionsTotalVolume?.replace(/,/g, "") || "0");
+      totalVol += vol;
+      const callPct = parseFloat(d.optionsCallVolumePercent) || 0;
+      const putPct = parseFloat(d.optionsPutVolumePercent) || 0;
+      if (callPct > putPct) bullishCount++; else bearishCount++;
+      const ivRank = parseFloat(d.optionsImpliedVolatilityRank1y) || 0;
+      if (ivRank > 50) highIVCount++;
+      if (vol > parseInt(topByVol.optionsTotalVolume?.replace(/,/g, "") || "0")) topByVol = d;
+      if (ivRank > (parseFloat(topByIV.optionsImpliedVolatilityRank1y) || 0)) topByIV = d;
+    });
+
+    return { totalVol, bullishCount, bearishCount, highIVCount, total: mostActive.length, topByVol, topByIV };
+  }, [mostActive]);
+
+  const topItems = useMemo(() => {
+    if (!mostActive) return [];
+    return mostActive.slice(0, 6);
+  }, [mostActive]);
+
+  return (
+    <div className="bg-card border border-border/50 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 section-glow animate-fade-in-up-delay-2">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+        <div className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-rose-500" />
+          <h2 className="font-semibold text-sm text-foreground">Options Activity</h2>
+        </div>
+        <Link href="/options/flow" className="text-xs text-primary hover:underline flex items-center gap-1">
+          View all <ChevronRight className="h-3 w-3" />
+        </Link>
+      </div>
+
+      <div className="p-4">
+        {/* Stats Row */}
+        {stats && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <div className="text-center">
+              <p className="text-lg font-bold tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>{stats.total}</p>
+              <p className="text-[10px] text-muted-foreground">Active Symbols</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>{(stats.totalVol / 1000000).toFixed(1)}M</p>
+              <p className="text-[10px] text-muted-foreground">Total Volume</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold tabular-nums text-gain" style={{ fontFamily: 'var(--font-display)' }}>{stats.bullishCount}</p>
+              <p className="text-[10px] text-muted-foreground">Bullish Bias</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold tabular-nums text-amber-500" style={{ fontFamily: 'var(--font-display)' }}>{stats.highIVCount}</p>
+              <p className="text-[10px] text-muted-foreground">High IV Rank</p>
+            </div>
+          </div>
+        )}
+
+        {/* Top Active Table */}
+        {topItems.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-muted-foreground border-b border-border/50">
+                  <th className="text-left py-1.5 font-medium">Symbol</th>
+                  <th className="text-right py-1.5 font-medium">Volume</th>
+                  <th className="text-right py-1.5 font-medium">P/C Ratio</th>
+                  <th className="text-right py-1.5 font-medium">IV Rank</th>
+                  <th className="text-center py-1.5 font-medium">Sentiment</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topItems.map((item: any) => {
+                  const callPct = parseFloat(item.optionsCallVolumePercent) || 0;
+                  const putPct = parseFloat(item.optionsPutVolumePercent) || 0;
+                  const isBullish = callPct > putPct;
+                  const ivRank = parseFloat(item.optionsImpliedVolatilityRank1y) || 0;
+
+                  return (
+                    <tr key={item.symbol} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+                      <td className="py-1.5">
+                        <Link href={`/options/chain?symbol=${item.symbol}`}>
+                          <span className="font-bold text-primary hover:underline cursor-pointer">{item.symbol}</span>
+                        </Link>
+                      </td>
+                      <td className="py-1.5 text-right tabular-nums font-medium">{item.optionsTotalVolume}</td>
+                      <td className="py-1.5 text-right tabular-nums">{parseFloat(item.optionsPutCallVolumeRatio || "0").toFixed(2)}</td>
+                      <td className="py-1.5 text-right">
+                        <span className={`tabular-nums ${ivRank > 70 ? "text-loss font-semibold" : ivRank > 40 ? "text-amber-500" : "text-gain"}`}>
+                          {ivRank.toFixed(0)}%
+                        </span>
+                      </td>
+                      <td className="py-1.5 text-center">
+                        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${
+                          isBullish ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"
+                        }`}>
+                          {isBullish ? "Bull" : "Bear"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Quick Links */}
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+          <Link href="/options/chain" className="text-[10px] text-primary hover:underline">Options Chain</Link>
+          <span className="text-muted-foreground/30">·</span>
+          <Link href="/options/strategy" className="text-[10px] text-primary hover:underline">Strategy Builder</Link>
+          <span className="text-muted-foreground/30">·</span>
+          <Link href="/options/tools" className="text-[10px] text-primary hover:underline">Greeks Calculator</Link>
+        </div>
       </div>
     </div>
   );
