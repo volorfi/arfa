@@ -229,3 +229,6 @@
 - [x] Ensure mobile responsiveness is maintained
 - [x] Add resize handle for adjustable sidebar width (200-360px, persisted in localStorage)
 - [x] Logo: Zap icon + "ARFA / Global Markets" with display font
+
+## Bug Fixes
+- [x] Fix nested button error in sidebar: "<button> cannot contain a nested <button>" (React DOM nesting violation)

@@ -208,19 +208,37 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ThemeToggleButton() {
+function ThemeToggleButton({ asDiv }: { asDiv?: boolean } = {}) {
   const { theme, toggleTheme } = useTheme();
+  const classes = "flex items-center justify-center h-8 w-8 rounded-lg hover:bg-sidebar-accent transition-all duration-200 focus:outline-none group/theme cursor-pointer";
+  const icon = theme === "dark" ? (
+    <Sun className="h-4 w-4 text-amber-400 group-hover/theme:rotate-45 transition-transform duration-300" />
+  ) : (
+    <Moon className="h-4 w-4 text-sidebar-foreground/60 group-hover/theme:-rotate-12 transition-transform duration-300" />
+  );
+
+  if (asDiv) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={(e: React.MouseEvent) => { e.stopPropagation(); toggleTheme?.(); }}
+        onKeyDown={(e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); toggleTheme?.(); } }}
+        className={classes}
+        aria-label="Toggle theme"
+      >
+        {icon}
+      </div>
+    );
+  }
+
   return (
     <button
       onClick={toggleTheme}
-      className="flex items-center justify-center h-8 w-8 rounded-lg hover:bg-sidebar-accent transition-all duration-200 focus:outline-none group/theme"
+      className={classes}
       aria-label="Toggle theme"
     >
-      {theme === "dark" ? (
-        <Sun className="h-4 w-4 text-amber-400 group-hover/theme:rotate-45 transition-transform duration-300" />
-      ) : (
-        <Moon className="h-4 w-4 text-sidebar-foreground/60 group-hover/theme:-rotate-12 transition-transform duration-300" />
-      )}
+      {icon}
     </button>
   );
 }
@@ -397,9 +415,10 @@ function AppSidebarContent({
             <SidebarSeparator className="mx-1 mb-2 opacity-50" />
             <div className="rounded-xl bg-sidebar-accent/50 p-2 transition-colors duration-200">
               {user ? (
+                <div className="flex items-center gap-1">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-sidebar-accent transition-all duration-200 w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none group/user">
+                    <button className="flex items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-sidebar-accent transition-all duration-200 flex-1 min-w-0 text-left group-data-[collapsible=icon]:justify-center focus:outline-none group/user">
                       <Avatar className="h-7 w-7 shrink-0 ring-2 ring-primary/20 group-hover/user:ring-primary/40 transition-all duration-200">
                         <AvatarFallback className="text-[10px] font-bold bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
                           {user.name?.charAt(0).toUpperCase() || "U"}
@@ -413,10 +432,7 @@ function AppSidebarContent({
                           {user.email || "Account"}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
-                        <ThemeToggleButton />
-                        <ChevronUp className="h-3 w-3 text-sidebar-foreground/30" />
-                      </div>
+                      <ChevronUp className="h-3 w-3 text-sidebar-foreground/30 group-data-[collapsible=icon]:hidden" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" side="top" className="w-48 mb-1">
@@ -426,6 +442,10 @@ function AppSidebarContent({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <div className="group-data-[collapsible=icon]:hidden shrink-0">
+                  <ThemeToggleButton />
+                </div>
+                </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <SidebarMenuButton
