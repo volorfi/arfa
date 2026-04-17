@@ -28,6 +28,9 @@ import {
   getSovereignBondBySlug,
   getSovereignFilters,
   getSovereignSummary,
+  getSovereignBondsByCountry,
+  getSovereignCountries,
+  getCountryMacroDetail,
 } from "./sovereignService";
 import {
   queryNews,
@@ -196,6 +199,22 @@ export const appRouter = router({
     summary: publicProcedure.query(async () => {
       return getSovereignSummary();
     }),
+
+    countryBonds: publicProcedure
+      .input(z.object({ country: z.string() }))
+      .query(async ({ input }) => {
+        return getSovereignBondsByCountry(input.country);
+      }),
+
+    countries: publicProcedure.query(async () => {
+      return getSovereignCountries();
+    }),
+
+    countryMacro: publicProcedure
+      .input(z.object({ country: z.string() }))
+      .query(async ({ input }) => {
+        return getCountryMacroDetail(input.country);
+      }),
   }),
 
   news: router({

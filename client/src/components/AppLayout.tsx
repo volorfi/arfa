@@ -113,6 +113,22 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    icon: Globe,
+    label: "Macroeconomics",
+    path: "/macro",
+    children: [
+      { label: "All Countries", path: "/macro", icon: Globe },
+      { label: "Africa", path: "/macro/region/Africa", icon: Flag },
+      { label: "Americas", path: "/macro/region/Americas", icon: Flag },
+      { label: "Asia", path: "/macro/region/Asia", icon: Flag },
+      { label: "CIS", path: "/macro/region/CIS", icon: Flag },
+      { label: "Europe", path: "/macro/region/Europe", icon: Flag },
+      { label: "Latam", path: "/macro/region/Latam", icon: Flag },
+      { label: "Middle East", path: "/macro/region/Middle%20East", icon: Flag },
+      { label: "Oceania", path: "/macro/region/Oceania", icon: Flag },
+    ],
+  },
+  {
     icon: Calendar,
     label: "IPOs",
     path: "/ipos",

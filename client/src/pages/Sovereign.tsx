@@ -728,7 +728,7 @@ export default function Sovereign() {
         </div>
         <div className="h-[450px]">
           <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart margin={{ top: 10, right: 30, bottom: 30, left: 10 }}>
+            <ScatterChart margin={{ top: 10, right: 30, bottom: 50, left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
               <XAxis
                 type="number"
@@ -788,7 +788,8 @@ export default function Sovereign() {
               )}
               {chartGroupBy !== "none" && (
                 <Legend
-                  wrapperStyle={{ fontSize: 11, paddingTop: 10 }}
+                  verticalAlign="bottom"
+                  wrapperStyle={{ fontSize: 11, paddingTop: 20, marginBottom: -10 }}
                   iconType="circle"
                   iconSize={8}
                 />

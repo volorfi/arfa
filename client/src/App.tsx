@@ -24,6 +24,9 @@ import InvestmentGrade from "./pages/InvestmentGrade";
 import IssuerDetail from "./pages/IssuerDetail";
 import Sovereign from "./pages/Sovereign";
 import SovereignBondDetail from "./pages/SovereignBondDetail";
+import MacroAllCountries from "./pages/MacroAllCountries";
+import MacroRegion from "./pages/MacroRegion";
+import MacroCountry from "./pages/MacroCountry";
 import AboutUs from "./pages/AboutUs";
 import TermsOfUse from "./pages/TermsOfUse";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -57,6 +60,9 @@ function Router() {
         <Route path="/fixed-income/issuer/:slug" component={IssuerDetail} />
         <Route path="/fixed-income/sovereign/:slug" component={SovereignBondDetail} />
         <Route path="/fixed-income/sovereign" component={Sovereign} />
+        <Route path="/macro" component={MacroAllCountries} />
+        <Route path="/macro/region/:region" component={MacroRegion} />
+        <Route path="/macro/country/:country" component={MacroCountry} />
         <Route path="/about" component={AboutUs} />
         <Route path="/terms" component={TermsOfUse} />
         <Route path="/privacy" component={PrivacyPolicy} />

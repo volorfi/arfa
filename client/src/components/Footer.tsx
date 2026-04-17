@@ -47,6 +47,7 @@ const siteLinks = [
     links: [
       { label: "Sovereign", path: "/fixed-income/sovereign" },
       { label: "Corporate", path: "/fixed-income/corporate" },
+      { label: "Macroeconomics", path: "/macro" },
     ],
   },
 ];

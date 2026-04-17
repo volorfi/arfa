@@ -145,3 +145,23 @@
 
 ## Bug Fixes
 - [x] Fix CSS animation/animationPlayState conflict error in MarketTickerBar (don't mix shorthand `animation` with non-shorthand `animationPlayState`)
+
+## Sovereign Bonds Data Improvements
+- [x] New ticker format: replace Bloomberg format (e.g. "BHRAIN 7.75 04/18/35 REGS Govt") with custom format ("BAHRAIN 7.75 04/18/2035" = Country Coupon MM/DD/YYYY)
+- [x] Parse new Sovereign.xlsx with two sheets: SOV (existing) + sov_bonds_data (extended universe)
+- [x] Merge data from both sheets: match by ISIN, priority to sov_bonds_data for numeric values (YTM, duration etc.)
+- [x] For bonds in sov_bonds_data but not in SOV: use country-level data (ratings, credit commentary, score) from another bond of the same country in SOV
+- [x] Bond detail page: add table of other bonds from same country with links to their detail pages
+- [x] Bond detail page: add market map (scatter chart) of all bonds from same country with currency toggle
+- [x] Fix market map legend positioning to avoid overlap with axis labels (move legend lower)
+
+## New Macroeconomics Section
+- [x] Add Macroeconomics menu item in sidebar (below Fixed Income) with sub-items: All Countries, Africa, Americas, Asia, CIS, Europe, Latam, Middle East, Oceania
+- [x] Use macro data from Sovereign.xlsx SOV sheet for countries (GDP, Inflation, Fiscal Balance, Public Debt, Reserves etc.)
+- [x] Build country macro page: flag, rating badges, macro indicators grid, radar chart, debt/fiscal bar chart, credit commentary (from SOV), bonds table
+- [x] Build region pages: GDP vs Inflation scatter chart, Fiscal Balance bar chart, macro comparison table with sorting for all countries in region
+- [x] Build All Countries page: tile map colored by selected macro indicator (Real GDP Growth, Inflation, Fiscal Balance, Public Debt, Current Account, Reserves, External Debt, Interest Expense)
+- [x] Fix Recharts container sizing on macro region/country pages (already using proper h-[Xpx] + ResponsiveContainer pattern)
+- [x] Add proper responsive containers for all charts on macro pages (verified: all charts use fixed-height wrapper + ResponsiveContainer)
+- [x] All Countries page: indicator selector above map + summary table below with sorting, search, and links to country pages
+- [x] Cross-link macroeconomics and sovereign bonds sections (bond detail -> macro country, macro country -> sovereign bonds, footer link)

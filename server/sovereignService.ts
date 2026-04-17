@@ -63,6 +63,19 @@ export interface SovereignBond {
   region: string | null;
   // Commentary
   creditComment: string | null;
+  // Extended fields from sov_bonds_data
+  liquidity: number | null;
+  liquidityLevel: string | null;
+  dayCount: string | null;
+  callable: string | null;
+  esg: string | null;
+  greenBonds: string | null;
+  amortized: string | null;
+  guaranteed: string | null;
+  subordinated: string | null;
+  usdEquivalent: number | null;
+  // Source tracking
+  source: string | null;
 }
 
 let cachedBonds: SovereignBond[] | null = null;
@@ -188,6 +201,103 @@ export function getSovereignSummary() {
     regionDistribution,
     ratingDistribution,
     currencyDistribution,
+  };
+}
+
+// Get all bonds for a specific country
+export function getSovereignBondsByCountry(country: string): SovereignBond[] {
+  const bonds = loadBonds();
+  return bonds.filter((b) => b.country?.toLowerCase() === country.toLowerCase());
+}
+
+// Get unique countries with their macro data
+export function getSovereignCountries(): Array<{
+  country: string;
+  region: string | null;
+  bondCount: number;
+  compositeRating: string | null;
+  igHyIndicator: string | null;
+  realGDPGrowth: number | null;
+  inflation: number | null;
+  fiscalBalance: number | null;
+  publicDebtGDP2025: number | null;
+  reservesBln: number | null;
+  currentAccount: number | null;
+  creditAssessment: string | null;
+  score: number | null;
+}> {
+  const bonds = loadBonds();
+  const countryMap = new Map<string, SovereignBond[]>();
+  bonds.forEach((b) => {
+    if (b.country) {
+      if (!countryMap.has(b.country)) countryMap.set(b.country, []);
+      countryMap.get(b.country)!.push(b);
+    }
+  });
+
+  return Array.from(countryMap.entries()).map(([country, countryBonds]) => {
+    // Use first bond with data for country-level fields
+    const ref = countryBonds.find((b) => b.compositeRating) || countryBonds[0];
+    return {
+      country,
+      region: ref.region,
+      bondCount: countryBonds.length,
+      compositeRating: ref.compositeRating,
+      igHyIndicator: ref.igHyIndicator,
+      realGDPGrowth: ref.realGDPGrowth,
+      inflation: ref.inflation,
+      fiscalBalance: ref.fiscalBalance,
+      publicDebtGDP2025: ref.publicDebtGDP2025,
+      reservesBln: ref.reservesBln,
+      currentAccount: ref.currentAccount,
+      creditAssessment: ref.creditAssessment,
+      score: ref.score,
+    };
+  }).sort((a, b) => a.country.localeCompare(b.country));
+}
+
+// Get country macro detail (all macro fields + credit commentary + ratings)
+export function getCountryMacroDetail(country: string) {
+  const bonds = loadBonds();
+  const countryBonds = bonds.filter((b) => b.country?.toLowerCase() === country.toLowerCase());
+  if (countryBonds.length === 0) return null;
+
+  const ref = countryBonds.find((b) => b.compositeRating) || countryBonds[0];
+  return {
+    country: ref.country || country,
+    region: ref.region,
+    // Ratings
+    spRating: ref.rtgSP,
+    spOutlook: ref.rtgSPOutlook,
+    moodysRating: ref.rtgMoody,
+    moodysOutlook: ref.rtgMoodyOutlook,
+    fitchRating: ref.rtgFitch,
+    fitchOutlook: ref.rtgFitchOutlook,
+    compositeRating: ref.compositeRating,
+    igHyIndicator: ref.igHyIndicator,
+    creditAssessment: ref.creditAssessment,
+    score: ref.score,
+    defaultProb: ref.defaultProb,
+    // Macro
+    publicDebtGDP2025: ref.publicDebtGDP2025,
+    publicDebtGDP2024: ref.publicDebtGDP2024,
+    debtTrajectory: ref.debtTrajectory,
+    externalDebtGDP: ref.externalDebtGDP,
+    fiscalBalance: ref.fiscalBalance,
+    inflation: ref.inflation,
+    disinflation: ref.disinflation,
+    moneyGrowth: ref.moneyGrowth,
+    currentAccount: ref.currentAccount,
+    fxStability: ref.fxStability,
+    reservesTrend: ref.reservesTrend,
+    realGDPGrowth: ref.realGDPGrowth,
+    reservesExtDebt: ref.reservesExtDebt,
+    interestExpGovRev: ref.interestExpGovRev,
+    reservesMonths: ref.reservesMonths,
+    reservesBln: ref.reservesBln,
+    externalDebtBln: ref.externalDebtBln,
+    // Credit
+    creditComment: ref.creditComment || countryBonds.find((b) => b.creditComment)?.creditComment || null,
   };
 }
 

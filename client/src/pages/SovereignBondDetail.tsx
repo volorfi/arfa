@@ -1,5 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { useLocation, useParams } from "wouter";
+import { useMemo, useState } from "react";
 import {
   ArrowLeft,
   Globe,
@@ -18,6 +19,10 @@ import {
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
+  ExternalLink,
+  ChevronUp,
+  ChevronDown,
+  MapPin,
 } from "lucide-react";
 import { getFlagUrl } from "@/lib/countryFlags";
 import {
@@ -34,6 +39,8 @@ import {
   CartesianGrid,
   Tooltip as RechartsTooltip,
   Cell,
+  ScatterChart,
+  Scatter,
 } from "recharts";
 
 function formatNum(val: number | null | undefined, decimals = 2): string {
@@ -113,12 +120,187 @@ function AssessmentBadge({ value }: { value: string | null }) {
   );
 }
 
+interface CountryMapBond {
+  slug: string;
+  ticker: string;
+  duration: number | null;
+  yieldToMaturity: number | null;
+  currency: string | null;
+}
+
+function CountryMarketMap({
+  bonds,
+  currentSlug,
+  onNavigate,
+}: {
+  bonds: CountryMapBond[];
+  currentSlug: string;
+  onNavigate: (slug: string) => void;
+}) {
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("ALL");
+  const currencies = useMemo(
+    () => Array.from(new Set(bonds.map((b) => b.currency).filter(Boolean))).sort() as string[],
+    [bonds]
+  );
+  const scatterData = useMemo(() => {
+    return bonds
+      .filter((b) => b.duration != null && b.yieldToMaturity != null)
+      .filter((b) => selectedCurrency === "ALL" || b.currency === selectedCurrency)
+      .map((b) => ({
+        x: b.duration!,
+        y: b.yieldToMaturity!,
+        ticker: b.ticker,
+        slug: b.slug,
+        currency: b.currency,
+        isCurrent: b.slug === currentSlug,
+      }));
+  }, [bonds, selectedCurrency, currentSlug]);
+
+  if (scatterData.length < 2) return null;
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <BarChart3 className="h-4 w-4 text-amber-500" />
+          Bond Market Map — Duration vs Yield
+        </h3>
+        {currencies.length > 1 && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setSelectedCurrency("ALL")}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                selectedCurrency === "ALL"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              All
+            </button>
+            {currencies.map((c) => (
+              <button
+                key={c}
+                onClick={() => setSelectedCurrency(c)}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                  selectedCurrency === c
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="h-[320px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 10, right: 30, bottom: 50, left: 10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
+            <XAxis
+              type="number"
+              dataKey="x"
+              name="Duration"
+              unit=" yrs"
+              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              label={{ value: "Modified Duration (years)", position: "insideBottom", offset: -20, style: { fontSize: 10, fill: "hsl(var(--muted-foreground))" } }}
+            />
+            <YAxis
+              type="number"
+              dataKey="y"
+              name="Yield"
+              unit="%"
+              tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+              label={{ value: "Yield to Maturity (%)", angle: -90, position: "insideLeft", offset: 10, style: { fontSize: 10, fill: "hsl(var(--muted-foreground))" } }}
+            />
+            <RechartsTooltip
+              content={({ payload }) => {
+                if (!payload?.[0]) return null;
+                const d = payload[0].payload;
+                return (
+                  <div className="bg-popover text-popover-foreground border border-border rounded-lg p-2 text-xs shadow-lg">
+                    <div className="font-semibold">{d.ticker}</div>
+                    <div>Duration: {d.x.toFixed(2)} yrs</div>
+                    <div>YTM: {d.y.toFixed(3)}%</div>
+                    <div className="text-muted-foreground">{d.currency}</div>
+                    {d.isCurrent && <div className="text-primary font-medium mt-1">Current bond</div>}
+                  </div>
+                );
+              }}
+            />
+            <Scatter
+              data={scatterData.filter((d) => !d.isCurrent)}
+              fill="#f59e0b"
+              fillOpacity={0.6}
+              r={5}
+              cursor="pointer"
+              onClick={(data: any) => {
+                if (data?.slug) onNavigate(data.slug);
+              }}
+            />
+            <Scatter
+              data={scatterData.filter((d) => d.isCurrent)}
+              fill="#ef4444"
+              fillOpacity={1}
+              r={8}
+              cursor="pointer"
+            />
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500" /> Current bond
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500" /> Other bonds
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function SovereignBondDetail() {
   const params = useParams<{ slug: string }>();
   const [, setLocation] = useLocation();
   const bondQuery = trpc.sovereign.detail.useQuery({ slug: params.slug || "" });
-
   const bond = bondQuery.data;
+
+  // Fetch other bonds from the same country
+  const countryBondsQuery = trpc.sovereign.countryBonds.useQuery(
+    { country: bond?.country || "" },
+    { enabled: !!bond?.country }
+  );
+  const [countrySortField, setCountrySortField] = useState<string>("yieldToMaturity");
+  const [countrySortDir, setCountrySortDir] = useState<"asc" | "desc">("desc");
+
+  const otherCountryBonds = useMemo(() => {
+    if (!countryBondsQuery.data || !bond) return [];
+    return countryBondsQuery.data
+      .filter((b) => b.slug !== bond.slug)
+      .sort((a: any, b: any) => {
+        const av = a[countrySortField];
+        const bv = b[countrySortField];
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        return countrySortDir === "asc" ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+      });
+  }, [countryBondsQuery.data, bond, countrySortField, countrySortDir]);
+
+  const toggleCountrySort = (field: string) => {
+    if (countrySortField === field) {
+      setCountrySortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setCountrySortField(field);
+      setCountrySortDir("desc");
+    }
+  };
+
+  const CountrySortIcon = ({ field }: { field: string }) => {
+    if (countrySortField !== field) return null;
+    return countrySortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />;
+  };
 
   if (bondQuery.isLoading) {
     return (
@@ -556,7 +738,6 @@ export default function SovereignBondDetail() {
           </h3>
           <div className="prose prose-sm prose-invert max-w-none">
             {commentParagraphs.map((p, i) => {
-              // First line is usually the title
               if (i === 0) {
                 return (
                   <h4 key={i} className="text-base font-semibold text-foreground mb-3">
@@ -564,7 +745,6 @@ export default function SovereignBondDetail() {
                   </h4>
                 );
               }
-              // Second line is usually the credit rating summary
               if (i === 1 && p.startsWith("Credit Rating:")) {
                 return (
                   <div key={i} className="bg-muted/30 rounded-lg p-3 border border-border/50 mb-4">
@@ -572,13 +752,100 @@ export default function SovereignBondDetail() {
                   </div>
                 );
               }
-              // Rest is the commentary
               return (
                 <p key={i} className="text-sm text-muted-foreground leading-relaxed mb-3">
                   {p}
                 </p>
               );
             })}
+          </div>
+          {bond.country && (
+            <div className="mt-4 pt-4 border-t border-border/30">
+              <button
+                onClick={() => setLocation(`/macro/country/${encodeURIComponent(bond.country!)}`)}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                <MapPin className="h-3 w-3" />
+                View full macroeconomic profile for {bond.country}
+                <ExternalLink className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Country Bond Market Map - Duration vs Yield */}
+      {countryBondsQuery.data && countryBondsQuery.data.filter((b) => b.duration != null && b.yieldToMaturity != null).length > 1 && (
+        <CountryMarketMap
+          bonds={countryBondsQuery.data}
+          currentSlug={bond.slug}
+          onNavigate={(slug: string) => setLocation(`/fixed-income/sovereign/${slug}`)}
+        />
+      )}
+
+      {/* Other Bonds from Same Country */}
+      {otherCountryBonds.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-5">
+          <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+            <Globe className="h-4 w-4 text-cyan-500" />
+            Other {bond.country} Sovereign Bonds ({otherCountryBonds.length})
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border/50">
+                  {[
+                    { key: "ticker", label: "Bond" },
+                    { key: "coupon", label: "Coupon" },
+                    { key: "maturity", label: "Maturity" },
+                    { key: "currency", label: "Ccy" },
+                    { key: "price", label: "Price" },
+                    { key: "yieldToMaturity", label: "YTM" },
+                    { key: "duration", label: "Dur" },
+                    { key: "zSpread", label: "Z-Spread" },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      className="text-left py-2 px-2 text-muted-foreground font-medium cursor-pointer hover:text-foreground select-none"
+                      onClick={() => toggleCountrySort(col.key)}
+                    >
+                      <span className="flex items-center gap-1">
+                        {col.label}
+                        <CountrySortIcon field={col.key} />
+                      </span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {otherCountryBonds.slice(0, 20).map((b) => (
+                  <tr
+                    key={b.slug}
+                    className="border-b border-border/20 hover:bg-muted/30 cursor-pointer transition-colors"
+                    onClick={() => setLocation(`/fixed-income/sovereign/${b.slug}`)}
+                  >
+                    <td className="py-2 px-2 font-medium text-primary truncate max-w-[200px]">{b.ticker}</td>
+                    <td className="py-2 px-2">{b.coupon != null ? `${b.coupon}%` : "—"}</td>
+                    <td className="py-2 px-2">{b.maturity || "—"}</td>
+                    <td className="py-2 px-2">{b.currency || "—"}</td>
+                    <td className="py-2 px-2">{b.price != null ? b.price.toFixed(2) : "—"}</td>
+                    <td className="py-2 px-2 font-semibold">{b.yieldToMaturity != null ? `${b.yieldToMaturity.toFixed(3)}%` : "—"}</td>
+                    <td className="py-2 px-2">{b.duration != null ? b.duration.toFixed(2) : "—"}</td>
+                    <td className="py-2 px-2">{b.zSpread != null ? `${b.zSpread.toFixed(0)}` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {otherCountryBonds.length > 20 && (
+              <div className="text-center mt-3">
+                <button
+                  onClick={() => setLocation(`/fixed-income/sovereign?country=${encodeURIComponent(bond.country!)}`)}
+                  className="text-xs text-primary hover:underline"
+                >
+                  View all {otherCountryBonds.length} bonds →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
