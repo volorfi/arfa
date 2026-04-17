@@ -25,6 +25,9 @@ import {
   Minus,
   BookOpen,
   LayoutGrid,
+  FileText,
+  User,
+  FileStack,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -50,7 +53,7 @@ const PERIOD_OPTIONS = [
   { label: "Max", interval: "1mo", range: "max" },
 ];
 
-const TABS = ["Overview", "Financials", "News", "Forecast", "Statistics", "Dividends", "History", "Profile"];
+const TABS = ["Overview", "Financials", "News", "Research", "Forecast", "Statistics", "Dividends", "History", "Profile"];
 
 export default function StockDetail() {
   const [, params] = useRoute("/stocks/:symbol");
@@ -221,6 +224,7 @@ export default function StockDetail() {
         )}
         {activeTab === "Financials" && <FinancialsTabComponent symbol={symbol} />}
         {activeTab === "News" && <StockNewsTab symbol={symbol} />}
+        {activeTab === "Research" && <StockResearchTab symbol={symbol} />}
         {activeTab === "Forecast" && <ForecastTab insights={insights} symbol={symbol} />}
         {activeTab === "Statistics" && <StatisticsTab quote={quote} />}
         {activeTab === "Dividends" && <DividendsTab quote={quote} />}
@@ -983,6 +987,110 @@ function StockNewsTab({ symbol }: { symbol: string }) {
                 <ChevronRight className="h-3.5 w-3.5 ml-1" />
               </Button>
             </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Stock Research Tab ──────────────────────────────────────────────
+
+function StockResearchTab({ symbol }: { symbol: string }) {
+  const queryInput = useMemo(() => ({
+    ticker: symbol,
+    limit: 20,
+    offset: 0,
+    randomize: false,
+  }), [symbol]);
+
+  const { data, isLoading } = trpc.externalResearch.list.useQuery(queryInput);
+  const items = data?.items || [];
+  const total = data?.total || 0;
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-4 p-3 bg-blue-500/5 border border-blue-500/15 rounded-lg">
+        <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+        <p className="text-xs text-muted-foreground">
+          External research reports mentioning <span className="font-semibold text-foreground">{symbol}</span> from top investment banks and asset managers.
+          Sourced from <a href="https://theideafarm.com/research/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">The Idea Farm</a>.
+        </p>
+      </div>
+
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        {isLoading ? (
+          <div className="divide-y divide-border/50">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="px-5 py-4">
+                <div className="h-5 w-full bg-muted rounded animate-pulse mb-2" />
+                <div className="h-4 w-3/4 bg-muted rounded animate-pulse mb-2" />
+                <div className="h-3 w-32 bg-muted rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="px-5 py-12 text-center">
+            <FileText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">
+              No external research reports found mentioning {symbol}.
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Research reports are updated daily. Check back later or browse{" "}
+              <a href="/news" className="text-primary hover:underline">all research</a>.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/50">
+            {items.map((item) => (
+              <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
+                className="block px-5 py-4 hover:bg-accent/30 transition-colors group">
+                <div className="flex items-start gap-4">
+                  {item.imageUrl && (
+                    <img src={item.imageUrl} alt="" className="w-12 h-12 rounded object-cover shrink-0 bg-muted" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-medium text-foreground leading-snug group-hover:text-primary transition-colors mb-1">
+                      {item.title}
+                      <ExternalLink className="inline-block h-3 w-3 ml-1.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+                    </h3>
+                    {item.description && (
+                      <p className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">{item.description}</p>
+                    )}
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <SentimentBadge sentiment={item.sentiment as SentimentType} />
+                      {item.firm && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary/80 bg-primary/8 px-1.5 py-0.5 rounded">
+                          <Building2 className="h-2.5 w-2.5" />{item.firm}
+                        </span>
+                      )}
+                      {item.author && (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <User className="h-2.5 w-2.5" />{item.author}
+                        </span>
+                      )}
+                      {item.contentType && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/20">
+                          <FileStack className="h-2.5 w-2.5" />{item.contentType}
+                        </span>
+                      )}
+                      {item.pages && (
+                        <span className="text-[11px] text-muted-foreground">{item.pages}</span>
+                      )}
+                      {item.category && (
+                        <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{item.category}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+
+        {total > 20 && (
+          <div className="px-5 py-3 border-t border-border bg-muted/30 text-center">
+            <a href="/news" className="text-xs text-primary hover:underline">View all {total} research reports →</a>
           </div>
         )}
       </div>

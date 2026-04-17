@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { startNewsScheduler } from "../newsService";
+import { startIdeafarmScheduler } from "../ideafarmService";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -62,6 +63,8 @@ async function startServer() {
     console.log(`Server running on http://localhost:${port}/`);
     // Start news scraping scheduler
     startNewsScheduler();
+    // Start ideafarm research/podcasts scraping scheduler
+    startIdeafarmScheduler();
   });
 }
 

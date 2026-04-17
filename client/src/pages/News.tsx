@@ -18,6 +18,11 @@ import {
   BookOpen,
   LayoutGrid,
   BarChart3,
+  FileText,
+  Headphones,
+  Building2,
+  User,
+  FileStack,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +51,7 @@ import {
 const PAGE_SIZE = 30;
 
 type SentimentType = "bullish" | "bearish" | "neutral" | null;
-type TabType = "all" | "world" | "blogs";
+type TabType = "all" | "world" | "blogs" | "research" | "podcasts";
 type DashboardPeriod = "today" | "week" | "month" | "all";
 
 const SENTIMENT_CONFIG = {
@@ -74,6 +79,8 @@ const TAB_CONFIG = [
   { key: "all" as TabType, label: "All News & Blogs", icon: LayoutGrid },
   { key: "world" as TabType, label: "World News", icon: Globe },
   { key: "blogs" as TabType, label: "Blogs", icon: BookOpen },
+  { key: "research" as TabType, label: "External Research", icon: FileText },
+  { key: "podcasts" as TabType, label: "Podcasts", icon: Headphones },
 ];
 
 function SentimentBadge({ sentiment }: { sentiment: SentimentType }) {
@@ -594,10 +601,19 @@ export default function News() {
           ))}
         </div>
 
-        {/* Sentiment Dashboard (collapsible) */}
-        {showDashboard && (
+        {/* Sentiment Dashboard (collapsible) - only for news tabs */}
+        {showDashboard && activeTab !== "research" && activeTab !== "podcasts" && (
           <SentimentDashboard tab={activeTab} period={dashboardPeriod} onPeriodChange={setDashboardPeriod} />
         )}
+
+        {/* External Research Tab */}
+        {activeTab === "research" && <ExternalResearchTab />}
+
+        {/* Podcasts Tab */}
+        {activeTab === "podcasts" && <PodcastsTab />}
+
+        {/* News content - only for news tabs */}
+        {activeTab !== "research" && activeTab !== "podcasts" && (<>
 
         {/* Sentiment Summary Bar */}
         {sentimentStats && sentimentStats.total > 0 && (
@@ -824,7 +840,333 @@ export default function News() {
             </div>
           )}
         </div>
+
+        </>)}
       </div>
     </div>
+  );
+}
+
+// ─── External Research Tab ──────────────────────────────────────────────
+
+function ExternalResearchTab() {
+  const [researchSearch, setResearchSearch] = useState("");
+  const [researchSearchInput, setResearchSearchInput] = useState("");
+  const [researchCategory, setResearchCategory] = useState("");
+  const [researchSentiment, setResearchSentiment] = useState("");
+  const [researchPage, setResearchPage] = useState(1);
+
+  const queryInput = useMemo(() => ({
+    category: researchCategory || undefined,
+    sentiment: researchSentiment || undefined,
+    search: researchSearch || undefined,
+    limit: PAGE_SIZE,
+    offset: (researchPage - 1) * PAGE_SIZE,
+    randomize: true,
+  }), [researchCategory, researchSentiment, researchSearch, researchPage]);
+
+  const { data, isLoading } = trpc.externalResearch.list.useQuery(queryInput);
+  const { data: categories } = trpc.externalResearch.categories.useQuery();
+
+  const items = data?.items || [];
+  const total = data?.total || 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  return (
+    <>
+      {/* Info banner */}
+      <div className="flex items-center gap-3 mb-4 p-3 bg-blue-500/5 border border-blue-500/15 rounded-lg">
+        <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+        <p className="text-xs text-muted-foreground">
+          Curated research reports from top investment banks, asset managers, and think tanks. Sourced from{" "}
+          <a href="https://theideafarm.com/research/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">The Idea Farm</a>.
+          Updated daily. Showing items in randomized order.
+        </p>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-card border border-border rounded-lg p-4 mb-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Filters</span>
+          {(researchSearch || researchCategory || researchSentiment) && (
+            <button onClick={() => { setResearchSearch(""); setResearchSearchInput(""); setResearchCategory(""); setResearchSentiment(""); setResearchPage(1); }}
+              className="ml-auto text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+              <X className="h-3 w-3" /> Clear all
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="sm:col-span-2">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input placeholder="Search research..." value={researchSearchInput}
+                  onChange={(e) => setResearchSearchInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { setResearchSearch(researchSearchInput); setResearchPage(1); } }}
+                  className="pl-8 h-9 text-sm" />
+              </div>
+              <Button size="sm" onClick={() => { setResearchSearch(researchSearchInput); setResearchPage(1); }} className="h-9 px-4">Search</Button>
+            </div>
+          </div>
+          <Select value={researchCategory} onValueChange={(v) => { setResearchCategory(v === "all" ? "" : v); setResearchPage(1); }}>
+            <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="All Categories" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories?.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+            </SelectContent>
+          </Select>
+          <Select value={researchSentiment} onValueChange={(v) => { setResearchSentiment(v === "all" ? "" : v); setResearchPage(1); }}>
+            <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="All Sentiment" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sentiment</SelectItem>
+              <SelectItem value="bullish"><span className="flex items-center gap-1.5"><TrendingUp className="h-3 w-3 text-emerald-500" />Bullish</span></SelectItem>
+              <SelectItem value="bearish"><span className="flex items-center gap-1.5"><TrendingDown className="h-3 w-3 text-red-500" />Bearish</span></SelectItem>
+              <SelectItem value="neutral"><span className="flex items-center gap-1.5"><Minus className="h-3 w-3 text-slate-500" />Neutral</span></SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Research List */}
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        {isLoading ? (
+          <div className="divide-y divide-border/50">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="px-5 py-4">
+                <div className="h-5 w-full bg-muted rounded animate-pulse mb-2" />
+                <div className="h-4 w-3/4 bg-muted rounded animate-pulse mb-2" />
+                <div className="h-3 w-32 bg-muted rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="px-5 py-12 text-center">
+            <FileText className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No research reports found. Try adjusting your filters or check back later.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/50">
+            {items.map((item) => (
+              <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
+                className="block px-5 py-4 hover:bg-accent/30 transition-colors group">
+                <div className="flex items-start gap-4">
+                  {item.imageUrl && (
+                    <img src={item.imageUrl} alt="" className="w-12 h-12 rounded object-cover shrink-0 bg-muted" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-medium text-foreground leading-snug group-hover:text-primary transition-colors mb-1">
+                      {item.title}
+                      <ExternalLink className="inline-block h-3 w-3 ml-1.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+                    </h3>
+                    {item.description && (
+                      <p className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">{item.description}</p>
+                    )}
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <SentimentBadge sentiment={item.sentiment as SentimentType} />
+                      {item.firm && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary/80 bg-primary/8 px-1.5 py-0.5 rounded">
+                          <Building2 className="h-2.5 w-2.5" />{item.firm}
+                        </span>
+                      )}
+                      {item.author && (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <User className="h-2.5 w-2.5" />{item.author}
+                        </span>
+                      )}
+                      {item.contentType && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/20">
+                          <FileStack className="h-2.5 w-2.5" />{item.contentType}
+                        </span>
+                      )}
+                      {item.pages && (
+                        <span className="text-[11px] text-muted-foreground">{item.pages}</span>
+                      )}
+                      {item.category && (
+                        <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{item.category}</span>
+                      )}
+                      {item.tickers && (
+                        <div className="flex gap-1">
+                          {item.tickers.split(",").slice(0, 5).map((t) => (
+                            <span key={t} onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/stocks/${t.trim()}`; }}
+                              className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded font-medium hover:bg-primary/20 cursor-pointer">
+                              {t.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-muted/30">
+            <span className="text-xs text-muted-foreground">Page {researchPage} of {totalPages} ({total} reports)</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setResearchPage((p) => Math.max(1, p - 1))} disabled={researchPage <= 1} className="h-8 px-3 text-xs">
+                <ChevronLeft className="h-3.5 w-3.5 mr-1" />Previous
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setResearchPage((p) => Math.min(totalPages, p + 1))} disabled={researchPage >= totalPages} className="h-8 px-3 text-xs">
+                Next<ChevronRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ─── Podcasts Tab ──────────────────────────────────────────────────────
+
+function PodcastsTab() {
+  const [podSearch, setPodSearch] = useState("");
+  const [podSearchInput, setPodSearchInput] = useState("");
+  const [podCategory, setPodCategory] = useState("");
+  const [podPage, setPodPage] = useState(1);
+
+  const queryInput = useMemo(() => ({
+    category: podCategory || undefined,
+    search: podSearch || undefined,
+    limit: PAGE_SIZE,
+    offset: (podPage - 1) * PAGE_SIZE,
+    randomize: true,
+  }), [podCategory, podSearch, podPage]);
+
+  const { data, isLoading } = trpc.externalPodcasts.list.useQuery(queryInput);
+  const { data: categories } = trpc.externalPodcasts.categories.useQuery();
+
+  const items = data?.items || [];
+  const total = data?.total || 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  return (
+    <>
+      {/* Info banner */}
+      <div className="flex items-center gap-3 mb-4 p-3 bg-purple-500/5 border border-purple-500/15 rounded-lg">
+        <Headphones className="h-4 w-4 text-purple-500 shrink-0" />
+        <p className="text-xs text-muted-foreground">
+          Curated finance and investing podcasts from top voices. Sourced from{" "}
+          <a href="https://theideafarm.com/curated-podcasts/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">The Idea Farm</a>.
+          Updated daily. Showing items in randomized order.
+        </p>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-card border border-border rounded-lg p-4 mb-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Filters</span>
+          {(podSearch || podCategory) && (
+            <button onClick={() => { setPodSearch(""); setPodSearchInput(""); setPodCategory(""); setPodPage(1); }}
+              className="ml-auto text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+              <X className="h-3 w-3" /> Clear all
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="sm:col-span-2">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input placeholder="Search podcasts..." value={podSearchInput}
+                  onChange={(e) => setPodSearchInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { setPodSearch(podSearchInput); setPodPage(1); } }}
+                  className="pl-8 h-9 text-sm" />
+              </div>
+              <Button size="sm" onClick={() => { setPodSearch(podSearchInput); setPodPage(1); }} className="h-9 px-4">Search</Button>
+            </div>
+          </div>
+          <Select value={podCategory} onValueChange={(v) => { setPodCategory(v === "all" ? "" : v); setPodPage(1); }}>
+            <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="All Categories" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories?.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Podcasts List */}
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        {isLoading ? (
+          <div className="divide-y divide-border/50">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="px-5 py-4">
+                <div className="h-5 w-full bg-muted rounded animate-pulse mb-2" />
+                <div className="h-4 w-3/4 bg-muted rounded animate-pulse mb-2" />
+                <div className="h-3 w-32 bg-muted rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="px-5 py-12 text-center">
+            <Headphones className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No podcasts found. Try adjusting your filters or check back later.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/50">
+            {items.map((item) => (
+              <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
+                className="block px-5 py-4 hover:bg-accent/30 transition-colors group">
+                <div className="flex items-start gap-4">
+                  {item.imageUrl && (
+                    <img src={item.imageUrl} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0 bg-muted" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-medium text-foreground leading-snug group-hover:text-primary transition-colors mb-1">
+                      {item.title}
+                      <ExternalLink className="inline-block h-3 w-3 ml-1.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+                    </h3>
+                    {item.description && (
+                      <p className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">{item.description}</p>
+                    )}
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <SentimentBadge sentiment={item.sentiment as SentimentType} />
+                      {item.duration && (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <Clock className="h-2.5 w-2.5" />{item.duration}
+                        </span>
+                      )}
+                      {item.category && (
+                        <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{item.category}</span>
+                      )}
+                      {item.tickers && (
+                        <div className="flex gap-1">
+                          {item.tickers.split(",").slice(0, 5).map((t) => (
+                            <span key={t} onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/stocks/${t.trim()}`; }}
+                              className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded font-medium hover:bg-primary/20 cursor-pointer">
+                              {t.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-muted/30">
+            <span className="text-xs text-muted-foreground">Page {podPage} of {totalPages} ({total} episodes)</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPodPage((p) => Math.max(1, p - 1))} disabled={podPage <= 1} className="h-8 px-3 text-xs">
+                <ChevronLeft className="h-3.5 w-3.5 mr-1" />Previous
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setPodPage((p) => Math.min(totalPages, p + 1))} disabled={podPage >= totalPages} className="h-8 px-3 text-xs">
+                Next<ChevronRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }

@@ -43,3 +43,42 @@ export const newsArticles = mysqlTable("news_articles", {
 
 export type NewsArticle = typeof newsArticles.$inferSelect;
 export type InsertNewsArticle = typeof newsArticles.$inferInsert;
+
+export const externalResearch = mysqlTable("external_research", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 512 }).notNull(),
+  firm: varchar("firm", { length: 256 }),
+  author: varchar("author", { length: 256 }),
+  category: varchar("category", { length: 128 }),
+  contentType: varchar("contentType", { length: 64 }),
+  pages: varchar("pages", { length: 32 }),
+  description: text("description"),
+  sourceUrl: varchar("sourceUrl", { length: 1024 }).notNull(),
+  urlHash: varchar("urlHash", { length: 64 }).notNull().unique(),
+  imageUrl: varchar("imageUrl", { length: 1024 }),
+  tickers: varchar("tickers", { length: 512 }),
+  sentiment: mysqlEnum("researchSentiment", ["bullish", "bearish", "neutral"]),
+  publishedAt: timestamp("publishedAt").notNull(),
+  fetchedAt: timestamp("fetchedAt").defaultNow().notNull(),
+});
+
+export type ExternalResearch = typeof externalResearch.$inferSelect;
+export type InsertExternalResearch = typeof externalResearch.$inferInsert;
+
+export const externalPodcasts = mysqlTable("external_podcasts", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 512 }).notNull(),
+  category: varchar("category", { length: 128 }),
+  duration: varchar("duration", { length: 32 }),
+  description: text("description"),
+  sourceUrl: varchar("sourceUrl", { length: 1024 }).notNull(),
+  urlHash: varchar("urlHash", { length: 64 }).notNull().unique(),
+  imageUrl: varchar("imageUrl", { length: 1024 }),
+  tickers: varchar("tickers", { length: 512 }),
+  sentiment: mysqlEnum("podcastSentiment", ["bullish", "bearish", "neutral"]),
+  publishedAt: timestamp("publishedAt").notNull(),
+  fetchedAt: timestamp("fetchedAt").defaultNow().notNull(),
+});
+
+export type ExternalPodcast = typeof externalPodcasts.$inferSelect;
+export type InsertExternalPodcast = typeof externalPodcasts.$inferInsert;

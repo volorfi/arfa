@@ -26,6 +26,10 @@ import {
   Flame,
   Clock,
   ExternalLink,
+  FileText,
+  Headphones,
+  User,
+  FileStack,
 } from "lucide-react";
 
 export default function Home() {
@@ -57,6 +61,11 @@ export default function Home() {
         </div>
         {/* Row 3: Options Hub */}
         <OptionsHubBlock />
+        {/* Row 3.5: Research & Podcasts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up-delay-1">
+          <ExternalResearchBlock />
+          <PodcastsBlock />
+        </div>
         {/* Row 4: IPO | Corporate | Quick Tools */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up-delay-2">
           <IPOCorner />
@@ -956,6 +965,168 @@ function OptionsHubBlock() {
           <Link href="/options/tools" className="text-[10px] text-primary hover:underline">Greeks Calculator</Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ─── EXTERNAL RESEARCH BLOCK ─── */
+function ExternalResearchBlock() {
+  const { data, isLoading } = trpc.externalResearch.list.useQuery(
+    { limit: 6, randomize: true },
+    { staleTime: 5 * 60 * 1000 }
+  );
+  const items = data?.items || [];
+  const total = data?.total || 0;
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-blue-500/10">
+            <FileText className="h-4 w-4 text-blue-500" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-foreground">External Research</h3>
+            <p className="text-[10px] text-muted-foreground">From top investment banks & asset managers</p>
+          </div>
+        </div>
+        <Link href="/news" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+          View all {total > 0 && `(${total})`} <ChevronRight className="h-3 w-3" />
+        </Link>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-14 bg-muted rounded animate-pulse" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="py-8 text-center">
+          <FileText className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+          <p className="text-xs text-muted-foreground">No research reports yet. Check back after the daily update.</p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {items.map((item) => (
+            <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
+              className="block p-2.5 rounded-lg hover:bg-accent/30 transition-colors group">
+              <div className="flex items-start gap-3">
+                {item.imageUrl && (
+                  <img src={item.imageUrl} alt="" className="w-9 h-9 rounded object-cover shrink-0 bg-muted mt-0.5" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                    {item.title}
+                  </h4>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {item.sentiment && (
+                      <span className={`text-[9px] font-semibold px-1 py-0.5 rounded ${
+                        item.sentiment === "bullish" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" :
+                        item.sentiment === "bearish" ? "bg-red-500/15 text-red-600 dark:text-red-400" :
+                        "bg-slate-500/15 text-slate-600 dark:text-slate-400"
+                      }`}>
+                        {item.sentiment === "bullish" ? "▲" : item.sentiment === "bearish" ? "▼" : "—"} {item.sentiment}
+                      </span>
+                    )}
+                    {item.firm && (
+                      <span className="text-[10px] text-muted-foreground">{item.firm}</span>
+                    )}
+                    {item.tickers && (
+                      <div className="flex gap-0.5">
+                        {item.tickers.split(",").slice(0, 3).map((t) => (
+                          <span key={t} className="text-[9px] px-1 py-0.5 bg-primary/10 text-primary rounded font-medium">
+                            {t.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── PODCASTS BLOCK ─── */
+function PodcastsBlock() {
+  const { data, isLoading } = trpc.externalPodcasts.list.useQuery(
+    { limit: 6, randomize: true },
+    { staleTime: 5 * 60 * 1000 }
+  );
+  const items = data?.items || [];
+  const total = data?.total || 0;
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-purple-500/10">
+            <Headphones className="h-4 w-4 text-purple-500" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-foreground">Curated Podcasts</h3>
+            <p className="text-[10px] text-muted-foreground">Finance & investing voices you should hear</p>
+          </div>
+        </div>
+        <Link href="/news" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+          View all {total > 0 && `(${total})`} <ChevronRight className="h-3 w-3" />
+        </Link>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-14 bg-muted rounded animate-pulse" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="py-8 text-center">
+          <Headphones className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+          <p className="text-xs text-muted-foreground">No podcasts yet. Check back after the daily update.</p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {items.map((item) => (
+            <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
+              className="block p-2.5 rounded-lg hover:bg-accent/30 transition-colors group">
+              <div className="flex items-start gap-3">
+                {item.imageUrl && (
+                  <img src={item.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0 bg-muted" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                    {item.title}
+                  </h4>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {item.duration && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                        <Clock className="h-2.5 w-2.5" />{item.duration}
+                      </span>
+                    )}
+                    {item.category && (
+                      <span className="text-[10px] text-muted-foreground bg-muted px-1 py-0.5 rounded">{item.category}</span>
+                    )}
+                    {item.tickers && (
+                      <div className="flex gap-0.5">
+                        {item.tickers.split(",").slice(0, 3).map((t) => (
+                          <span key={t} className="text-[9px] px-1 py-0.5 bg-primary/10 text-primary rounded font-medium">
+                            {t.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

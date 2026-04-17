@@ -36,6 +36,13 @@
       "when": 1776431972146,
       "tag": "0004_colossal_omega_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1776460640153,
+      "tag": "0005_faulty_outlaw_kid",
+      "breakpoints": true
     }
   ]
 }

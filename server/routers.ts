@@ -48,6 +48,13 @@ import {
   calculatePutCallRatio,
   blackScholesGreeks,
 } from "./optionsService";
+import {
+  getExternalResearch,
+  getExternalPodcasts,
+  getResearchCategories,
+  getPodcastCategories,
+  runFullScrape,
+} from "./ideafarmService";
 
 export const appRouter = router({
   system: systemRouter,
@@ -461,6 +468,52 @@ export const appRouter = router({
         });
         return { success: true };
       }),
+  }),
+
+  externalResearch: router({
+    list: publicProcedure
+      .input(z.object({
+        category: z.string().optional(),
+        ticker: z.string().optional(),
+        sentiment: z.string().optional(),
+        search: z.string().optional(),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+        randomize: z.boolean().optional(),
+      }))
+      .query(async ({ input }) => {
+        return getExternalResearch({ ...input, randomize: input.randomize ?? true });
+      }),
+    categories: publicProcedure.query(async () => {
+      return getResearchCategories();
+    }),
+  }),
+
+  externalPodcasts: router({
+    list: publicProcedure
+      .input(z.object({
+        category: z.string().optional(),
+        ticker: z.string().optional(),
+        search: z.string().optional(),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+        randomize: z.boolean().optional(),
+      }))
+      .query(async ({ input }) => {
+        return getExternalPodcasts({ ...input, randomize: input.randomize ?? true });
+      }),
+    categories: publicProcedure.query(async () => {
+      return getPodcastCategories();
+    }),
+  }),
+
+  ideafarmScrape: router({
+    run: protectedProcedure.mutation(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new Error("Admin only");
+      }
+      return runFullScrape();
+    }),
   }),
 });
 

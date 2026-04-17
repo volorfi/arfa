@@ -265,3 +265,25 @@
 - [x] OI Analysis tab: Open Interest by strike chart with max pain reference line
 - [x] IV Surface tab: Implied Volatility smile chart (call IV + put IV vs strike)
 - [x] 20 popular ticker quick-select buttons on Options Chain page
+
+## External Research & Podcasts (theideafarm.com)
+- [x] DB schema: external_research table (title, firm, author, category, type, pages, description, sourceUrl, imageUrl, date, tickers JSON, sentiment, createdAt)
+- [x] DB schema: external_podcasts table (title, category, duration, description, sourceUrl, imageUrl, date, tickers JSON, sentiment, createdAt)
+- [x] Scraper service: parse theideafarm.com/research/ HTML for research items
+- [x] Scraper service: parse theideafarm.com/curated-podcasts/ HTML for podcast items
+- [x] Scraper: extract tickers from title+description using LLM (batch analysis)
+- [x] Scraper: assign sentiment (bullish/bearish/neutral) using LLM analysis
+- [x] Scraper: initial load — all items from last 1 month depth (up to 5 pages)
+- [x] Scraper: auto-delete entries older than 3 months
+- [x] Scraper: daily cron job (30s after server start, then every 24h, podcasts limited to 1 page)
+- [x] tRPC routes: externalResearch.list (paginated, filterable by category, ticker, sentiment)
+- [x] tRPC routes: externalPodcasts.list (paginated, filterable by category)
+- [x] tRPC routes: externalResearch.byTicker (via ticker filter param)
+- [x] News & Blogs page: add "External Research" tab
+- [x] News & Blogs page: add "Podcasts" tab
+- [x] Display: title, preamble, firm/source, link to original, tickers, sentiment badge
+- [x] Display: randomized order (not strictly chronological)
+- [x] Stock detail page: add External Research tab showing research mentioning that ticker
+- [x] Homepage: add External Research block (6 items, randomized, with tickers/sentiment)
+- [x] Homepage: add Podcasts block (6 items, randomized, with duration/category)
+- [x] Write vitest tests for ideafarm service and tRPC routes (19 tests: HTML decoding, URL hashing, research list/filter/categories, podcasts list/filter/categories)
