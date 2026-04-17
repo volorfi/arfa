@@ -41,6 +41,13 @@ import {
 } from "./newsService";
 import { analyzeUnprocessedArticles, getSentimentStats } from "./sentimentService";
 import { getSentimentAggregation, getNewsArticles } from "./db";
+import {
+  getOptionsChain,
+  getMostActiveOptions,
+  calculateMaxPain,
+  calculatePutCallRatio,
+  blackScholesGreeks,
+} from "./optionsService";
 
 export const appRouter = router({
   system: systemRouter,
@@ -394,6 +401,45 @@ export const appRouter = router({
       .input(z.object({ symbol: z.string() }))
       .query(async ({ ctx, input }) => {
         return isInWatchlist(ctx.user.id, input.symbol);
+      }),
+  }),
+
+  options: router({
+    chain: publicProcedure
+      .input(z.object({
+        symbol: z.string(),
+        expirationDate: z.number().optional(),
+      }))
+      .query(async ({ input }) => {
+        const chain = await getOptionsChain(input.symbol, input.expirationDate);
+        if (!chain) return null;
+        const maxPain = calculateMaxPain(chain.calls, chain.puts);
+        const pcRatio = calculatePutCallRatio(chain.calls, chain.puts);
+        return { ...chain, maxPain, putCallRatio: pcRatio };
+      }),
+
+    mostActive: publicProcedure.query(async () => {
+      return getMostActiveOptions();
+    }),
+
+    greeks: publicProcedure
+      .input(z.object({
+        spotPrice: z.number(),
+        strikePrice: z.number(),
+        timeToExpiry: z.number(), // in years
+        riskFreeRate: z.number(),
+        volatility: z.number(),
+        optionType: z.enum(["call", "put"]),
+      }))
+      .query(({ input }) => {
+        return blackScholesGreeks(
+          input.spotPrice,
+          input.strikePrice,
+          input.timeToExpiry,
+          input.riskFreeRate,
+          input.volatility,
+          input.optionType
+        );
       }),
   }),
 

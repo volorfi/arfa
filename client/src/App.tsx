@@ -34,6 +34,10 @@ import DataDisclaimer from "./pages/DataDisclaimer";
 import Disclaimer from "./pages/Disclaimer";
 import CookieNotice from "./pages/CookieNotice";
 import Contact from "./pages/Contact";
+import OptionsChain from "./pages/OptionsChain";
+import StrategyBuilder from "./pages/StrategyBuilder";
+import OptionsFlow from "./pages/OptionsFlow";
+import OptionsScreener from "./pages/OptionsScreener";
 import { LineChart, Calculator, BarChart3 } from "lucide-react";
 import CookieConsent from "./components/CookieConsent";
 
@@ -70,6 +74,10 @@ function Router() {
         <Route path="/disclaimer" component={Disclaimer} />
         <Route path="/cookies" component={CookieNotice} />
         <Route path="/contact" component={Contact} />
+        <Route path="/options/chain" component={OptionsChain} />
+        <Route path="/options/strategy" component={StrategyBuilder} />
+        <Route path="/options/flow" component={OptionsFlow} />
+        <Route path="/options/tools" component={OptionsScreener} />
         <Route path="/chart">
           {() => <PlaceholderPage title="Technical Chart" icon={LineChart} />}
         </Route>

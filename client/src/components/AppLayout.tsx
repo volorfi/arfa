@@ -60,6 +60,8 @@ import {
   Rocket,
   ChevronUp,
   Zap,
+  Activity,
+  Target,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -152,6 +154,31 @@ const menuSections: MenuSection[] = [
           { label: "Recent IPOs", path: "/ipos?tab=recent", icon: Clock },
           { label: "Upcoming IPOs", path: "/ipos?tab=upcoming", icon: CalendarPlus },
         ],
+      },
+    ],
+  },
+  {
+    label: "Options",
+    items: [
+      {
+        icon: Activity,
+        label: "Options Chain",
+        path: "/options/chain",
+      },
+      {
+        icon: Calculator,
+        label: "Strategy Builder",
+        path: "/options/strategy",
+      },
+      {
+        icon: Zap,
+        label: "Options Flow",
+        path: "/options/flow",
+      },
+      {
+        icon: Target,
+        label: "Options Tools",
+        path: "/options/tools",
       },
     ],
   },

@@ -233,3 +233,33 @@
 ## Bug Fixes
 - [x] Fix nested button error in sidebar: "<button> cannot contain a nested <button>" (React DOM nesting violation)
 - [x] Fix search dropdown z-index: results dropdown hides behind stat cards and other content below the search bar
+
+## Stock Options Section
+- [x] Create optionsService.ts backend: Yahoo Finance crumb-based options chain API (expirations, calls/puts, Greeks, IV)
+- [x] Add "OPTIONS" section to sidebar menu with sub-items: Chain, Strategy Builder, Options Flow, Options Tools
+- [x] Options Chain page: symbol search, expiration date selector, calls/puts side-by-side grid
+- [x] Options Chain: columns - Strike, Bid, Ask, Last, Change, Volume, OI, IV, Delta, Gamma, Theta, Vega
+- [x] Options Chain: highlight ITM/OTM zones, show underlying price divider line, color-code by moneyness
+- [x] Strategy Builder page: strategy template selector (Long Call, Covered Call, Bull/Bear Spread, Iron Condor, Straddle, Strangle, Butterfly, Calendar Spread, etc.)
+- [x] Strategy Builder: Black-Scholes P&L calculator with interactive payoff diagram (at expiration + current)
+- [x] Strategy Builder: per-leg and net Greeks display (Delta, Gamma, Theta, Vega, Rho)
+- [x] Strategy Builder: adjustable parameters (IV, days to expiry, underlying price slider)
+- [x] Options Flow page: most active options from RapidAPI, unusual volume detection
+- [x] Options Flow: filters by symbol/name search, sentiment (bullish/bearish/all)
+- [x] Options Flow: IV rank bars, sentiment badges, sortable columns, P/C ratio
+- [x] Options Tools: Greeks Calculator with sensitivity charts (Delta, Gamma, Theta, Vega)
+- [ ] Options Flow: add contract type (call/put) filter and volume threshold filter
+- [ ] Options Flow: add sweep/block detection and unusual OI change badges
+- [ ] Options Screener: dedicated screener with IV rank, volume, OI, expiration, moneyness filters
+- [ ] Put/Call ratio: add historical time-series chart
+- [x] Max Pain calculator: compute and display max pain strike for each expiration
+- [x] Put/Call ratio display (volume and OI ratios)
+- [x] IV Rank display in Options Flow table
+- [ ] IV Percentile calculation and display for underlying stocks
+- [x] Black-Scholes model implementation (server + client TypeScript) for real-time Greeks and P&L
+- [ ] Options overview stats on homepage (most active, highest IV, put/call ratio summary) - future enhancement
+- [x] Add routes in App.tsx for all options pages (/options/chain, /options/strategy, /options/flow, /options/tools)
+- [x] Write vitest tests for options backend (18 tests: Black-Scholes, max pain, put/call ratio)
+- [x] OI Analysis tab: Open Interest by strike chart with max pain reference line
+- [x] IV Surface tab: Implied Volatility smile chart (call IV + put IV vs strike)
+- [x] 20 popular ticker quick-select buttons on Options Chain page
