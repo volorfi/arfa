@@ -9,7 +9,6 @@ import {
   Rocket,
   AlertCircle,
 } from "lucide-react";
-import MarketTickerBar from "@/components/MarketTickerBar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -69,7 +68,6 @@ export default function CalendarPublicOfferings() {
 
   return (
     <div className="min-h-screen">
-      <MarketTickerBar />
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-2 mb-1">

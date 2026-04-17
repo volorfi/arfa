@@ -2,7 +2,6 @@ import { trpc } from "@/lib/trpc";
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { Filter, ArrowUpDown, Search, ChevronDown, X } from "lucide-react";
-import MarketTickerBar from "@/components/MarketTickerBar";
 
 type SortField = "symbol" | "price" | "changePercent" | "marketCap" | "peRatio" | "volume";
 type SortDir = "asc" | "desc";
@@ -150,7 +149,6 @@ export default function Screener() {
 
   return (
     <div className="min-h-screen">
-      <MarketTickerBar />
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         <div className="flex items-center gap-2 mb-6">
           <Filter className="h-5 w-5 text-primary" />

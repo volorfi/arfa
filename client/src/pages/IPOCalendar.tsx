@@ -1,7 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { Calendar, Clock, CalendarPlus } from "lucide-react";
-import MarketTickerBar from "@/components/MarketTickerBar";
 
 export default function IPOCalendar() {
   const { data, isLoading } = trpc.market.ipos.useQuery();
@@ -11,7 +10,6 @@ export default function IPOCalendar() {
 
   return (
     <div className="min-h-screen">
-      <MarketTickerBar />
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         <div className="flex items-center gap-2 mb-6">
           <Calendar className="h-5 w-5 text-primary" />

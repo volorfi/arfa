@@ -15,7 +15,6 @@ import {
   TrendingDown,
   Minus,
 } from "lucide-react";
-import MarketTickerBar from "@/components/MarketTickerBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -132,7 +131,6 @@ export default function News() {
 
   return (
     <div className="min-h-screen">
-      <MarketTickerBar />
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center gap-2 mb-5">

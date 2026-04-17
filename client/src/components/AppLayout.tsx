@@ -64,6 +64,7 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import Footer from "@/components/Footer";
+import MarketTickerBar from "@/components/MarketTickerBar";
 
 interface MenuItem {
   icon: any;
@@ -361,17 +362,20 @@ function AppSidebarContent({
       </div>
 
       <SidebarInset>
-        {isMobile && (
-          <div className="flex border-b h-12 items-center bg-background/95 px-3 backdrop-blur sticky top-0 z-40">
-            <SidebarTrigger className="h-8 w-8 rounded-md" />
-            <div className="ml-2 flex items-center gap-2">
-              <div className="h-6 w-6 rounded bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-[9px]">AG</span>
+        <div className="sticky top-0 z-40">
+          {isMobile && (
+            <div className="flex border-b h-12 items-center bg-background/95 px-3 backdrop-blur">
+              <SidebarTrigger className="h-8 w-8 rounded-md" />
+              <div className="ml-2 flex items-center gap-2">
+                <div className="h-6 w-6 rounded bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground font-bold text-[9px]">AG</span>
+                </div>
+                <span className="font-semibold text-sm">ARFA Global Markets</span>
               </div>
-              <span className="font-semibold text-sm">ARFA Global Markets</span>
             </div>
-          </div>
-        )}
+          )}
+          <MarketTickerBar />
+        </div>
         <main className="flex-1">{children}</main>
         <Footer />
       </SidebarInset>

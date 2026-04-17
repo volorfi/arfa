@@ -1,7 +1,6 @@
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 import { TrendingUp } from "lucide-react";
-import MarketTickerBar from "@/components/MarketTickerBar";
 
 export default function Trending() {
   const { data, isLoading } = trpc.market.movers.useQuery(undefined, { refetchInterval: 60000 });
@@ -13,7 +12,6 @@ export default function Trending() {
 
   return (
     <div className="min-h-screen">
-      <MarketTickerBar />
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         <div className="flex items-center gap-2 mb-6">
           <TrendingUp className="h-5 w-5 text-primary" />

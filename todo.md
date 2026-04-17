@@ -136,3 +136,9 @@
 - [x] Link to Cookie Notice page from the banner
 - [x] Modern, non-intrusive design matching site theme
 - [x] Integrate into App.tsx so it appears on all pages
+
+## Market Indices Ticker Tape
+- [x] Replace horizontal scroll bar with smooth auto-scrolling marquee/ticker tape
+- [x] Remove scrollbar - use CSS animation instead
+- [x] Pin/sticky ticker tape at top of page (always visible on scroll)
+- [x] Keep sparkline charts and color-coded changes

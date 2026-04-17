@@ -1,5 +1,4 @@
 import { Layers } from "lucide-react";
-import MarketTickerBar from "@/components/MarketTickerBar";
 import { toast } from "sonner";
 import { useEffect } from "react";
 
@@ -10,7 +9,6 @@ export default function ETFs() {
 
   return (
     <div className="min-h-screen">
-      <MarketTickerBar />
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         <div className="flex items-center gap-2 mb-6">
           <Layers className="h-5 w-5 text-primary" />

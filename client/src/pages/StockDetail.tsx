@@ -34,7 +34,6 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import MarketTickerBar from "@/components/MarketTickerBar";
 import FinancialsTabComponent from "@/components/FinancialsTab";
 
 const PERIOD_OPTIONS = [
@@ -112,7 +111,6 @@ export default function StockDetail() {
 
   return (
     <div className="min-h-screen">
-      <MarketTickerBar />
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">

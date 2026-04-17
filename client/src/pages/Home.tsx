@@ -1,6 +1,5 @@
 import { trpc } from "@/lib/trpc";
 import GlobalSearch from "@/components/GlobalSearch";
-import MarketTickerBar from "@/components/MarketTickerBar";
 import { Link } from "wouter";
 import {
   Star,
@@ -19,7 +18,6 @@ import {
 export default function Home() {
   return (
     <div className="min-h-screen">
-      <MarketTickerBar />
       <HeroSection />
       <QuickLinks />
       <div className="max-w-[1300px] mx-auto px-4 pb-12">

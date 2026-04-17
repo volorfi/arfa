@@ -2,7 +2,6 @@ import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { Link } from "wouter";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import MarketTickerBar from "@/components/MarketTickerBar";
 
 export default function MarketMovers() {
   const { data, isLoading } = trpc.market.movers.useQuery(undefined, { refetchInterval: 60000 });
@@ -12,7 +11,6 @@ export default function MarketMovers() {
 
   return (
     <div className="min-h-screen">
-      <MarketTickerBar />
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         <div className="flex items-center gap-2 mb-6">
           <ArrowUpDown className="h-5 w-5 text-primary" />

@@ -5,7 +5,6 @@ import { Link } from "wouter";
 import { Star, Trash2, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import MarketTickerBar from "@/components/MarketTickerBar";
 
 export default function Watchlist() {
   const { user, loading: authLoading } = useAuth();
@@ -21,7 +20,6 @@ export default function Watchlist() {
   if (authLoading) {
     return (
       <div className="min-h-screen">
-        <MarketTickerBar />
         <div className="max-w-[1300px] mx-auto px-4 py-6">
           <div className="h-8 w-32 bg-muted rounded animate-pulse mb-6" />
           <div className="space-y-2">
@@ -37,7 +35,6 @@ export default function Watchlist() {
   if (!user) {
     return (
       <div className="min-h-screen">
-        <MarketTickerBar />
         <div className="max-w-[1300px] mx-auto px-4 py-6">
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Star className="h-12 w-12 text-muted-foreground mb-4" />
@@ -57,7 +54,6 @@ export default function Watchlist() {
 
   return (
     <div className="min-h-screen">
-      <MarketTickerBar />
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         <div className="flex items-center gap-2 mb-6">
           <Star className="h-5 w-5 text-primary" />
