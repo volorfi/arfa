@@ -180,3 +180,8 @@
 - [x] Dashboard: ticker mentions and keyword frequency visualization
 - [x] Integrate blogs into stock detail page News tab (same ticker matching)
 - [x] Toggle to switch between news, blogs, or all combined
+
+## News Page Fixes
+- [x] Most Mentioned: exclude market indices (^DJI, ^GSPC, ^IXIC etc.) - show only stock tickers
+- [x] Category Sentiment Treemap: improve label visibility (text hard to read on colored backgrounds)
+- [x] Keyword search filter: fix search not finding articles by keyword (e.g. "roger" not returning results)

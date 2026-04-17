@@ -261,7 +261,7 @@ function SentimentDashboard({ tab, period, onPeriodChange }: {
           </div>
           <div className="space-y-1.5">
             {byTicker
-              .filter((t) => t.bullish > 0)
+              .filter((t) => t.bullish > 0 && !t.ticker.startsWith("^"))
               .sort((a, b) => (b.total > 0 ? b.bullish / b.total : 0) - (a.total > 0 ? a.bullish / a.total : 0))
               .slice(0, 3)
               .map((t) => (
@@ -288,7 +288,7 @@ function SentimentDashboard({ tab, period, onPeriodChange }: {
           </div>
           <div className="space-y-1.5">
             {byTicker
-              .filter((t) => t.bearish > 0)
+              .filter((t) => t.bearish > 0 && !t.ticker.startsWith("^"))
               .sort((a, b) => (b.total > 0 ? b.bearish / b.total : 0) - (a.total > 0 ? a.bearish / a.total : 0))
               .slice(0, 3)
               .map((t) => (
@@ -314,7 +314,7 @@ function SentimentDashboard({ tab, period, onPeriodChange }: {
             <span className="text-[11px] font-semibold text-primary">Most Mentioned</span>
           </div>
           <div className="space-y-1.5">
-            {byTicker.slice(0, 5).map((t) => (
+            {byTicker.filter((t) => !t.ticker.startsWith("^")).slice(0, 5).map((t) => (
               <div key={t.ticker} className="flex items-center justify-between">
                 <Link href={`/stocks/${t.ticker}`} className="text-xs font-medium text-foreground hover:text-primary">
                   {t.ticker}
@@ -440,14 +440,40 @@ function SentimentDashboard({ tab, period, onPeriodChange }: {
 function TreemapCell(props: any) {
   const { x, y, width, height, name, fill } = props;
   if (!width || !height || width < 30 || height < 20) return null;
+  const fontSize = width > 120 ? 14 : width > 80 ? 12 : 11;
   return (
     <g>
-      <rect x={x} y={y} width={width} height={height} fill={fill} fillOpacity={0.25} stroke={fill} strokeWidth={1} rx={4} />
+      <rect x={x} y={y} width={width} height={height} fill={fill} fillOpacity={0.4} stroke={fill} strokeWidth={1.5} rx={4} />
       {width > 50 && height > 25 && (
-        <text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="central"
-          fill="currentColor" fontSize={11} fontWeight={600}>
-          {name}
-        </text>
+        <>
+          {/* Dark outline for contrast on any background */}
+          <text
+            x={x + width / 2}
+            y={y + height / 2}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={fontSize}
+            fontWeight={800}
+            fill="none"
+            stroke="rgba(0,0,0,0.6)"
+            strokeWidth={3}
+            strokeLinejoin="round"
+          >
+            {name}
+          </text>
+          {/* White text on top */}
+          <text
+            x={x + width / 2}
+            y={y + height / 2}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize={fontSize}
+            fontWeight={800}
+            fill="#ffffff"
+          >
+            {name}
+          </text>
+        </>
       )}
     </g>
   );

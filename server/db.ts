@@ -161,7 +161,20 @@ export async function getNewsArticles(opts: {
     );
   }
   if (opts.category) conditions.push(eq(newsArticles.category, opts.category));
-  if (opts.search) conditions.push(or(like(newsArticles.title, `%${opts.search}%`), like(newsArticles.summary, `%${opts.search}%`)));
+  if (opts.search) {
+    const s = opts.search.trim();
+    if (s) {
+      // Case-insensitive search across title, summary, source, and tickers
+      conditions.push(
+        or(
+          sql`LOWER(${newsArticles.title}) LIKE LOWER(${`%${s}%`})`,
+          sql`LOWER(${newsArticles.summary}) LIKE LOWER(${`%${s}%`})`,
+          sql`LOWER(${newsArticles.source}) LIKE LOWER(${`%${s}%`})`,
+          sql`LOWER(${newsArticles.tickers}) LIKE LOWER(${`%${s}%`})`
+        )
+      );
+    }
+  }
   if (opts.sentiment && ["bullish", "bearish", "neutral"].includes(opts.sentiment)) {
     conditions.push(sql`${newsArticles.sentiment} = ${opts.sentiment}`);
   }
@@ -223,6 +236,8 @@ export async function getSentimentAggregation(opts: {
     for (const ticker of row.tickers.split(",")) {
       const t = ticker.trim().toUpperCase();
       if (!t) continue;
+      // Skip market indices - only show stock tickers
+      if (t.startsWith("^")) continue;
       if (!tickerMap.has(t)) tickerMap.set(t, { bullish: 0, bearish: 0, neutral: 0, total: 0 });
       const entry = tickerMap.get(t)!;
       const c = Number(row.count);
