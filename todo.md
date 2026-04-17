@@ -192,3 +192,27 @@
 - [x] Trending tickers: replace static AAPL/NVDA/MSFT/TSLA/AMZN with dynamic top 5 Most Mentioned tickers from News Today
 - [x] Trending tickers: update automatically when sentiment data changes
 - [x] Most Bullish and Most Bearish cards: expand from 3 to 5 tickers
+
+## SEO Fixes - Homepage
+- [x] Set page title between 30-60 characters using document.title
+- [x] Add meta description between 50-160 characters
+- [x] Add meta keywords for the homepage
+
+## Homepage Redesign - Super Rich & Unique
+- [x] Unique visual identity: differentiate from StockAnalysis.com (Space Grotesk display font, gradient mesh hero, section-glow borders, entrance animations)
+- [x] Hero: preamble text explaining what ARFA is and what the user can do here
+- [x] Hero: smart universal search (stocks, bonds, ISIN, countries, news keywords)
+- [x] Block: Market Overview - Market Pulse strip with key indices, top gainer/loser, volume
+- [x] Block: Top Gainers & Losers - compact tables with toggle
+- [x] Block: Market News & Sentiment - latest headlines with sentiment badges
+- [x] Block: Sovereign Bonds Spotlight - top yield bonds with ratings and country flags
+- [x] Block: Corporate Bonds Highlight - featured issuers with ratings and sector
+- [x] Block: Macroeconomics Snapshot - country cards with GDP, inflation, debt, ratings
+- [x] Block: Calendars Preview - upcoming earnings and economic events
+- [x] Block: Trending Stocks - most mentioned tickers from news with sentiment bars
+- [x] Block: IPO Corner - recent and upcoming IPOs
+- [ ] Block: ETFs Overview - top ETFs or categories (placeholder - ETF data not yet available)
+- [x] Block: Tools & Quick Links - screener, watchlist, movers, calendars shortcuts
+- [x] Design: unique card styles with section-glow borders, hover shadow lift, gradient backgrounds
+- [x] Design: micro-interactions (hover lift, icon scale, fade-in-up entrance animations)
+- [x] SEO: proper title, description, keywords
