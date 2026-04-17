@@ -89,3 +89,29 @@
 - [x] Add sentiment filter dropdown to News page and Stock News tab
 - [x] Run sentiment analysis on existing articles (backfill complete: 315 bullish, 138 bearish, 490 neutral)
 - [x] Write vitest tests for sentiment analysis routes (27 news tests, 64 total)
+
+## API Migration - Yahoo Finance RapidAPI
+- [x] Save RapidAPI key as environment secret
+- [x] Rewrite stockService.ts to use Yahoo Finance RapidAPI endpoints
+- [x] Migrate market quotes (real-time) endpoint
+- [x] Migrate stock history/chart endpoint
+- [x] Migrate stock profile endpoint (via stock/modules)
+- [x] Migrate market screener endpoint
+- [x] Migrate market movers (gainers/losers) endpoint
+- [x] Migrate market indices endpoint (sequential with rate limiting)
+- [x] Migrate search endpoint
+- [x] Migrate stock modules (financials, statistics, calendar-events)
+- [x] Add rate limiting (600ms queue + 429 retry)
+- [ ] Migrate IPO data endpoint
+- [x] Verify all existing pages work with new API (homepage indices, gainers/losers, stock detail all working)
+
+## Calendars Section
+- [x] Build calendar service for Yahoo Finance calendar endpoints (earnings, dividends, stock-splits, economic_events, public_offerings)
+- [x] Add Earnings calendar page
+- [x] Add Dividends calendar page
+- [x] Add Stock Splits calendar page
+- [x] Add Economic Events calendar page
+- [x] Add Public Offerings (IPO/SPO) calendar page (with static fallback)
+- [x] Add Calendars section to sidebar navigation (after News, with 5 sub-items)
+- [x] Add routes in App.tsx for all calendar pages
+- [x] Write vitest tests for calendar routes (5 calendar tests added, 71 total all passing)

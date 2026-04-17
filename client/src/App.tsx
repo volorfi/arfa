@@ -15,6 +15,11 @@ import Watchlist from "./pages/Watchlist";
 import Trending from "./pages/Trending";
 import ETFs from "./pages/ETFs";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import CalendarEarnings from "./pages/CalendarEarnings";
+import CalendarDividends from "./pages/CalendarDividends";
+import CalendarStockSplits from "./pages/CalendarStockSplits";
+import CalendarEconomicEvents from "./pages/CalendarEconomicEvents";
+import CalendarPublicOfferings from "./pages/CalendarPublicOfferings";
 import InvestmentGrade from "./pages/InvestmentGrade";
 import IssuerDetail from "./pages/IssuerDetail";
 import Sovereign from "./pages/Sovereign";
@@ -31,6 +36,11 @@ function Router() {
         <Route path="/screener" component={Screener} />
         <Route path="/movers" component={MarketMovers} />
         <Route path="/ipos" component={IPOCalendar} />
+        <Route path="/calendars/earnings" component={CalendarEarnings} />
+        <Route path="/calendars/dividends" component={CalendarDividends} />
+        <Route path="/calendars/stock-splits" component={CalendarStockSplits} />
+        <Route path="/calendars/economic-events" component={CalendarEconomicEvents} />
+        <Route path="/calendars/public-offerings" component={CalendarPublicOfferings} />
         <Route path="/news" component={News} />
         <Route path="/watchlist" component={Watchlist} />
         <Route path="/trending" component={Trending} />

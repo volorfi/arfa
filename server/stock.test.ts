@@ -61,6 +61,18 @@ vi.mock("./stockService", () => ({
   getMarketNews: vi.fn().mockReturnValue([
     { title: "Test News Article", source: "Reuters", timestamp: "2h ago", relatedSymbols: ["AAPL"] },
   ]),
+  getCalendarEarnings: vi.fn().mockResolvedValue([
+    { ticker: "AAPL", companyshortname: "Apple Inc.", startdatetime: "2026-04-17T16:30:00.000Z", startdatetimetype: "AMC", epsestimate: 2.35, epsactual: null, epssurprisepct: null },
+    { ticker: "MSFT", companyshortname: "Microsoft Corp", startdatetime: "2026-04-17T16:00:00.000Z", startdatetimetype: "BMO", epsestimate: 3.15, epsactual: 3.22, epssurprisepct: 2.22 },
+  ]),
+  getCalendarDividends: vi.fn().mockResolvedValue([
+    { ticker: "JNJ", companyshortname: "Johnson & Johnson", dividend_date: "2026-04-17", amount: 1.24, payable_date: "2026-05-15", record_date: "2026-04-20" },
+  ]),
+  getCalendarStockSplits: vi.fn().mockResolvedValue([
+    { ticker: "NVDA", companyshortname: "NVIDIA Corp", startdatetime: "2026-04-17T04:00:00.000Z", old_share_worth: 1, share_worth: 10 },
+  ]),
+  getCalendarEconomicEvents: vi.fn().mockResolvedValue([]),
+  getCalendarPublicOfferings: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock the financials service module
@@ -742,6 +754,65 @@ describe("sovereign.summary", () => {
     expect(result).toHaveProperty("avgDuration");
     expect(result).toHaveProperty("ratingDistribution");
     expect(result).toHaveProperty("regionDistribution");
+  });
+});
+
+describe("calendar.earnings", () => {
+  it("returns earnings data for a given date", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.calendar.earnings({ date: "2026-04-17" });
+
+    expect(result).toBeInstanceOf(Array);
+    expect(result.length).toBe(2);
+    expect(result[0]).toHaveProperty("ticker", "AAPL");
+    expect(result[0]).toHaveProperty("companyshortname", "Apple Inc.");
+    expect(result[0]).toHaveProperty("epsestimate", 2.35);
+    expect(result[1]).toHaveProperty("epssurprisepct", 2.22);
+  });
+});
+
+describe("calendar.dividends", () => {
+  it("returns dividends data for a given date", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.calendar.dividends({ date: "2026-04-17" });
+
+    expect(result).toBeInstanceOf(Array);
+    expect(result.length).toBe(1);
+    expect(result[0]).toHaveProperty("ticker", "JNJ");
+    expect(result[0]).toHaveProperty("amount", 1.24);
+  });
+});
+
+describe("calendar.stockSplits", () => {
+  it("returns stock splits data for a given date", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.calendar.stockSplits({ date: "2026-04-17" });
+
+    expect(result).toBeInstanceOf(Array);
+    expect(result.length).toBe(1);
+    expect(result[0]).toHaveProperty("ticker", "NVDA");
+    expect(result[0]).toHaveProperty("old_share_worth", 1);
+    expect(result[0]).toHaveProperty("share_worth", 10);
+  });
+});
+
+describe("calendar.economicEvents", () => {
+  it("returns empty array when API is unavailable", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.calendar.economicEvents({ date: "2026-04-17" });
+
+    expect(result).toBeInstanceOf(Array);
+    expect(result.length).toBe(0);
+  });
+});
+
+describe("calendar.publicOfferings", () => {
+  it("returns empty array when API is unavailable", async () => {
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.calendar.publicOfferings({ date: "2026-04-17" });
+
+    expect(result).toBeInstanceOf(Array);
+    expect(result.length).toBe(0);
   });
 });
 

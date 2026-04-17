@@ -14,6 +14,11 @@ import {
   getScreenerData,
   getIPOData,
   getMarketNews,
+  getCalendarEarnings,
+  getCalendarDividends,
+  getCalendarStockSplits,
+  getCalendarEconomicEvents,
+  getCalendarPublicOfferings,
 } from "./stockService";
 import { getFinancialStatements } from "./financialsService";
 import { getBonds, getIssuerBySlug, getFilterOptions, getBondsSummary } from "./bondService";
@@ -99,6 +104,38 @@ export const appRouter = router({
     ipos: publicProcedure.query(async () => {
       return getIPOData();
     }),
+  }),
+
+  calendar: router({
+    earnings: publicProcedure
+      .input(z.object({ date: z.string() }))
+      .query(async ({ input }) => {
+        return getCalendarEarnings(input.date);
+      }),
+
+    dividends: publicProcedure
+      .input(z.object({ date: z.string() }))
+      .query(async ({ input }) => {
+        return getCalendarDividends(input.date);
+      }),
+
+    stockSplits: publicProcedure
+      .input(z.object({ date: z.string() }))
+      .query(async ({ input }) => {
+        return getCalendarStockSplits(input.date);
+      }),
+
+    economicEvents: publicProcedure
+      .input(z.object({ date: z.string() }))
+      .query(async ({ input }) => {
+        return getCalendarEconomicEvents(input.date);
+      }),
+
+    publicOfferings: publicProcedure
+      .input(z.object({ date: z.string() }))
+      .query(async ({ input }) => {
+        return getCalendarPublicOfferings(input.date);
+      }),
   }),
 
   bonds: router({

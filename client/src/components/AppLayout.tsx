@@ -54,6 +54,10 @@ import {
   Flag,
   Sun,
   Moon,
+  DollarSign,
+  Scissors,
+  Globe,
+  Rocket,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -71,6 +75,18 @@ const menuItems: MenuItem[] = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Star, label: "Watchlist", path: "/watchlist" },
   { icon: Newspaper, label: "News", path: "/news" },
+  {
+    icon: Calendar,
+    label: "Calendars",
+    path: "/calendars",
+    children: [
+      { label: "Earnings", path: "/calendars/earnings", icon: BarChart3 },
+      { label: "Dividends", path: "/calendars/dividends", icon: DollarSign },
+      { label: "Stock Splits", path: "/calendars/stock-splits", icon: Scissors },
+      { label: "Economic Events", path: "/calendars/economic-events", icon: Globe },
+      { label: "Public Offerings", path: "/calendars/public-offerings", icon: Rocket },
+    ],
+  },
   {
     icon: BarChart3,
     label: "Stocks",

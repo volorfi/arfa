@@ -270,10 +270,10 @@ function MetricsTable({ quote, loading }: { quote: any; loading: boolean }) {
       { label: "Revenue (ttm)", value: quote.revenue ? formatLargeNumber(quote.revenue) : "N/A" },
       { label: "Net Income", value: quote.netIncome ? formatLargeNumber(quote.netIncome) : "N/A" },
       { label: "EPS", value: quote.trailingEps ? `$${quote.trailingEps.toFixed(2)}` : "N/A" },
-      { label: "Shares Out", value: quote.sharesOutstanding ? formatLargeNumber(quote.sharesOutstanding) : "N/A" },
+      { label: "Shares Out", value: quote.sharesOutstanding ? formatLargeNumber(quote.sharesOutstanding, "") : "N/A" },
       { label: "PE Ratio", value: quote.trailingPE ? quote.trailingPE.toFixed(2) : "N/A" },
       { label: "Forward PE", value: quote.forwardPE ? quote.forwardPE.toFixed(2) : "N/A" },
-      { label: "Dividend", value: quote.dividendRate ? `$${quote.dividendRate.toFixed(2)} (${(quote.dividendYield * 100).toFixed(2)}%)` : "N/A" },
+      { label: "Dividend", value: quote.dividendRate ? `$${quote.dividendRate.toFixed(2)} (${((quote.dividendYield || 0) * 100).toFixed(2)}%)` : "N/A" },
       { label: "Volume", value: quote.regularMarketVolume ? quote.regularMarketVolume.toLocaleString() : "N/A" },
       { label: "Open", value: quote.regularMarketOpen ? `$${quote.regularMarketOpen.toFixed(2)}` : "N/A" },
       { label: "Previous Close", value: quote.regularMarketPreviousClose ? `$${quote.regularMarketPreviousClose.toFixed(2)}` : "N/A" },
@@ -481,7 +481,7 @@ function StatisticsTab({ quote }: any) {
     { label: "Gross Profit", value: "N/A" },
     { label: "EBITDA", value: "N/A" },
     { label: "Net Income", value: quote?.netIncome ? formatLargeNumber(quote.netIncome) : "N/A" },
-    { label: "Shares Outstanding", value: quote?.sharesOutstanding ? formatLargeNumber(quote.sharesOutstanding) : "N/A" },
+    { label: "Shares Outstanding", value: quote?.sharesOutstanding ? formatLargeNumber(quote.sharesOutstanding, "") : "N/A" },
     { label: "Float", value: "N/A" },
     { label: "Avg Volume (10d)", value: quote?.averageVolume?.toLocaleString() || "N/A" },
     { label: "Beta", value: quote?.beta?.toFixed(2) || "N/A" },
@@ -952,12 +952,12 @@ function StockNewsTab({ symbol }: { symbol: string }) {
 }
 
 // Utility functions
-function formatLargeNumber(num: number): string {
-  if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
-  if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
-  if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
-  if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`;
-  return `$${num.toFixed(2)}`;
+function formatLargeNumber(num: number, prefix = "$"): string {
+  if (num >= 1e12) return `${prefix}${(num / 1e12).toFixed(2)}T`;
+  if (num >= 1e9) return `${prefix}${(num / 1e9).toFixed(2)}B`;
+  if (num >= 1e6) return `${prefix}${(num / 1e6).toFixed(2)}M`;
+  if (num >= 1e3) return `${prefix}${(num / 1e3).toFixed(2)}K`;
+  return `${prefix}${num.toFixed(2)}`;
 }
 
 function formatChartDate(timestamp: number, range: string): string {
