@@ -120,7 +120,10 @@ export default function MarketTickerBar() {
         }}
         className="flex items-center h-full whitespace-nowrap"
         style={{
-          animation: `ticker-scroll ${animDuration}s linear infinite`,
+          animationName: "ticker-scroll",
+          animationDuration: `${animDuration}s`,
+          animationTimingFunction: "linear",
+          animationIterationCount: "infinite",
           animationPlayState: isPaused ? "paused" : "running",
         }}
       >

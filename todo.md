@@ -142,3 +142,6 @@
 - [x] Remove scrollbar - use CSS animation instead
 - [x] Pin/sticky ticker tape at top of page (always visible on scroll)
 - [x] Keep sparkline charts and color-coded changes
+
+## Bug Fixes
+- [x] Fix CSS animation/animationPlayState conflict error in MarketTickerBar (don't mix shorthand `animation` with non-shorthand `animationPlayState`)
