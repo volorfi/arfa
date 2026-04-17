@@ -63,6 +63,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import Footer from "@/components/Footer";
 
 interface MenuItem {
   icon: any;
@@ -372,6 +373,7 @@ function AppSidebarContent({
           </div>
         )}
         <main className="flex-1">{children}</main>
+        <Footer />
       </SidebarInset>
     </>
   );

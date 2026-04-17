@@ -24,6 +24,13 @@ import InvestmentGrade from "./pages/InvestmentGrade";
 import IssuerDetail from "./pages/IssuerDetail";
 import Sovereign from "./pages/Sovereign";
 import SovereignBondDetail from "./pages/SovereignBondDetail";
+import AboutUs from "./pages/AboutUs";
+import TermsOfUse from "./pages/TermsOfUse";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import DataDisclaimer from "./pages/DataDisclaimer";
+import Disclaimer from "./pages/Disclaimer";
+import CookieNotice from "./pages/CookieNotice";
+import Contact from "./pages/Contact";
 import { LineChart, Calculator, BarChart3 } from "lucide-react";
 
 function Router() {
@@ -49,6 +56,13 @@ function Router() {
         <Route path="/fixed-income/issuer/:slug" component={IssuerDetail} />
         <Route path="/fixed-income/sovereign/:slug" component={SovereignBondDetail} />
         <Route path="/fixed-income/sovereign" component={Sovereign} />
+        <Route path="/about" component={AboutUs} />
+        <Route path="/terms" component={TermsOfUse} />
+        <Route path="/privacy" component={PrivacyPolicy} />
+        <Route path="/data-disclaimer" component={DataDisclaimer} />
+        <Route path="/disclaimer" component={Disclaimer} />
+        <Route path="/cookies" component={CookieNotice} />
+        <Route path="/contact" component={Contact} />
         <Route path="/chart">
           {() => <PlaceholderPage title="Technical Chart" icon={LineChart} />}
         </Route>

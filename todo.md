@@ -115,3 +115,16 @@
 - [x] Add Calendars section to sidebar navigation (after News, with 5 sub-items)
 - [x] Add routes in App.tsx for all calendar pages
 - [x] Write vitest tests for calendar routes (5 calendar tests added, 71 total all passing)
+
+## Footer & Legal Pages
+- [x] Create unified Footer component with ARFA branding, site navigation, legal links, copyright
+- [x] Create About Us page with content from docx
+- [x] Create Terms of Use page
+- [x] Create Privacy Policy page
+- [x] Create Data Disclaimer page
+- [x] Create Disclaimer / Not Investment Advice page
+- [x] Create Cookie Notice page
+- [x] Create Contact page with contact form (like stockanalysis.com/contact)
+- [x] Add all legal/info page routes to App.tsx
+- [x] Integrate Footer into AppLayout on all pages
+- [x] Style footer modern and clean

@@ -2,6 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { notifyOwner } from "./_core/notification";
 import { z } from "zod";
 import { getWatchlistByUserId, addToWatchlist, removeFromWatchlist, isInWatchlist } from "./db";
 import {
@@ -267,6 +268,26 @@ export const appRouter = router({
       .input(z.object({ symbol: z.string() }))
       .query(async ({ ctx, input }) => {
         return isInWatchlist(ctx.user.id, input.symbol);
+      }),
+  }),
+
+  contact: router({
+    submit: publicProcedure
+      .input(
+        z.object({
+          name: z.string().min(1).max(200),
+          email: z.string().email().max(200),
+          subject: z.string().min(1).max(300),
+          message: z.string().min(1).max(5000),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const content = `Name: ${input.name}\nEmail: ${input.email}\nSubject: ${input.subject}\n\n${input.message}`;
+        await notifyOwner({
+          title: `Contact Form: ${input.subject}`,
+          content,
+        });
+        return { success: true };
       }),
   }),
 });
