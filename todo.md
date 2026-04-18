@@ -287,3 +287,20 @@
 - [x] Homepage: add External Research block (6 items, randomized, with tickers/sentiment)
 - [x] Homepage: add Podcasts block (6 items, randomized, with duration/category)
 - [x] Write vitest tests for ideafarm service and tRPC routes (19 tests: HTML decoding, URL hashing, research list/filter/categories, podcasts list/filter/categories)
+
+## Research & Podcasts Link Fixes
+- [x] Remove "Sourced from..." text from External Research tab, Podcasts tab, and StockDetail Research tab
+- [x] Parse direct source URLs for research (originalSourceUrl column + scraper update)
+- [x] Update all link hrefs to use originalSourceUrl || sourceUrl fallback
+- [x] Add DB columns: applePodcastsUrl, spotifyUrl, youtubeUrl to external_podcasts
+- [x] Update scraper to extract Apple Podcasts, Spotify, YouTube links from podcast detail pages
+- [x] Add branded platform buttons (Apple Podcasts purple, Spotify green, YouTube red) to podcast cards
+- [x] Backfill existing podcast records with platform-specific URLs
+
+## Stable Random Order & Platform Buttons
+- [x] Add sortOrder column (int) to external_research and external_podcasts tables
+- [x] Assign random sortOrder at insert time (not RAND() at query time)
+- [x] Update query helpers to ORDER BY sortOrder instead of RAND()
+- [x] Extract Apple Podcasts, Spotify, YouTube URLs from podcast detail pages into separate columns
+- [x] Add branded platform buttons (Apple purple, Spotify green, YouTube red) to podcast cards
+- [x] Backfill existing records with sortOrder and platform URLs

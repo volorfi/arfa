@@ -1,7 +1,7 @@
 import { getDb } from "./db";
 import { externalResearch, externalPodcasts, InsertExternalResearch, InsertExternalPodcast } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
-import { desc, eq, like, or, sql, and, lte, gte } from "drizzle-orm";
+import { asc, desc, eq, like, or, sql, and, lte, gte } from "drizzle-orm";
 import crypto from "crypto";
 
 // ─── HTML Parsing Helpers ───
@@ -301,6 +301,86 @@ async function fetchPage(url: string): Promise<string> {
   return response.text();
 }
 
+// Extract direct source link from a detail page
+async function extractOriginalSourceUrl(detailUrl: string, type: "research" | "podcast"): Promise<string | null> {
+  try {
+    const html = await fetchPage(detailUrl);
+    if (type === "research") {
+      const match = html.match(/<a[^>]*href="([^"]+)"[^>]*>[\s\S]*?VIEW\s+FULL\s+REPORT[\s\S]*?<\/a>/i)
+        || html.match(/VIEW\s+FULL\s+REPORT[\s\S]*?<\/a>[\s\S]*?<a[^>]*href="([^"]+)"/i);
+      if (match) {
+        const href = match[1] || match[2];
+        if (href && !href.includes("theideafarm.com")) return href;
+      }
+      const pdfMatch = html.match(/<a[^>]*href="(https?:\/\/(?!theideafarm\.com)[^"]+\.pdf[^"]*)">/i);
+      if (pdfMatch) return pdfMatch[1];
+      const extMatch = html.match(/<a[^>]*href="(https?:\/\/(?!theideafarm\.com)[^"]+)"[^>]*target="_blank"/i);
+      if (extMatch) return extMatch[1];
+    } else {
+      // For podcasts, use extractPodcastPlatformUrls instead
+      const platforms = await extractPodcastPlatformUrls(detailUrl, html);
+      return platforms.apple || platforms.spotify || platforms.youtube || null;
+    }
+    return null;
+  } catch (err) {
+    console.warn(`[IdeaFarm] Failed to extract source from ${detailUrl}:`, (err as Error).message?.slice(0, 80));
+    return null;
+  }
+}
+
+// Extract all platform-specific URLs from a podcast detail page
+interface PodcastPlatformUrls {
+  apple: string | null;
+  spotify: string | null;
+  youtube: string | null;
+}
+
+async function extractPodcastPlatformUrls(detailUrl: string, html?: string): Promise<PodcastPlatformUrls> {
+  try {
+    if (!html) html = await fetchPage(detailUrl);
+    const apple = html.match(/<a[^>]*href="(https?:\/\/podcasts\.apple\.com[^"]+)"/i)?.[1] || null;
+    const spotify = (
+      html.match(/<a[^>]*href="(https?:\/\/open\.spotify\.com\/(?:episode|show)[^"]+)"/i)?.[1]
+    ) || null;
+    const youtube = (
+      html.match(/<a[^>]*href="(https?:\/\/(?:www\.)?youtube\.com\/watch[^"]+)"/i)?.[1]
+      || html.match(/<a[^>]*href="(https?:\/\/youtu\.be\/[^"]+)"/i)?.[1]
+    ) || null;
+    return { apple, spotify, youtube };
+  } catch (err) {
+    console.warn(`[IdeaFarm] Failed to extract platform URLs from ${detailUrl}:`, (err as Error).message?.slice(0, 80));
+    return { apple: null, spotify: null, youtube: null };
+  }
+}
+
+// Batch extract platform URLs for podcasts
+async function batchExtractPodcastPlatformUrls(
+  items: { sourceUrl: string }[]
+): Promise<PodcastPlatformUrls[]> {
+  const results: PodcastPlatformUrls[] = [];
+  for (const item of items) {
+    const urls = await extractPodcastPlatformUrls(item.sourceUrl);
+    results.push(urls);
+    await new Promise(r => setTimeout(r, 300));
+  }
+  return results;
+}
+
+// Batch extract original source URLs with rate limiting
+async function batchExtractSourceUrls(
+  items: { sourceUrl: string }[],
+  type: "research" | "podcast"
+): Promise<(string | null)[]> {
+  const results: (string | null)[] = [];
+  for (const item of items) {
+    const url = await extractOriginalSourceUrl(item.sourceUrl, type);
+    results.push(url);
+    // Small delay to be polite to the server
+    await new Promise(r => setTimeout(r, 300));
+  }
+  return results;
+}
+
 export async function scrapeResearch(maxPages: number = 3): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
@@ -330,6 +410,10 @@ export async function scrapeResearch(maxPages: number = 3): Promise<number> {
 
       if (recentItems.length === 0) break; // all items are older, stop
 
+      // Extract original source URLs from detail pages
+      console.log(`[IdeaFarm] Extracting original source URLs for ${recentItems.length} research items...`);
+      const originalUrls = await batchExtractSourceUrls(recentItems, "research");
+
       // Analyze tickers and sentiment
       const analysis = await analyzeTickersAndSentiment(
         recentItems.map(i => ({ title: i.title, description: i.description }))
@@ -349,16 +433,18 @@ export async function scrapeResearch(maxPages: number = 3): Promise<number> {
           pages: item.pages,
           description: item.description,
           sourceUrl: item.sourceUrl,
+          originalSourceUrl: originalUrls[i] || null,
           urlHash: hashUrl(item.sourceUrl),
           imageUrl: item.imageUrl,
           tickers: ts.tickers.length > 0 ? ts.tickers.join(",") : null,
           sentiment: ts.sentiment,
+          sortOrder: Math.floor(Math.random() * 1000000),
           publishedAt: parseMonthYear(item.date),
         };
 
         try {
           await db.insert(externalResearch).values(record).onDuplicateKeyUpdate({
-            set: { title: record.title, description: record.description },
+            set: { title: record.title, description: record.description, originalSourceUrl: record.originalSourceUrl },
           });
           totalInserted++;
         } catch (e: any) {
@@ -408,6 +494,10 @@ export async function scrapePodcasts(maxPages: number = 3): Promise<number> {
 
       if (recentItems.length === 0) break;
 
+      // Extract platform-specific URLs from detail pages
+      console.log(`[IdeaFarm] Extracting platform URLs for ${recentItems.length} podcast items...`);
+      const platformUrls = await batchExtractPodcastPlatformUrls(recentItems);
+
       const analysis = await analyzeTickersAndSentiment(
         recentItems.map(i => ({ title: i.title, description: i.description }))
       );
@@ -415,6 +505,7 @@ export async function scrapePodcasts(maxPages: number = 3): Promise<number> {
       for (let i = 0; i < recentItems.length; i++) {
         const item = recentItems[i];
         const ts = analysis[i] || { tickers: [], sentiment: "neutral" as const };
+        const platforms = platformUrls[i] || { apple: null, spotify: null, youtube: null };
 
         const record: InsertExternalPodcast = {
           title: item.title,
@@ -422,16 +513,28 @@ export async function scrapePodcasts(maxPages: number = 3): Promise<number> {
           duration: item.duration,
           description: item.description,
           sourceUrl: item.sourceUrl,
+          originalSourceUrl: platforms.apple || platforms.spotify || platforms.youtube || null,
+          applePodcastsUrl: platforms.apple,
+          spotifyUrl: platforms.spotify,
+          youtubeUrl: platforms.youtube,
           urlHash: hashUrl(item.sourceUrl),
           imageUrl: item.imageUrl,
           tickers: ts.tickers.length > 0 ? ts.tickers.join(",") : null,
           sentiment: ts.sentiment,
+          sortOrder: Math.floor(Math.random() * 1000000),
           publishedAt: parseMonthYear(item.date),
         };
 
         try {
           await db.insert(externalPodcasts).values(record).onDuplicateKeyUpdate({
-            set: { title: record.title, description: record.description },
+            set: {
+              title: record.title,
+              description: record.description,
+              originalSourceUrl: record.originalSourceUrl,
+              applePodcastsUrl: record.applePodcastsUrl,
+              spotifyUrl: record.spotifyUrl,
+              youtubeUrl: record.youtubeUrl,
+            },
           });
           totalInserted++;
         } catch (e: any) {
@@ -526,10 +629,8 @@ export async function getExternalResearch(opts: {
   const limit = opts.limit || 50;
   const offset = opts.offset || 0;
 
-  // Randomize order per user request (not strictly chronological)
-  const orderBy = opts.randomize
-    ? sql`RAND()`
-    : desc(externalResearch.publishedAt);
+  // Stable-random order: sortOrder is assigned at insert time
+  const orderBy = asc(externalResearch.sortOrder);
 
   const [items, countResult] = await Promise.all([
     db.select().from(externalResearch).where(where).orderBy(orderBy).limit(limit).offset(offset),
@@ -580,9 +681,8 @@ export async function getExternalPodcasts(opts: {
   const limit = opts.limit || 50;
   const offset = opts.offset || 0;
 
-  const orderBy = opts.randomize
-    ? sql`RAND()`
-    : desc(externalPodcasts.publishedAt);
+  // Stable-random order: sortOrder is assigned at insert time
+  const orderBy = asc(externalPodcasts.sortOrder);
 
   const [items, countResult] = await Promise.all([
     db.select().from(externalPodcasts).where(where).orderBy(orderBy).limit(limit).offset(offset),

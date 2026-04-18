@@ -1013,8 +1013,7 @@ function StockResearchTab({ symbol }: { symbol: string }) {
       <div className="flex items-center gap-3 mb-4 p-3 bg-blue-500/5 border border-blue-500/15 rounded-lg">
         <FileText className="h-4 w-4 text-blue-500 shrink-0" />
         <p className="text-xs text-muted-foreground">
-          External research reports mentioning <span className="font-semibold text-foreground">{symbol}</span> from top investment banks and asset managers.
-          Sourced from <a href="https://theideafarm.com/research/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">The Idea Farm</a>.
+           External research reports mentioning <span className="font-semibold text-foreground">{symbol}</span> from top investment banks and asset managers.
         </p>
       </div>
 
@@ -1043,8 +1042,8 @@ function StockResearchTab({ symbol }: { symbol: string }) {
         ) : (
           <div className="divide-y divide-border/50">
             {items.map((item) => (
-              <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
-                className="block px-5 py-4 hover:bg-accent/30 transition-colors group">
+               <a key={item.id} href={(item as any).originalSourceUrl || item.sourceUrl} target="_blank" rel="noopener noreferrer"
+                 className="block px-5 py-4 hover:bg-accent/30 transition-colors group">
                 <div className="flex items-start gap-4">
                   {item.imageUrl && (
                     <img src={item.imageUrl} alt="" className="w-12 h-12 rounded object-cover shrink-0 bg-muted" />

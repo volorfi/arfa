@@ -878,9 +878,7 @@ function ExternalResearchTab() {
       <div className="flex items-center gap-3 mb-4 p-3 bg-blue-500/5 border border-blue-500/15 rounded-lg">
         <FileText className="h-4 w-4 text-blue-500 shrink-0" />
         <p className="text-xs text-muted-foreground">
-          Curated research reports from top investment banks, asset managers, and think tanks. Sourced from{" "}
-          <a href="https://theideafarm.com/research/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">The Idea Farm</a>.
-          Updated daily. Showing items in randomized order.
+          Curated research reports from top investment banks, asset managers, and think tanks.
         </p>
       </div>
 
@@ -948,7 +946,7 @@ function ExternalResearchTab() {
         ) : (
           <div className="divide-y divide-border/50">
             {items.map((item) => (
-              <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
+              <a key={item.id} href={(item as any).originalSourceUrl || item.sourceUrl} target="_blank" rel="noopener noreferrer"
                 className="block px-5 py-4 hover:bg-accent/30 transition-colors group">
                 <div className="flex items-start gap-4">
                   {item.imageUrl && (
@@ -1050,9 +1048,7 @@ function PodcastsTab() {
       <div className="flex items-center gap-3 mb-4 p-3 bg-purple-500/5 border border-purple-500/15 rounded-lg">
         <Headphones className="h-4 w-4 text-purple-500 shrink-0" />
         <p className="text-xs text-muted-foreground">
-          Curated finance and investing podcasts from top voices. Sourced from{" "}
-          <a href="https://theideafarm.com/curated-podcasts/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">The Idea Farm</a>.
-          Updated daily. Showing items in randomized order.
+          Curated finance and investing podcasts from top voices in markets and economics.
         </p>
       </div>
 
@@ -1110,22 +1106,22 @@ function PodcastsTab() {
           </div>
         ) : (
           <div className="divide-y divide-border/50">
-            {items.map((item) => (
-              <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
-                className="block px-5 py-4 hover:bg-accent/30 transition-colors group">
+            {items.map((item) => {
+              const pod = item as any;
+              return (
+              <div key={item.id} className="px-5 py-4 hover:bg-accent/30 transition-colors group">
                 <div className="flex items-start gap-4">
                   {item.imageUrl && (
                     <img src={item.imageUrl} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0 bg-muted" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-medium text-foreground leading-snug group-hover:text-primary transition-colors mb-1">
+                    <h3 className="text-sm font-medium text-foreground leading-snug mb-1">
                       {item.title}
-                      <ExternalLink className="inline-block h-3 w-3 ml-1.5 opacity-0 group-hover:opacity-60 transition-opacity" />
                     </h3>
                     {item.description && (
                       <p className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">{item.description}</p>
                     )}
-                    <div className="flex items-center gap-2.5 flex-wrap">
+                    <div className="flex items-center gap-2.5 flex-wrap mb-2">
                       <SentimentBadge sentiment={item.sentiment as SentimentType} />
                       {item.duration && (
                         <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -1146,10 +1142,42 @@ function PodcastsTab() {
                         </div>
                       )}
                     </div>
+                    {/* Platform buttons */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {pod.applePodcastsUrl && (
+                        <a href={pod.applePodcastsUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors">
+                          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 2.5a7.5 7.5 0 110 15 7.5 7.5 0 010-15zm0 2a5.5 5.5 0 00-1.5 10.78V15.5a1.5 1.5 0 013 0v1.78A5.5 5.5 0 0012 6.5zm0 2a3.5 3.5 0 00-1 6.86V15.5a1 1 0 012 0v-.14A3.5 3.5 0 0012 8.5zm0 2a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/></svg>
+                          Apple Podcasts
+                        </a>
+                      )}
+                      {pod.spotifyUrl && (
+                        <a href={pod.spotifyUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 transition-colors">
+                          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 11-.277-1.215c3.809-.87 7.076-.496 9.712 1.115a.622.622 0 01.207.857zm1.224-2.719a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.452-1.493c3.632-1.102 8.147-.568 11.234 1.33a.78.78 0 01.255 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 01-.954 1.611z"/></svg>
+                          Spotify
+                        </a>
+                      )}
+                      {pod.youtubeUrl && (
+                        <a href={pod.youtubeUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors">
+                          <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                          YouTube
+                        </a>
+                      )}
+                      {!pod.applePodcastsUrl && !pod.spotifyUrl && !pod.youtubeUrl && (
+                        <a href={pod.originalSourceUrl || item.sourceUrl} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-muted text-muted-foreground hover:bg-accent transition-colors">
+                          <ExternalLink className="h-3 w-3" />
+                          Listen
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </a>
-            ))}
+              </div>
+              );
+            })}
           </div>
         )}
 

@@ -1009,8 +1009,9 @@ function ExternalResearchBlock() {
       ) : (
         <div className="space-y-1">
           {items.map((item) => (
-            <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
-              className="block p-2.5 rounded-lg hover:bg-accent/30 transition-colors group">
+             <a key={item.id} href={(item as any).originalSourceUrl || item.sourceUrl} target="_blank" rel="noopener noreferrer"
+               className="block p-2.5 rounded-lg hover:bg-accent/30 transition-colors group">
+
               <div className="flex items-start gap-3">
                 {item.imageUrl && (
                   <img src={item.imageUrl} alt="" className="w-9 h-9 rounded object-cover shrink-0 bg-muted mt-0.5" />
@@ -1091,15 +1092,16 @@ function PodcastsBlock() {
         </div>
       ) : (
         <div className="space-y-1">
-          {items.map((item) => (
-            <a key={item.id} href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
-              className="block p-2.5 rounded-lg hover:bg-accent/30 transition-colors group">
+          {items.map((item) => {
+            const pod = item as any;
+            return (
+            <div key={item.id} className="p-2.5 rounded-lg hover:bg-accent/30 transition-colors group">
               <div className="flex items-start gap-3">
                 {item.imageUrl && (
                   <img src={item.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0 bg-muted" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <h4 className="text-xs font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                  <h4 className="text-xs font-medium text-foreground leading-snug line-clamp-2">
                     {item.title}
                   </h4>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -1121,10 +1123,40 @@ function PodcastsBlock() {
                       </div>
                     )}
                   </div>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    {pod.applePodcastsUrl && (
+                      <a href={pod.applePodcastsUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 transition-colors">
+                        <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 2.5a7.5 7.5 0 110 15 7.5 7.5 0 010-15zm0 2a5.5 5.5 0 00-1.5 10.78V15.5a1.5 1.5 0 013 0v1.78A5.5 5.5 0 0012 6.5zm0 2a3.5 3.5 0 00-1 6.86V15.5a1 1 0 012 0v-.14A3.5 3.5 0 0012 8.5zm0 2a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/></svg>
+                        Apple
+                      </a>
+                    )}
+                    {pod.spotifyUrl && (
+                      <a href={pod.spotifyUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20 transition-colors">
+                        <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 11-.277-1.215c3.809-.87 7.076-.496 9.712 1.115a.622.622 0 01.207.857zm1.224-2.719a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.452-1.493c3.632-1.102 8.147-.568 11.234 1.33a.78.78 0 01.255 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.935.935 0 11-.543-1.79c3.533-1.072 9.404-.865 13.115 1.338a.935.935 0 01-.954 1.611z"/></svg>
+                        Spotify
+                      </a>
+                    )}
+                    {pod.youtubeUrl && (
+                      <a href={pod.youtubeUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors">
+                        <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                        YouTube
+                      </a>
+                    )}
+                    {!pod.applePodcastsUrl && !pod.spotifyUrl && !pod.youtubeUrl && (
+                      <a href={pod.originalSourceUrl || item.sourceUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground hover:bg-accent transition-colors">
+                        Listen
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
-            </a>
-          ))}
+            </div>
+            );
+          })}
         </div>
       )}
     </div>
