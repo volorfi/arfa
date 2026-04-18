@@ -1042,7 +1042,7 @@ function StockResearchTab({ symbol }: { symbol: string }) {
         ) : (
           <div className="divide-y divide-border/50">
             {items.map((item) => (
-               <a key={item.id} href={(item as any).originalSourceUrl || item.sourceUrl} target="_blank" rel="noopener noreferrer"
+               <a key={item.id} href={((item as any).originalSourceUrl && (item as any).originalSourceUrl !== '#content' && (item as any).originalSourceUrl.startsWith('http')) ? (item as any).originalSourceUrl : item.sourceUrl} target="_blank" rel="noopener noreferrer"
                  className="block px-5 py-4 hover:bg-accent/30 transition-colors group">
                 <div className="flex items-start gap-4">
                   {item.imageUrl && (

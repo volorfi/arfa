@@ -306,16 +306,43 @@ async function extractOriginalSourceUrl(detailUrl: string, type: "research" | "p
   try {
     const html = await fetchPage(detailUrl);
     if (type === "research") {
-      const match = html.match(/<a[^>]*href="([^"]+)"[^>]*>[\s\S]*?VIEW\s+FULL\s+REPORT[\s\S]*?<\/a>/i)
-        || html.match(/VIEW\s+FULL\s+REPORT[\s\S]*?<\/a>[\s\S]*?<a[^>]*href="([^"]+)"/i);
-      if (match) {
-        const href = match[1] || match[2];
-        if (href && !href.includes("theideafarm.com")) return href;
+      // Social/share URLs to skip
+      const skipPatterns = [
+        /twitter\.com/i, /x\.com\/intent/i, /facebook\.com/i, /linkedin\.com\/sharing/i,
+        /instagram\.com/i, /pinterest\.com/i, /reddit\.com/i, /mailto:/i,
+        /open\.spotify\.com\/playlist/i, /youtube\.com\/channel/i, /youtube\.com\/c\//i,
+        /themebfabershow\.com/i, /theideafarm\.com/i,
+      ];
+      const isSkipUrl = (url: string) => skipPatterns.some(p => p.test(url));
+
+      // 1. Look for VIEW FULL REPORT button (Elementor-style: <a href="..."><span>VIEW FULL REPORT</span></a>)
+      const vfrIdx = html.search(/VIEW\s+FULL\s+REPORT/i);
+      if (vfrIdx > -1) {
+        // Search backwards from VIEW FULL REPORT for the enclosing <a> tag
+        const before = html.substring(Math.max(0, vfrIdx - 2000), vfrIdx);
+        const aTagMatches = Array.from(before.matchAll(/<a[^>]*href="([^"]+)"[^>]*/gi));
+        if (aTagMatches.length > 0) {
+          const href = aTagMatches[aTagMatches.length - 1][1]; // closest <a> before the text
+          if (href && !isSkipUrl(href) && href !== '#content') return href;
+        }
       }
-      const pdfMatch = html.match(/<a[^>]*href="(https?:\/\/(?!theideafarm\.com)[^"]+\.pdf[^"]*)">/i);
-      if (pdfMatch) return pdfMatch[1];
-      const extMatch = html.match(/<a[^>]*href="(https?:\/\/(?!theideafarm\.com)[^"]+)"[^>]*target="_blank"/i);
-      if (extMatch) return extMatch[1];
+
+      // 2. Look for PDF links (external)
+      const pdfMatches = Array.from(html.matchAll(/<a[^>]*href="(https?:\/\/[^"]+\.pdf[^"]*)"[^>]*/gi));
+      for (const m of pdfMatches) {
+        if (!isSkipUrl(m[1])) return m[1];
+      }
+
+      // 3. Look for external target="_blank" links, skipping social/share links
+      const extMatches = Array.from(html.matchAll(/<a[^>]*href="(https?:\/\/[^"]+)"[^>]*target="_blank"[^>]*/gi));
+      for (const m of extMatches) {
+        if (!isSkipUrl(m[1])) return m[1];
+      }
+      // Also try href after target
+      const extMatches2 = Array.from(html.matchAll(/<a[^>]*target="_blank"[^>]*href="(https?:\/\/[^"]+)"[^>]*/gi));
+      for (const m of extMatches2) {
+        if (!isSkipUrl(m[1])) return m[1];
+      }
     } else {
       // For podcasts, use extractPodcastPlatformUrls instead
       const platforms = await extractPodcastPlatformUrls(detailUrl, html);

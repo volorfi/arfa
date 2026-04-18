@@ -1009,7 +1009,7 @@ function ExternalResearchBlock() {
       ) : (
         <div className="space-y-1">
           {items.map((item) => (
-             <a key={item.id} href={(item as any).originalSourceUrl || item.sourceUrl} target="_blank" rel="noopener noreferrer"
+             <a key={item.id} href={((item as any).originalSourceUrl && (item as any).originalSourceUrl !== '#content' && (item as any).originalSourceUrl.startsWith('http')) ? (item as any).originalSourceUrl : item.sourceUrl} target="_blank" rel="noopener noreferrer"
                className="block p-2.5 rounded-lg hover:bg-accent/30 transition-colors group">
 
               <div className="flex items-start gap-3">
@@ -1146,7 +1146,7 @@ function PodcastsBlock() {
                       </a>
                     )}
                     {!pod.applePodcastsUrl && !pod.spotifyUrl && !pod.youtubeUrl && (
-                      <a href={pod.originalSourceUrl || item.sourceUrl} target="_blank" rel="noopener noreferrer"
+                      <a href={(pod.originalSourceUrl && pod.originalSourceUrl !== '#content' && pod.originalSourceUrl.startsWith('http')) ? pod.originalSourceUrl : item.sourceUrl} target="_blank" rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground hover:bg-accent transition-colors">
                         Listen
                       </a>

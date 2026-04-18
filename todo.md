@@ -304,3 +304,6 @@
 - [x] Extract Apple Podcasts, Spotify, YouTube URLs from podcast detail pages into separate columns
 - [x] Add branded platform buttons (Apple purple, Spotify green, YouTube red) to podcast cards
 - [x] Backfill existing records with sortOrder and platform URLs
+
+## Bug Fix: Research Links Broken
+- [x] Fix research links pointing to /news#content instead of actual source URLs (originalSourceUrl or sourceUrl)
