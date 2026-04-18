@@ -52,6 +52,7 @@ import {
   getExternalResearch,
   getExternalPodcasts,
   getResearchCategories,
+  getResearchFirms,
   getPodcastCategories,
   runFullScrape,
 } from "./ideafarmService";
@@ -474,6 +475,7 @@ export const appRouter = router({
     list: publicProcedure
       .input(z.object({
         category: z.string().optional(),
+        firm: z.string().optional(),
         ticker: z.string().optional(),
         sentiment: z.string().optional(),
         search: z.string().optional(),
@@ -486,6 +488,9 @@ export const appRouter = router({
       }),
     categories: publicProcedure.query(async () => {
       return getResearchCategories();
+    }),
+    firms: publicProcedure.query(async () => {
+      return getResearchFirms();
     }),
   }),
 

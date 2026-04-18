@@ -180,11 +180,18 @@ function parsePodcastHtml(html: string): RawPodcastItem[] {
     const imgMatch = block.match(/class="filtered-post-item__image"[^>]*>[\s\S]*?<img[^>]*src="([^"]+)"/);
     const imageUrl = imgMatch ? imgMatch[1] : null;
 
-    // Category from URL path
+    // Category from post-taxonomies span (e.g., "Miscellaneous", "Asset Allocation")
     let category: string | null = null;
-    const catFromUrl = sourceUrl.match(/theideafarm\.com\/([^\/]+)\//i);
-    if (catFromUrl && catFromUrl[1] !== "podcast" && catFromUrl[1] !== "curated-podcasts") {
-      category = catFromUrl[1].replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    const taxMatch = block.match(/class="post-taxonomies"[^>]*>\s*<span>(.*?)<\/span>/i);
+    if (taxMatch) {
+      category = decodeHtmlEntities(taxMatch[1].trim());
+    }
+    // Fallback: category from URL path
+    if (!category) {
+      const catFromUrl = sourceUrl.match(/theideafarm\.com\/([^\/]+)\//i);
+      if (catFromUrl && catFromUrl[1] !== "podcast" && catFromUrl[1] !== "curated-podcasts") {
+        category = catFromUrl[1].replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      }
     }
 
     // Duration from metadata text
@@ -556,6 +563,7 @@ export async function scrapePodcasts(maxPages: number = 3): Promise<number> {
           await db.insert(externalPodcasts).values(record).onDuplicateKeyUpdate({
             set: {
               title: record.title,
+              category: record.category,
               description: record.description,
               originalSourceUrl: record.originalSourceUrl,
               applePodcastsUrl: record.applePodcastsUrl,
@@ -612,6 +620,7 @@ export async function runFullScrape(): Promise<{ research: number; podcasts: num
 
 export async function getExternalResearch(opts: {
   category?: string;
+  firm?: string;
   ticker?: string;
   sentiment?: string;
   search?: string;
@@ -624,6 +633,7 @@ export async function getExternalResearch(opts: {
 
   const conditions = [];
   if (opts.category) conditions.push(eq(externalResearch.category, opts.category));
+  if (opts.firm) conditions.push(eq(externalResearch.firm, opts.firm));
   if (opts.ticker) {
     const t = opts.ticker.toUpperCase();
     conditions.push(
@@ -717,6 +727,13 @@ export async function getExternalPodcasts(opts: {
   ]);
 
   return { items, total: (countResult[0]?.count ?? 0) as number };
+}
+
+export async function getResearchFirms(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const result = await db.selectDistinct({ firm: externalResearch.firm }).from(externalResearch).orderBy(externalResearch.firm);
+  return result.filter(r => r.firm).map(r => r.firm as string);
 }
 
 export async function getResearchCategories(): Promise<string[]> {

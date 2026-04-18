@@ -565,21 +565,23 @@ function CalendarPreview() {
 /* ─── SOVEREIGN BONDS SPOTLIGHT ─── */
 function SovereignBondsSpotlight() {
   const { data: summary } = trpc.sovereign.summary.useQuery(undefined, { staleTime: 300000 });
-  const { data: bonds } = trpc.sovereign.list.useQuery({}, { staleTime: 300000 });
+  const { data: bonds } = trpc.sovereign.list.useQuery({ currency: "USD" }, { staleTime: 300000 });
+
+  const RATING_CATEGORIES = ["A+", "A-", "BBB", "BBB-", "BB+", "BB"] as const;
 
   const featured = useMemo(() => {
     if (!bonds) return [];
-    // Show bonds with highest yields from different countries
-    const seen = new Set<string>();
-    return bonds
-      .filter(b => b.yieldToMaturity && b.country)
-      .sort((a, b) => (b.yieldToMaturity || 0) - (a.yieldToMaturity || 0))
-      .filter(b => {
-        if (seen.has(b.country!)) return false;
-        seen.add(b.country!);
-        return true;
-      })
-      .slice(0, 6);
+    // For each target rating category, pick the bond with the highest YTM (USD only)
+    const result: typeof bonds = [];
+    for (const rating of RATING_CATEGORIES) {
+      const matching = bonds
+        .filter(b => b.compositeRating === rating && b.yieldToMaturity != null && b.country)
+        .sort((a, b) => (b.yieldToMaturity || 0) - (a.yieldToMaturity || 0));
+      if (matching.length > 0) {
+        result.push(matching[0]);
+      }
+    }
+    return result;
   }, [bonds]);
 
   return (
@@ -588,9 +590,7 @@ function SovereignBondsSpotlight() {
         <div className="flex items-center gap-2">
           <Globe className="h-4 w-4 text-blue-500" />
           <h2 className="font-semibold text-sm text-foreground">Sovereign Bonds Spotlight</h2>
-          {summary && (
-            <span className="text-[10px] text-muted-foreground ml-1">{summary.totalBonds} bonds · {summary.uniqueCountries} countries</span>
-          )}
+          <span className="text-[10px] text-muted-foreground ml-1">USD · Top YTM by Rating</span>
         </div>
         <Link href="/fixed-income/sovereign" className="text-xs text-primary hover:underline flex items-center gap-0.5">
           Explorer <ChevronRight className="h-3 w-3" />

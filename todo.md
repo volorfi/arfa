@@ -307,3 +307,20 @@
 
 ## Bug Fix: Research Links Broken
 - [x] Fix research links pointing to /news#content instead of actual source URLs (originalSourceUrl or sourceUrl)
+
+## Bug Fix: Billing Banner
+- [x] Remove billing/payment banner from the site — N/A: this is a Manus system banner, not part of site code. User needs to resolve billing in Manus settings.
+
+## Feature: Source Filter for Research & Podcasts
+- [x] Add source/firm filter dropdown to External Research tab (e.g., Deutsche Bank, KKR, Apollo)
+- [x] Add category filter dropdown to Podcasts tab (categories backfilled: Markets, Portfolio Management, Alternative Assets, etc.)
+
+## Bug Fix: Mobile Layout Issues on News Page
+- [x] Fix mobile layout: tabs cut off / shifted right on small screens (horizontal scroll + shrink-0 icons)
+- [x] Fix missing icons on some tabs in mobile view (added shrink-0 to prevent icon collapse)
+- [x] Fix News page header layout on mobile (flex-wrap + truncate + gap-2)
+
+## Feature: Bond Spotlight - USD only, top YTM per rating
+- [x] Filter sovereign bonds on homepage to USD-denominated only
+- [x] Show top YTM bond per rating category: A+, A-, BBB, BBB-, BB+, BB
+- [x] Update frontend logic to group by rating and pick highest YTM per category

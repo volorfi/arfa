@@ -562,17 +562,17 @@ export default function News() {
     <div className="min-h-screen">
       <div className="max-w-[1300px] mx-auto px-4 py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <Newspaper className="h-5 w-5 text-primary" />
-            <h1 className="text-xl font-bold text-foreground">Market News & Blogs</h1>
-            <span className="text-xs text-muted-foreground ml-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
+          <div className="flex items-center gap-2 min-w-0">
+            <Newspaper className="h-5 w-5 text-primary shrink-0" />
+            <h1 className="text-lg sm:text-xl font-bold text-foreground truncate">Market News & Blogs</h1>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
               {total > 0 && `${total.toLocaleString()} articles`}
             </span>
           </div>
           <button
             onClick={() => setShowDashboard(!showDashboard)}
-            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-colors ${
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-colors shrink-0 ${
               showDashboard
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:text-foreground"
@@ -584,21 +584,23 @@ export default function News() {
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-1 mb-5 bg-muted/50 p-1 rounded-lg w-fit">
-          {TAB_CONFIG.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => handleTabChange(key)}
-              className={`flex items-center gap-1.5 text-xs px-4 py-2 rounded-md transition-all ${
-                activeTab === key
-                  ? "bg-background text-foreground font-semibold shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {label}
-            </button>
-          ))}
+        <div className="-mx-4 px-4 mb-5 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-lg w-max">
+            {TAB_CONFIG.map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => handleTabChange(key)}
+                className={`flex items-center gap-1.5 text-xs px-3 sm:px-4 py-2 rounded-md transition-all whitespace-nowrap ${
+                  activeTab === key
+                    ? "bg-background text-foreground font-semibold shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Sentiment Dashboard (collapsible) - only for news tabs */}
@@ -853,20 +855,23 @@ function ExternalResearchTab() {
   const [researchSearch, setResearchSearch] = useState("");
   const [researchSearchInput, setResearchSearchInput] = useState("");
   const [researchCategory, setResearchCategory] = useState("");
+  const [researchFirm, setResearchFirm] = useState("");
   const [researchSentiment, setResearchSentiment] = useState("");
   const [researchPage, setResearchPage] = useState(1);
 
   const queryInput = useMemo(() => ({
     category: researchCategory || undefined,
+    firm: researchFirm || undefined,
     sentiment: researchSentiment || undefined,
     search: researchSearch || undefined,
     limit: PAGE_SIZE,
     offset: (researchPage - 1) * PAGE_SIZE,
     randomize: true,
-  }), [researchCategory, researchSentiment, researchSearch, researchPage]);
+  }), [researchCategory, researchFirm, researchSentiment, researchSearch, researchPage]);
 
   const { data, isLoading } = trpc.externalResearch.list.useQuery(queryInput);
   const { data: categories } = trpc.externalResearch.categories.useQuery();
+  const { data: firms } = trpc.externalResearch.firms.useQuery();
 
   const items = data?.items || [];
   const total = data?.total || 0;
@@ -887,15 +892,15 @@ function ExternalResearchTab() {
         <div className="flex items-center gap-2 mb-3">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground">Filters</span>
-          {(researchSearch || researchCategory || researchSentiment) && (
-            <button onClick={() => { setResearchSearch(""); setResearchSearchInput(""); setResearchCategory(""); setResearchSentiment(""); setResearchPage(1); }}
+          {(researchSearch || researchCategory || researchFirm || researchSentiment) && (
+            <button onClick={() => { setResearchSearch(""); setResearchSearchInput(""); setResearchCategory(""); setResearchFirm(""); setResearchSentiment(""); setResearchPage(1); }}
               className="ml-auto text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
               <X className="h-3 w-3" /> Clear all
             </button>
           )}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="sm:col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="sm:col-span-2 lg:col-span-2">
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -907,6 +912,13 @@ function ExternalResearchTab() {
               <Button size="sm" onClick={() => { setResearchSearch(researchSearchInput); setResearchPage(1); }} className="h-9 px-4">Search</Button>
             </div>
           </div>
+          <Select value={researchFirm} onValueChange={(v) => { setResearchFirm(v === "all" ? "" : v); setResearchPage(1); }}>
+            <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="All Sources" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sources</SelectItem>
+              {firms?.map((f) => (<SelectItem key={f} value={f}>{f}</SelectItem>))}
+            </SelectContent>
+          </Select>
           <Select value={researchCategory} onValueChange={(v) => { setResearchCategory(v === "all" ? "" : v); setResearchPage(1); }}>
             <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="All Categories" /></SelectTrigger>
             <SelectContent>
