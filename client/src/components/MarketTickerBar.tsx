@@ -65,7 +65,8 @@ function TickerItem({ idx }: { idx: IndexItem }) {
 
 export default function MarketTickerBar() {
   const { data: indices, isLoading } = trpc.market.indices.useQuery(undefined, {
-    refetchInterval: 60000,
+    refetchInterval: 20000,
+    refetchIntervalInBackground: false,
     retry: 2,
   });
 

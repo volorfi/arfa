@@ -66,6 +66,7 @@ function setCache(key: string, data: unknown, ttlMs: number) {
   cache.set(key, { data, expiry: Date.now() + ttlMs });
 }
 
+const CACHE_20S = 20 * 1000;
 const CACHE_5MIN = 5 * 60 * 1000;
 const CACHE_15MIN = 15 * 60 * 1000;
 const CACHE_1HR = 60 * 60 * 1000;
@@ -295,71 +296,103 @@ export async function getStockInsights(symbol: string): Promise<any> {
 }
 
 // ─── Market Indices ────────────────────────────────────────────────
+// Ticker freshness comes from Yahoo's v7/finance/quote (batched, near-live
+// during market hours — Yahoo's free feed is ~15-min delayed for US equities
+// per their terms). Mini sparklines use daily chart data that only needs to
+// refresh every few minutes.
+
+type IndexDef = { symbol: string; name: string; assetType: string };
+
+const INDEX_DEFS: IndexDef[] = [
+  { symbol: "^GSPC", name: "S&P 500", assetType: "index" },
+  { symbol: "^NDX", name: "Nasdaq 100", assetType: "index" },
+  { symbol: "^DJI", name: "Dow Jones", assetType: "index" },
+  { symbol: "^RUT", name: "Russell 2000", assetType: "index" },
+  { symbol: "EURUSD=X", name: "EUR/USD", assetType: "fx" },
+  { symbol: "GC=F", name: "Gold", assetType: "commodity" },
+  { symbol: "CL=F", name: "WTI", assetType: "commodity" },
+  { symbol: "BZ=F", name: "Brent", assetType: "commodity" },
+  { symbol: "^TNX", name: "UST10 YTM", assetType: "yield" },
+];
+
+function formatIndexDisplay(assetType: string, price: number): string {
+  if (assetType === "fx") return price.toFixed(4);
+  if (assetType === "commodity") return `$${price.toFixed(2)}`;
+  if (assetType === "yield") return `${price.toFixed(2)}%`;
+  return price.toLocaleString("en-US", { maximumFractionDigits: 0 });
+}
+
+async function getIndexSparklines(): Promise<
+  Map<string, { time: number; value: number }[]>
+> {
+  const cacheKey = "market:indices:sparklines";
+  const cached = getCached<Record<string, { time: number; value: number }[]>>(
+    cacheKey
+  );
+  if (cached) return new Map(Object.entries(cached));
+
+  const out = new Map<string, { time: number; value: number }[]>();
+  await Promise.all(
+    INDEX_DEFS.map(async (idx) => {
+      const histRes = await yfGet<any>(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(idx.symbol)}`,
+        { interval: "1d", range: "5d" },
+        { auth: false }
+      );
+      const r = histRes?.chart?.result?.[0];
+      const timestamps: number[] = r?.timestamp ?? [];
+      const closes: (number | null)[] = r?.indicators?.quote?.[0]?.close ?? [];
+      const points: { time: number; value: number }[] = [];
+      const start = Math.max(0, timestamps.length - 5);
+      for (let i = start; i < timestamps.length; i++) {
+        const v = closes[i];
+        if (typeof v === "number") {
+          points.push({ time: timestamps[i] * 1000, value: v });
+        }
+      }
+      if (points.length > 0) out.set(idx.symbol, points);
+    })
+  );
+
+  if (out.size > 0) {
+    setCache(cacheKey, Object.fromEntries(out), CACHE_5MIN);
+  }
+  return out;
+}
+
 export async function getMarketIndices(): Promise<MarketIndex[]> {
   const cacheKey = "market:indices";
   const cached = getCached<MarketIndex[]>(cacheKey);
   if (cached) return cached;
 
-  const indices: { symbol: string; name: string; assetType: string }[] = [
-    { symbol: "^GSPC", name: "S&P 500", assetType: "index" },
-    { symbol: "^NDX", name: "Nasdaq 100", assetType: "index" },
-    { symbol: "^DJI", name: "Dow Jones", assetType: "index" },
-    { symbol: "^RUT", name: "Russell 2000", assetType: "index" },
-    { symbol: "EURUSD=X", name: "EUR/USD", assetType: "fx" },
-    { symbol: "GC=F", name: "Gold", assetType: "commodity" },
-    { symbol: "CL=F", name: "WTI", assetType: "commodity" },
-    { symbol: "BZ=F", name: "Brent", assetType: "commodity" },
-    { symbol: "^TNX", name: "UST10 YTM", assetType: "yield" },
-  ];
+  // One batched call for all live prices.
+  const quoteRes = await yfGet<any>(
+    "https://query1.finance.yahoo.com/v7/finance/quote",
+    { symbols: INDEX_DEFS.map((i) => i.symbol).join(",") }
+  );
+  const quotes: any[] = quoteRes?.quoteResponse?.result ?? [];
+  const quoteMap = new Map<string, any>(quotes.map((q) => [q.symbol, q]));
+
+  const sparklines = await getIndexSparklines();
 
   const results: MarketIndex[] = [];
+  for (const idx of INDEX_DEFS) {
+    const q = quoteMap.get(idx.symbol);
+    if (!q) continue;
 
-  for (const idx of indices) {
-    const histRes = await yfGet<any>(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(idx.symbol)}`,
-      { interval: "1d", range: "5d" },
-      { auth: false }
-    );
-
-    const r = histRes?.chart?.result?.[0];
-    const meta = r?.meta;
-    if (!meta) continue;
-
-    const quoteArr = r.indicators?.quote?.[0] ?? {};
-    const timestamps: number[] = r.timestamp ?? [];
-    const currentPrice = meta.regularMarketPrice ?? 0;
-    let prevClose = meta.chartPreviousClose ?? 0;
-
-    if (timestamps.length >= 2 && Array.isArray(quoteArr.close)) {
-      const lastValidIdx = [...quoteArr.close]
-        .map((c: any, i: number) => (typeof c === "number" ? i : -1))
-        .filter((i) => i >= 0)
-        .pop();
-      if (lastValidIdx !== undefined && lastValidIdx >= 1) {
-        prevClose = quoteArr.close[lastValidIdx - 1] ?? prevClose;
-      }
-    }
-    if (!prevClose) prevClose = currentPrice;
-
-    const change = currentPrice - prevClose;
-    const changePercent = prevClose ? (change / prevClose) * 100 : 0;
-
-    const chartData: { time: number; value: number }[] = [];
-    if (timestamps.length > 0 && Array.isArray(quoteArr.close)) {
-      const slice = Math.min(5, timestamps.length);
-      for (let i = timestamps.length - slice; i < timestamps.length; i++) {
-        const close = quoteArr.close[i];
-        if (typeof close === "number") {
-          chartData.push({ time: timestamps[i] * 1000, value: close });
-        }
-      }
-    }
-
-    let displayValue: string;
-    if (idx.assetType === "fx") displayValue = currentPrice.toFixed(4);
-    else if (idx.assetType === "commodity") displayValue = `$${currentPrice.toFixed(2)}`;
-    else if (idx.assetType === "yield") displayValue = `${currentPrice.toFixed(2)}%`;
-    else displayValue = currentPrice.toLocaleString("en-US", { maximumFractionDigits: 0 });
+    const currentPrice = q.regularMarketPrice ?? 0;
+    const change =
+      typeof q.regularMarketChange === "number"
+        ? q.regularMarketChange
+        : currentPrice - (q.regularMarketPreviousClose ?? currentPrice);
+    const changePercent =
+      typeof q.regularMarketChangePercent === "number"
+        ? q.regularMarketChangePercent
+        : q.regularMarketPreviousClose
+          ? ((currentPrice - q.regularMarketPreviousClose) /
+              q.regularMarketPreviousClose) *
+            100
+          : 0;
 
     results.push({
       symbol: idx.symbol,
@@ -367,13 +400,13 @@ export async function getMarketIndices(): Promise<MarketIndex[]> {
       price: currentPrice,
       change,
       changePercent,
-      chartData,
+      chartData: sparklines.get(idx.symbol) ?? [],
       assetType: idx.assetType,
-      displayValue,
+      displayValue: formatIndexDisplay(idx.assetType, currentPrice),
     });
   }
 
-  if (results.length > 0) setCache(cacheKey, results, CACHE_5MIN);
+  if (results.length > 0) setCache(cacheKey, results, CACHE_20S);
   return results;
 }
 
