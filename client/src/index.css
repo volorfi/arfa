@@ -144,6 +144,19 @@
   }
 }
 
+/* Belt-and-suspenders for Radix Collapsible: drive height from
+   --radix-collapsible-content-height so the box always matches its
+   children. Prevents sibling overlap when multiple collapsibles are open. */
+[data-slot="collapsible-content"] {
+  overflow: hidden;
+}
+[data-slot="collapsible-content"][data-state="open"] {
+  animation: collapsible-down 0.2s ease-out;
+}
+[data-slot="collapsible-content"][data-state="closed"] {
+  animation: collapsible-up 0.2s ease-out;
+}
+
 @keyframes ticker-scroll {
   0% {
     transform: translateX(0);
