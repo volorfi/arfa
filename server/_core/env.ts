@@ -23,7 +23,4 @@ export const ENV = {
   awsRegion: process.env.AWS_REGION ?? "us-east-1",
   awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "",
   awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "",
-
-  // External data
-  rapidApiKey: process.env.RAPIDAPI_KEY ?? "",
 };
