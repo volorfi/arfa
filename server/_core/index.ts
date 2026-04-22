@@ -35,6 +35,10 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Liveness probe — plain 200 with no deps, used by Railway healthcheck.
+  app.get("/healthz", (_req, res) => {
+    res.status(200).json({ ok: true });
+  });
   // Google OAuth routes under /api/auth/google and /api/auth/google/callback
   registerAuthRoutes(app);
   // tRPC API
