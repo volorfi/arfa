@@ -380,7 +380,7 @@ function AppSidebarContent({
                                   <ChevronRight className="h-3 w-3 opacity-50 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                                 </SidebarMenuButton>
                               </CollapsibleTrigger>
-                              <CollapsibleContent className="animate-in slide-in-from-top-1 duration-200">
+                              <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
                                 <SidebarMenuSub className="ml-4 border-l border-sidebar-border/50 pl-0">
                                   {item.children.map((child) => {
                                     const isChildActive = location === child.path;
