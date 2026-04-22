@@ -34,6 +34,9 @@ ENV PORT=3000
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/drizzle ./drizzle
+# bondService and sovereignService load these at runtime from process.cwd().
+COPY --from=build /app/server/bonds_data.json ./server/bonds_data.json
+COPY --from=build /app/server/sovereign_data.json ./server/sovereign_data.json
 COPY package.json ./
 
 EXPOSE 3000
