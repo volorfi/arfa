@@ -75,15 +75,22 @@ async function startServer() {
     serveStatic(app);
   }
 
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
+  const HOST = "0.0.0.0";
+  const envPort = process.env.PORT ? parseInt(process.env.PORT, 10) : NaN;
 
-  if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+  // On Railway/Fly/etc. the platform injects PORT and routes traffic to that
+  // exact port. Any "find an available port" fallback silently binds to a
+  // different port that the platform proxy never reaches, so we only do the
+  // probe dance in local dev.
+  let port: number;
+  if (Number.isFinite(envPort)) {
+    port = envPort;
+  } else {
+    port = await findAvailablePort(3000);
   }
 
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+  server.listen(port, HOST, () => {
+    console.log(`Server running on http://${HOST}:${port}/`);
     // Start news scraping scheduler
     startNewsScheduler();
     // Start ideafarm research/podcasts scraping scheduler
