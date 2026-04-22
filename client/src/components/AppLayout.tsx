@@ -361,8 +361,8 @@ function AppSidebarContent({
                       const isActive = location === item.path || (item.path !== "/" && location.startsWith(item.path));
                       if (item.children) {
                         return (
-                          <Collapsible key={item.path} defaultOpen={isActive} className="group/collapsible">
-                            <SidebarMenuItem>
+                          <SidebarMenuItem key={item.path}>
+                            <Collapsible defaultOpen={isActive} className="group/collapsible">
                               <CollapsibleTrigger asChild>
                                 <SidebarMenuButton
                                   tooltip={item.label}
@@ -380,7 +380,7 @@ function AppSidebarContent({
                                   <ChevronRight className="h-3 w-3 opacity-50 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                                 </SidebarMenuButton>
                               </CollapsibleTrigger>
-                              <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+                              <CollapsibleContent>
                                 <SidebarMenuSub className="ml-4 border-l border-sidebar-border/50 pl-0">
                                   {item.children.map((child) => {
                                     const isChildActive = location === child.path;
@@ -405,11 +405,11 @@ function AppSidebarContent({
                                   })}
                                 </SidebarMenuSub>
                               </CollapsibleContent>
-                            </SidebarMenuItem>
-                          </Collapsible>
+                            </Collapsible>
+                          </SidebarMenuItem>
                         );
                       }
-                   
+
                       return (
                         <SidebarMenuItem key={item.path}>
                           <SidebarMenuButton

@@ -144,9 +144,9 @@
   }
 }
 
-/* Belt-and-suspenders for Radix Collapsible: drive height from
-   --radix-collapsible-content-height so the box always matches its
-   children. Prevents sibling overlap when multiple collapsibles are open. */
+/* Radix Collapsible: drive height from --radix-collapsible-content-height
+   so the content box always matches its children, and clip cleanly during
+   the open/close transition. */
 [data-slot="collapsible-content"] {
   overflow: hidden;
 }
@@ -155,21 +155,6 @@
 }
 [data-slot="collapsible-content"][data-state="closed"] {
   animation: collapsible-up 0.2s ease-out;
-}
-
-/* Force sidebar group labels to never have negative margin when the
-   sidebar is in its normal (non-icon) state. Also ensure each group
-   claims its own block in the flex column without overlapping siblings. */
-[data-sidebar="sidebar"]:not([data-collapsible="icon"]) [data-sidebar="group-label"] {
-  margin-top: 0 !important;
-  opacity: 1 !important;
-}
-[data-sidebar="group"] {
-  flex-shrink: 0;
-}
-[data-sidebar="menu"],
-[data-sidebar="menu-sub"] {
-  flex-shrink: 0;
 }
 
 @keyframes ticker-scroll {
