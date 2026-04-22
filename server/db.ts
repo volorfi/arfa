@@ -92,6 +92,35 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/**
+ * Re-key an existing user onto a new openId (used when a legacy Manus-imported
+ * account is re-logging in via Google — preserves id, role, createdAt, and
+ * watchlist FKs rather than creating a duplicate row).
+ */
+export async function updateUserIdentity(
+  currentOpenId: string,
+  newOpenId: string,
+  loginMethod: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(users)
+    .set({ openId: newOpenId, loginMethod })
+    .where(eq(users.openId, currentOpenId));
+}
+
 // Watchlist helpers
 export async function getWatchlistByUserId(userId: number) {
   const db = await getDb();

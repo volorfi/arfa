@@ -225,6 +225,16 @@ export function registerAuthRoutes(app: Express): void {
         const name = claims.name ?? claims.email ?? "";
         const signedInAt = new Date();
 
+        // If a legacy (e.g. Manus-imported) row with this email exists under a
+        // different openId, re-key it in place so role / createdAt / watchlists
+        // survive the migration instead of spawning a duplicate row.
+        if (claims.email) {
+          const existing = await db.getUserByEmail(claims.email);
+          if (existing && existing.openId !== openId) {
+            await db.updateUserIdentity(existing.openId, openId, "google");
+          }
+        }
+
         await db.upsertUser({
           openId,
           name: name || null,
