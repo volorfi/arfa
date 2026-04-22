@@ -2,7 +2,6 @@ import "dotenv/config";
 import express from "express";
 import fs from "node:fs";
 import { createServer } from "http";
-import net from "net";
 import path from "node:path";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerAuthRoutes } from "./auth";
@@ -10,25 +9,6 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { startNewsScheduler } from "../newsService";
 import { startIdeafarmScheduler } from "../ideafarmService";
-
-function isPortAvailable(port: number): Promise<boolean> {
-  return new Promise(resolve => {
-    const server = net.createServer();
-    server.listen(port, () => {
-      server.close(() => resolve(true));
-    });
-    server.on("error", () => resolve(false));
-  });
-}
-
-async function findAvailablePort(startPort: number = 3000): Promise<number> {
-  for (let port = startPort; port < startPort + 20; port++) {
-    if (await isPortAvailable(port)) {
-      return port;
-    }
-  }
-  throw new Error(`No available port found starting from ${startPort}`);
-}
 
 // Inlined so production never touches ./vite.ts (which transitively imports
 // the `vite` package, a devDependency not present in the prod container).
@@ -75,25 +55,17 @@ async function startServer() {
     serveStatic(app);
   }
 
+  // Bind verbatim to whatever the platform (Railway, Fly, etc.) injects via
+  // PORT; default to 3000 for local dev. Any fallback that picks a different
+  // port silently breaks platform healthchecks that only route to $PORT.
   const HOST = "0.0.0.0";
-  const envPort = process.env.PORT ? parseInt(process.env.PORT, 10) : NaN;
-
-  // On Railway/Fly/etc. the platform injects PORT and routes traffic to that
-  // exact port. Any "find an available port" fallback silently binds to a
-  // different port that the platform proxy never reaches, so we only do the
-  // probe dance in local dev.
-  let port: number;
-  if (Number.isFinite(envPort)) {
-    port = envPort;
-  } else {
-    port = await findAvailablePort(3000);
-  }
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   server.listen(port, HOST, () => {
-    console.log(`Server running on http://${HOST}:${port}/`);
-    // Start news scraping scheduler
+    console.log(
+      `Server running on http://${HOST}:${port}/ (NODE_ENV=${process.env.NODE_ENV ?? "development"})`
+    );
     startNewsScheduler();
-    // Start ideafarm research/podcasts scraping scheduler
     startIdeafarmScheduler();
   });
 }
