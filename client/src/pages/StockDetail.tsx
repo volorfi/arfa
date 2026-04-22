@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { SignalCard } from "@/components/SignalCard";
 import FinancialsTabComponent from "@/components/FinancialsTab";
 
 const PERIOD_OPTIONS = [
@@ -238,8 +239,9 @@ export default function StockDetail() {
 function OverviewTab({ quote, chartData, chartLoading, quoteLoading, periodIdx, setPeriodIdx, isPositive, insights, symbol }: any) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left: Metrics */}
-      <div className="lg:col-span-1 space-y-1">
+      {/* Left: Metrics + SignalCard */}
+      <div className="lg:col-span-1 space-y-4">
+        <SignalCard symbol={symbol} />
         <MetricsTable quote={quote} loading={quoteLoading} />
       </div>
       {/* Right: Chart */}

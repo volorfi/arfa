@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { double, int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, uniqueIndex, index } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -89,3 +89,40 @@ export const externalPodcasts = mysqlTable("external_podcasts", {
 
 export type ExternalPodcast = typeof externalPodcasts.$inferSelect;
 export type InsertExternalPodcast = typeof externalPodcasts.$inferInsert;
+
+export const signals = mysqlTable(
+  "signals",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    symbol: varchar("symbol", { length: 16 }).notNull(),
+    horizon: varchar("horizon", { length: 8 }).notNull(),
+    stance: mysqlEnum("stance", ["bullish", "bearish", "neutral"]).notNull(),
+    score: double("score").notNull(),
+    confidenceBand: mysqlEnum("confidenceBand", [
+      "very_high",
+      "high",
+      "medium",
+      "low",
+      "abstain",
+    ]).notNull(),
+    topDrivers: json("topDrivers").$type<string[]>().notNull(),
+    riskFlags: json("riskFlags").$type<string[]>().notNull(),
+    publicationStatus: mysqlEnum("publicationStatus", [
+      "internal_only",
+      "review_required",
+      "publication_eligible",
+      "published",
+      "suppressed",
+    ])
+      .default("internal_only")
+      .notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    symbolHorizonUniq: uniqueIndex("symbol_horizon_uniq").on(table.symbol, table.horizon),
+    horizonIdx: index("signals_horizon_idx").on(table.horizon),
+  }),
+);
+
+export type Signal = typeof signals.$inferSelect;
+export type InsertSignal = typeof signals.$inferInsert;

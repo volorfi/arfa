@@ -71,6 +71,13 @@
       "when": 1776851269881,
       "tag": "0009_sticky_sunset_bain",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1776872666416,
+      "tag": "0010_perpetual_blackheart",
+      "breakpoints": true
     }
   ]
 }
