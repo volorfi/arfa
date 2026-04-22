@@ -1,9 +1,17 @@
-import { ENV } from "./_core/env";
-import type { StockQuote, StockChartPoint, MarketIndex, NewsItem, MarketMover, ScreenerStock } from "../shared/stockTypes";
+import { yahooFetch } from "./_core/yahooFinance";
+import type {
+  StockQuote,
+  StockChartPoint,
+  MarketIndex,
+  NewsItem,
+  MarketMover,
+  ScreenerStock,
+} from "../shared/stockTypes";
 
-// ─── RapidAPI helper with rate limiting ────────────────────────────
-const RAPID_BASE = "https://yahoo-finance15.p.rapidapi.com/api";
-const MIN_INTERVAL_MS = 600; // ~1.6 req/s to stay well under PRO rate limit
+// ─── Rate limiter ──────────────────────────────────────────────────
+// Yahoo Finance's direct API is lenient but not unlimited; ~1.6 req/s
+// keeps us comfortably under throttling thresholds for a single IP.
+const MIN_INTERVAL_MS = 600;
 let lastRequestTime = 0;
 const requestQueue: Array<{ resolve: () => void }> = [];
 let processing = false;
@@ -22,7 +30,7 @@ async function processQueue() {
     const now = Date.now();
     const elapsed = now - lastRequestTime;
     if (elapsed < MIN_INTERVAL_MS) {
-      await new Promise(r => setTimeout(r, MIN_INTERVAL_MS - elapsed));
+      await new Promise((r) => setTimeout(r, MIN_INTERVAL_MS - elapsed));
     }
     lastRequestTime = Date.now();
     item.resolve();
@@ -30,52 +38,17 @@ async function processQueue() {
   processing = false;
 }
 
-async function rapidGet(path: string, params: Record<string, string> = {}, retries = 2): Promise<any> {
+async function yfGet<T = any>(
+  url: string,
+  query: Record<string, string | number | undefined> = {},
+  opts: { auth?: boolean } = {}
+): Promise<T | null> {
   await rateLimitedWait();
-  const url = new URL(`${RAPID_BASE}${path}`);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-
-  const res = await fetch(url.toString(), {
-    headers: {
-      "x-rapidapi-host": "yahoo-finance15.p.rapidapi.com",
-      "x-rapidapi-key": ENV.rapidApiKey,
-    },
-  });
-
-  // Retry on 429 rate limit
-  if (res.status === 429 && retries > 0) {
-    await new Promise(r => setTimeout(r, 1500));
-    return rapidGet(path, params, retries - 1);
-  }
-
-  // Handle 302 redirects and 500 server errors gracefully
-  if (res.status === 302 || res.status === 500) {
-    console.warn(`[RapidAPI] ${res.status} for ${path} - endpoint unavailable`);
-    return null;
-  }
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`RapidAPI ${res.status}: ${text.slice(0, 200)}`);
-  }
-
-  const contentType = res.headers.get("content-type") || "";
-  if (!contentType.includes("application/json")) {
-    // Some endpoints return HTML instead of JSON (broken endpoints)
-    console.warn(`[RapidAPI] Non-JSON response for ${path}`);
-    return null;
-  }
-
-  return res.json();
-}
-
-// Helper that wraps rapidGet to return PromiseSettledResult format
-async function safeGet(path: string, params: Record<string, string> = {}): Promise<PromiseSettledResult<any>> {
   try {
-    const value = await rapidGet(path, params);
-    return { status: "fulfilled", value };
-  } catch (reason: any) {
-    return { status: "rejected", reason };
+    return await yahooFetch<T>(url, { query, auth: opts.auth });
+  } catch (error) {
+    console.warn(`[StockService] Yahoo request failed: ${url}`, error);
+    return null;
   }
 }
 
@@ -97,60 +70,78 @@ const CACHE_5MIN = 5 * 60 * 1000;
 const CACHE_15MIN = 15 * 60 * 1000;
 const CACHE_1HR = 60 * 60 * 1000;
 
-// ─── Stock Chart ───────────────────────────────────────────────────
-function getRangeStartMs(range: string): number {
-  const now = Date.now();
-  const DAY = 86400000;
-  switch (range) {
-    case "1d": return now - 1 * DAY;
-    case "5d": return now - 5 * DAY;
-    case "1mo": return now - 30 * DAY;
-    case "3mo": return now - 90 * DAY;
-    case "6mo": return now - 180 * DAY;
-    case "ytd": return new Date(new Date().getFullYear(), 0, 1).getTime();
-    case "1y": return now - 365 * DAY;
-    case "5y": return now - 5 * 365 * DAY;
-    case "max": return 0;
-    default: return now - 30 * DAY;
-  }
+// ─── Yahoo response helpers ────────────────────────────────────────
+function pickRaw(v: any): number | undefined {
+  if (v === undefined || v === null) return undefined;
+  if (typeof v === "number") return v;
+  if (typeof v === "object" && typeof v.raw === "number") return v.raw;
+  return undefined;
 }
 
-export async function getStockChart(symbol: string, interval: string = "1d", range: string = "1mo"): Promise<StockChartPoint[]> {
+function pickFmt(v: any): string | undefined {
+  if (!v) return undefined;
+  if (typeof v === "string") return v;
+  if (typeof v === "object" && typeof v.fmt === "string") return v.fmt;
+  return undefined;
+}
+
+// ─── Stock Chart ───────────────────────────────────────────────────
+function rangeToWindow(range: string): { period1?: number; period2?: number; yahooRange?: string } {
+  // Prefer named ranges Yahoo understands; fall back to computed period1/period2.
+  const supported = new Set(["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"]);
+  if (supported.has(range)) return { yahooRange: range };
+  const now = Math.floor(Date.now() / 1000);
+  const DAY = 86400;
+  return { period1: now - 30 * DAY, period2: now };
+}
+
+export async function getStockChart(
+  symbol: string,
+  interval: string = "1d",
+  range: string = "1mo"
+): Promise<StockChartPoint[]> {
   const cacheKey = `chart:${symbol}:${interval}:${range}`;
   const cached = getCached<StockChartPoint[]>(cacheKey);
   if (cached) return cached;
 
-  try {
-    const response = await rapidGet("/v1/markets/stock/history", {
-      symbol,
+  const { yahooRange, period1, period2 } = rangeToWindow(range);
+  const response = await yfGet<any>(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`,
+    {
       interval,
-      diffandsplits: "false",
+      range: yahooRange,
+      period1,
+      period2,
+      includePrePost: "false",
+    },
+    { auth: false }
+  );
+
+  const result = response?.chart?.result?.[0];
+  if (!result || !Array.isArray(result.timestamp)) return [];
+
+  const quote = result.indicators?.quote?.[0] ?? {};
+  const { timestamp, meta } = result;
+  const points: StockChartPoint[] = [];
+  for (let i = 0; i < timestamp.length; i++) {
+    const close = quote.close?.[i];
+    if (typeof close !== "number") continue;
+    const ts = timestamp[i];
+    points.push({
+      timestamp: ts * 1000,
+      date: new Date(ts * 1000).toISOString(),
+      open: quote.open?.[i] ?? 0,
+      high: quote.high?.[i] ?? 0,
+      low: quote.low?.[i] ?? 0,
+      close,
+      volume: quote.volume?.[i] ?? 0,
     });
-
-    const body = response?.body;
-    if (!body || typeof body !== "object") return [];
-
-    const rangeStart = getRangeStartMs(range);
-
-    const points: StockChartPoint[] = Object.entries(body)
-      .map(([tsKey, val]: [string, any]) => ({
-        timestamp: (val.date_utc || parseInt(tsKey)) * 1000,
-        date: val.date || new Date(parseInt(tsKey) * 1000).toISOString(),
-        open: val.open ?? 0,
-        high: val.high ?? 0,
-        low: val.low ?? 0,
-        close: val.close ?? 0,
-        volume: val.volume ?? 0,
-      }))
-      .filter((p) => p.close > 0 && p.timestamp >= rangeStart)
-      .sort((a, b) => a.timestamp - b.timestamp);
-
-    setCache(cacheKey, points, CACHE_5MIN);
-    return points;
-  } catch (error) {
-    console.error(`[StockService] Chart error for ${symbol}:`, error);
-    return [];
   }
+  void meta;
+
+  points.sort((a, b) => a.timestamp - b.timestamp);
+  setCache(cacheKey, points, CACHE_5MIN);
+  return points;
 }
 
 // ─── Stock Quote ───────────────────────────────────────────────────
@@ -159,125 +150,126 @@ export async function getStockQuote(symbol: string): Promise<StockQuote | null> 
   const cached = getCached<StockQuote>(cacheKey);
   if (cached) return cached;
 
-  try {
-    // Fetch real-time quote
-    const quoteRes = await rapidGet("/v1/markets/quote", { ticker: symbol, type: "STOCKS" });
-    const qBody = quoteRes?.body;
-    if (!qBody) return null;
-
-    const lastPrice = parseFloat(String(qBody.primaryData?.lastSalePrice || "0").replace(/[$,]/g, "")) || 0;
-    const netChange = parseFloat(String(qBody.primaryData?.netChange || "0").replace(/[$,]/g, "")) || 0;
-    const pctChange = parseFloat(String(qBody.primaryData?.percentageChange || "0").replace(/[%,]/g, "")) || 0;
-    const volume = parseInt(String(qBody.primaryData?.volume || "0").replace(/,/g, ""), 10) || 0;
-
-    // Parse 52-week range
-    const rangeStr = qBody.keyStats?.fiftyTwoWeekHighLow?.value || "";
-    const [low52, high52] = rangeStr.split(" - ").map((s: string) => parseFloat(s) || 0);
-
-    // Parse day range
-    const dayRangeStr = qBody.keyStats?.dayrange?.value || "";
-    const [dayLow, dayHigh] = dayRangeStr.split(" - ").map((s: string) => parseFloat(s) || 0);
-
-    const prevClose = lastPrice - netChange;
-
-    // Parse open price from keyStats
-    const openStr = qBody.keyStats?.OpenPrice?.value || "";
-    const openPrice = parseFloat(openStr) || prevClose || lastPrice;
-
-    const quote: StockQuote = {
-      symbol: qBody.symbol || symbol,
-      shortName: qBody.companyName || symbol,
-      longName: qBody.companyName || symbol,
-      regularMarketPrice: lastPrice,
-      regularMarketChange: netChange,
-      regularMarketChangePercent: pctChange,
-      regularMarketVolume: volume,
-      regularMarketDayHigh: dayHigh || lastPrice,
-      regularMarketDayLow: dayLow || lastPrice,
-      regularMarketOpen: openPrice,
-      regularMarketPreviousClose: prevClose,
-      fiftyTwoWeekHigh: high52 || lastPrice,
-      fiftyTwoWeekLow: low52 || lastPrice,
-      exchange: qBody.exchange || "",
-      currency: qBody.primaryData?.currency || "USD",
-    };
-
-    // Enrich with modules data sequentially to respect rate limits
-    const [profileResult, financialResult, statisticsResult, calEventsResult] = [
-      await safeGet("/v1/markets/stock/modules", { ticker: symbol, module: "profile" }),
-      await safeGet("/v1/markets/stock/modules", { ticker: symbol, module: "financial-data" }),
-      await safeGet("/v1/markets/stock/modules", { ticker: symbol, module: "statistics" }),
-      await safeGet("/v1/markets/stock/modules", { ticker: symbol, module: "calendar-events" }),
-    ];
-
-    // Profile
-    if (profileResult.status === "fulfilled") {
-      const p = profileResult.value?.body;
-      if (p) {
-        if (p.sector) quote.sector = p.sector;
-        if (p.industry) quote.industry = p.industry;
-        if (p.website) quote.website = p.website;
-        if (p.fullTimeEmployees) quote.employees = p.fullTimeEmployees;
-        if (p.longBusinessSummary) quote.description = p.longBusinessSummary;
+  // Two parallel calls: core quote (v7) + enrichment modules (v10).
+  const [quoteRes, summaryRes] = await Promise.all([
+    yfGet<any>(
+      `https://query1.finance.yahoo.com/v7/finance/quote`,
+      { symbols: symbol }
+    ),
+    yfGet<any>(
+      `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}`,
+      {
+        modules:
+          "assetProfile,financialData,defaultKeyStatistics,calendarEvents",
       }
-    }
+    ),
+  ]);
 
-    // Financial data
-    if (financialResult.status === "fulfilled") {
-      const f = financialResult.value?.body;
-      if (f) {
-        if (f.currentPrice?.raw) quote.regularMarketPrice = f.currentPrice.raw;
-        if (f.targetMeanPrice?.raw) quote.priceTarget = f.targetMeanPrice.raw;
-        if (f.recommendationKey) quote.analystRating = f.recommendationKey;
-        if (f.totalRevenue?.raw) quote.revenue = f.totalRevenue.raw;
-        if (f.netIncome?.raw) quote.netIncome = f.netIncome.raw;
-        // beta comes from statistics module, not financial-data
-      }
-    }
+  const q = quoteRes?.quoteResponse?.result?.[0];
+  if (!q) return null;
 
-    // Statistics
-    if (statisticsResult.status === "fulfilled") {
-      const s = statisticsResult.value?.body;
-      if (s) {
-        if (s.forwardPE?.raw) quote.forwardPE = s.forwardPE.raw;
-        if (s.trailingEps?.raw) {
-          quote.trailingEps = s.trailingEps.raw;
-          // Calculate trailing PE from price / EPS
-          if (lastPrice && s.trailingEps.raw > 0) {
-            quote.trailingPE = lastPrice / s.trailingEps.raw;
-          }
-        }
-        if (s.beta?.raw) quote.beta = s.beta.raw;
-        if (s.sharesOutstanding?.raw) quote.sharesOutstanding = s.sharesOutstanding.raw;
-        // Dividend: use lastDividendValue * 4 as annual rate estimate
-        if (s.lastDividendValue?.raw) {
-          quote.dividendRate = s.lastDividendValue.raw * 4;
-          if (lastPrice) quote.dividendYield = (quote.dividendRate / lastPrice);
-        }
-        // Calculate marketCap from shares * price
-        if (s.sharesOutstanding?.raw && lastPrice) {
-          quote.marketCap = s.sharesOutstanding.raw * lastPrice;
-        } else if (s.enterpriseValue?.raw) {
-          quote.marketCap = s.enterpriseValue.raw;
-        }
-      }
-    }
+  const lastPrice = q.regularMarketPrice ?? 0;
 
-    // Calendar events (earnings date, ex-dividend)
-    if (calEventsResult.status === "fulfilled") {
-      const c = calEventsResult.value?.body;
-      if (c) {
-        if (c.earnings?.earningsDate?.[0]?.fmt) quote.earningsDate = c.earnings.earningsDate[0].fmt;
-        if (c.exDividendDate?.fmt) quote.exDividendDate = c.exDividendDate.fmt;
-      }
-    }
+  const quote: StockQuote = {
+    symbol: q.symbol || symbol,
+    shortName: q.shortName || q.longName || symbol,
+    longName: q.longName || q.shortName || symbol,
+    regularMarketPrice: lastPrice,
+    regularMarketChange: q.regularMarketChange ?? 0,
+    regularMarketChangePercent: q.regularMarketChangePercent ?? 0,
+    regularMarketVolume: q.regularMarketVolume ?? 0,
+    regularMarketDayHigh: q.regularMarketDayHigh ?? lastPrice,
+    regularMarketDayLow: q.regularMarketDayLow ?? lastPrice,
+    regularMarketOpen: q.regularMarketOpen ?? lastPrice,
+    regularMarketPreviousClose: q.regularMarketPreviousClose ?? lastPrice,
+    fiftyTwoWeekHigh: q.fiftyTwoWeekHigh ?? lastPrice,
+    fiftyTwoWeekLow: q.fiftyTwoWeekLow ?? lastPrice,
+    exchange: q.fullExchangeName || q.exchange || "",
+    currency: q.currency || "USD",
+  };
 
-    setCache(cacheKey, quote, CACHE_5MIN);
-    return quote;
-  } catch (error) {
-    console.error(`[StockService] Quote error for ${symbol}:`, error);
-    return null;
+  if (typeof q.marketCap === "number") quote.marketCap = q.marketCap;
+  if (typeof q.trailingPE === "number") quote.trailingPE = q.trailingPE;
+  if (typeof q.forwardPE === "number") quote.forwardPE = q.forwardPE;
+  if (typeof q.trailingEps === "number") quote.trailingEps = q.trailingEps;
+  if (typeof q.epsTrailingTwelveMonths === "number" && !quote.trailingEps) {
+    quote.trailingEps = q.epsTrailingTwelveMonths;
   }
+  if (typeof q.dividendRate === "number") quote.dividendRate = q.dividendRate;
+  if (typeof q.dividendYield === "number") quote.dividendYield = q.dividendYield;
+  if (typeof q.sharesOutstanding === "number") {
+    quote.sharesOutstanding = q.sharesOutstanding;
+  }
+
+  const summary = summaryRes?.quoteSummary?.result?.[0];
+  if (summary) {
+    const profile = summary.assetProfile;
+    if (profile) {
+      if (profile.sector) quote.sector = profile.sector;
+      if (profile.industry) quote.industry = profile.industry;
+      if (profile.website) quote.website = profile.website;
+      if (typeof profile.fullTimeEmployees === "number") {
+        quote.employees = profile.fullTimeEmployees;
+      }
+      if (profile.longBusinessSummary) {
+        quote.description = profile.longBusinessSummary;
+      }
+    }
+
+    const financial = summary.financialData;
+    if (financial) {
+      const priceTarget = pickRaw(financial.targetMeanPrice);
+      if (priceTarget !== undefined) quote.priceTarget = priceTarget;
+      if (typeof financial.recommendationKey === "string") {
+        quote.analystRating = financial.recommendationKey;
+      }
+      const revenue = pickRaw(financial.totalRevenue);
+      if (revenue !== undefined) quote.revenue = revenue;
+      const netIncome = pickRaw(financial.netIncome);
+      if (netIncome !== undefined) quote.netIncome = netIncome;
+      const currentPrice = pickRaw(financial.currentPrice);
+      if (currentPrice !== undefined && !quote.regularMarketPrice) {
+        quote.regularMarketPrice = currentPrice;
+      }
+    }
+
+    const stats = summary.defaultKeyStatistics;
+    if (stats) {
+      if (quote.forwardPE === undefined) {
+        const fwd = pickRaw(stats.forwardPE);
+        if (fwd !== undefined) quote.forwardPE = fwd;
+      }
+      if (quote.trailingEps === undefined) {
+        const eps = pickRaw(stats.trailingEps);
+        if (eps !== undefined) quote.trailingEps = eps;
+      }
+      const beta = pickRaw(stats.beta);
+      if (beta !== undefined) quote.beta = beta;
+      if (quote.sharesOutstanding === undefined) {
+        const shares = pickRaw(stats.sharesOutstanding);
+        if (shares !== undefined) quote.sharesOutstanding = shares;
+      }
+    }
+
+    const cal = summary.calendarEvents;
+    if (cal) {
+      const earningsFmt = pickFmt(cal.earnings?.earningsDate?.[0]);
+      if (earningsFmt) quote.earningsDate = earningsFmt;
+      const exDivFmt = pickFmt(cal.exDividendDate);
+      if (exDivFmt) quote.exDividendDate = exDivFmt;
+    }
+  }
+
+  // Derived fields if direct values weren't present
+  if (quote.trailingPE === undefined && quote.trailingEps && quote.trailingEps > 0) {
+    quote.trailingPE = lastPrice / quote.trailingEps;
+  }
+  if (quote.marketCap === undefined && quote.sharesOutstanding && lastPrice) {
+    quote.marketCap = quote.sharesOutstanding * lastPrice;
+  }
+
+  setCache(cacheKey, quote, CACHE_5MIN);
+  return quote;
 }
 
 // ─── Stock Insights (modules) ──────────────────────────────────────
@@ -286,27 +278,20 @@ export async function getStockInsights(symbol: string): Promise<any> {
   const cached = getCached<any>(cacheKey);
   if (cached) return cached;
 
-  try {
-    const [earningsRes, recRes] = [
-      await safeGet("/v1/markets/stock/modules", { ticker: symbol, module: "earnings" }),
-      await safeGet("/v1/markets/stock/modules", { ticker: symbol, module: "recommendation-trend" }),
-    ];
+  const res = await yfGet<any>(
+    `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}`,
+    { modules: "earnings,recommendationTrend" }
+  );
 
-    const result: any = { finance: { result: {} } };
-
-    if (earningsRes.status === "fulfilled" && earningsRes.value?.body) {
-      result.finance.result.earnings = earningsRes.value.body;
-    }
-    if (recRes.status === "fulfilled" && recRes.value?.body) {
-      result.finance.result.recommendation = recRes.value.body;
-    }
-
-    setCache(cacheKey, result, CACHE_15MIN);
-    return result;
-  } catch (error) {
-    console.error(`[StockService] Insights error for ${symbol}:`, error);
-    return null;
+  const summary = res?.quoteSummary?.result?.[0];
+  const result: any = { finance: { result: {} } };
+  if (summary?.earnings) result.finance.result.earnings = summary.earnings;
+  if (summary?.recommendationTrend) {
+    result.finance.result.recommendation = summary.recommendationTrend;
   }
+
+  setCache(cacheKey, result, CACHE_15MIN);
+  return result;
 }
 
 // ─── Market Indices ────────────────────────────────────────────────
@@ -329,238 +314,198 @@ export async function getMarketIndices(): Promise<MarketIndex[]> {
 
   const results: MarketIndex[] = [];
 
-  // Use stock/history endpoint which works for all asset types (meta has current price)
   for (const idx of indices) {
-    try {
-      const histRes = await rapidGet("/v1/markets/stock/history", {
-        symbol: idx.symbol,
-        interval: "1d",
-        diffandsplits: "false",
-      });
+    const histRes = await yfGet<any>(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(idx.symbol)}`,
+      { interval: "1d", range: "5d" },
+      { auth: false }
+    );
 
-      const meta = histRes?.meta;
-      const body = histRes?.body;
-      if (!meta) continue;
+    const r = histRes?.chart?.result?.[0];
+    const meta = r?.meta;
+    if (!meta) continue;
 
-      const currentPrice = meta.regularMarketPrice ?? 0;
-      // Get previous close from the second-to-last history point
-      let prevClose = meta.chartPreviousClose ?? 0;
-      if (body && typeof body === "object") {
-        const keys = Object.keys(body).sort();
-        if (keys.length >= 2) {
-          const prevPoint = body[keys[keys.length - 2]];
-          prevClose = prevPoint?.close ?? prevClose;
-        }
+    const quoteArr = r.indicators?.quote?.[0] ?? {};
+    const timestamps: number[] = r.timestamp ?? [];
+    const currentPrice = meta.regularMarketPrice ?? 0;
+    let prevClose = meta.chartPreviousClose ?? 0;
+
+    if (timestamps.length >= 2 && Array.isArray(quoteArr.close)) {
+      const lastValidIdx = [...quoteArr.close]
+        .map((c: any, i: number) => (typeof c === "number" ? i : -1))
+        .filter((i) => i >= 0)
+        .pop();
+      if (lastValidIdx !== undefined && lastValidIdx >= 1) {
+        prevClose = quoteArr.close[lastValidIdx - 1] ?? prevClose;
       }
-      if (!prevClose) prevClose = currentPrice;
-
-      const change = currentPrice - prevClose;
-      const changePercent = prevClose ? (change / prevClose) * 100 : 0;
-
-      // Build mini chart data from last 5 points
-      const chartData: { time: number; value: number }[] = [];
-      if (body && typeof body === "object") {
-        const sortedKeys = Object.keys(body).sort();
-        const recentKeys = sortedKeys.slice(-5);
-        for (const k of recentKeys) {
-          const pt = body[k];
-          chartData.push({ time: (pt.date_utc || parseInt(k)) * 1000, value: pt.close ?? 0 });
-        }
-      }
-
-      let displayValue: string;
-      if (idx.assetType === "fx") displayValue = currentPrice.toFixed(4);
-      else if (idx.assetType === "commodity") displayValue = `$${currentPrice.toFixed(2)}`;
-      else if (idx.assetType === "yield") displayValue = `${currentPrice.toFixed(2)}%`;
-      else displayValue = currentPrice.toLocaleString("en-US", { maximumFractionDigits: 0 });
-
-      results.push({
-        symbol: idx.symbol,
-        name: idx.name,
-        price: currentPrice,
-        change,
-        changePercent,
-        chartData,
-        assetType: idx.assetType,
-        displayValue,
-      });
-    } catch (error) {
-      console.error(`[StockService] Index error for ${idx.symbol}:`, error);
     }
+    if (!prevClose) prevClose = currentPrice;
+
+    const change = currentPrice - prevClose;
+    const changePercent = prevClose ? (change / prevClose) * 100 : 0;
+
+    const chartData: { time: number; value: number }[] = [];
+    if (timestamps.length > 0 && Array.isArray(quoteArr.close)) {
+      const slice = Math.min(5, timestamps.length);
+      for (let i = timestamps.length - slice; i < timestamps.length; i++) {
+        const close = quoteArr.close[i];
+        if (typeof close === "number") {
+          chartData.push({ time: timestamps[i] * 1000, value: close });
+        }
+      }
+    }
+
+    let displayValue: string;
+    if (idx.assetType === "fx") displayValue = currentPrice.toFixed(4);
+    else if (idx.assetType === "commodity") displayValue = `$${currentPrice.toFixed(2)}`;
+    else if (idx.assetType === "yield") displayValue = `${currentPrice.toFixed(2)}%`;
+    else displayValue = currentPrice.toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+    results.push({
+      symbol: idx.symbol,
+      name: idx.name,
+      price: currentPrice,
+      change,
+      changePercent,
+      chartData,
+      assetType: idx.assetType,
+      displayValue,
+    });
   }
 
-  if (results.length > 0) {
-    setCache(cacheKey, results, CACHE_5MIN);
-  }
+  if (results.length > 0) setCache(cacheKey, results, CACHE_5MIN);
   return results;
 }
 
+// ─── Screener helper (predefined lists) ────────────────────────────
+type ScrId = "day_gainers" | "day_losers" | "most_actives";
+
+async function getPredefinedScreener(scrId: ScrId, count = 25): Promise<any[]> {
+  const res = await yfGet<any>(
+    "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved",
+    { scrIds: scrId, count: String(count) }
+  );
+  const quotes = res?.finance?.result?.[0]?.quotes;
+  return Array.isArray(quotes) ? quotes : [];
+}
+
 // ─── Market Movers ─────────────────────────────────────────────────
-export async function getMarketMovers(): Promise<{ gainers: MarketMover[]; losers: MarketMover[] }> {
+export async function getMarketMovers(): Promise<{
+  gainers: MarketMover[];
+  losers: MarketMover[];
+}> {
   const cacheKey = "market:movers";
-  const cached = getCached<{ gainers: MarketMover[]; losers: MarketMover[] }>(cacheKey);
+  const cached = getCached<{ gainers: MarketMover[]; losers: MarketMover[] }>(
+    cacheKey
+  );
   if (cached) return cached;
 
-  try {
-    const [gainersRes, losersRes] = [
-      await safeGet("/v1/markets/screener", { list: "day_gainers" }),
-      await safeGet("/v1/markets/screener", { list: "day_losers" }),
-    ];
+  const [gainerQuotes, loserQuotes] = await Promise.all([
+    getPredefinedScreener("day_gainers", 20),
+    getPredefinedScreener("day_losers", 20),
+  ]);
 
-    const parseMovers = (res: PromiseSettledResult<any>): MarketMover[] => {
-      if (res.status !== "fulfilled") return [];
-      const items = res.value?.body || [];
-      if (!Array.isArray(items)) return [];
-      return items.slice(0, 20).map((item: any) => ({
-        symbol: item.symbol || "",
-        name: item.shortName || item.longName || item.symbol || "",
-        price: item.regularMarketPrice?.raw ?? item.regularMarketPrice ?? 0,
-        change: item.regularMarketChange?.raw ?? item.regularMarketChange ?? 0,
-        changePercent: item.regularMarketChangePercent?.raw ?? item.regularMarketChangePercent ?? 0,
-        volume: item.regularMarketVolume?.raw ?? item.regularMarketVolume ?? 0,
-      }));
-    };
+  const toMover = (item: any): MarketMover => ({
+    symbol: item.symbol || "",
+    name: item.shortName || item.longName || item.symbol || "",
+    price: item.regularMarketPrice ?? 0,
+    change: item.regularMarketChange ?? 0,
+    changePercent: item.regularMarketChangePercent ?? 0,
+    volume: item.regularMarketVolume ?? 0,
+  });
 
-    const result = {
-      gainers: parseMovers(gainersRes),
-      losers: parseMovers(losersRes),
-    };
+  const result = {
+    gainers: gainerQuotes.map(toMover),
+    losers: loserQuotes.map(toMover),
+  };
 
-    if (result.gainers.length > 0 || result.losers.length > 0) {
-      setCache(cacheKey, result, CACHE_5MIN);
-    }
-    return result;
-  } catch (error) {
-    console.error("[StockService] Movers error:", error);
-    return { gainers: [], losers: [] };
+  if (result.gainers.length > 0 || result.losers.length > 0) {
+    setCache(cacheKey, result, CACHE_5MIN);
   }
+  return result;
 }
 
 // ─── Search ────────────────────────────────────────────────────────
-export async function searchStocks(query: string): Promise<{ symbol: string; name: string; exchange: string }[]> {
+export async function searchStocks(
+  query: string
+): Promise<{ symbol: string; name: string; exchange: string }[]> {
   const cacheKey = `search:${query.toLowerCase()}`;
-  const cached = getCached<{ symbol: string; name: string; exchange: string }[]>(cacheKey);
+  const cached = getCached<
+    { symbol: string; name: string; exchange: string }[]
+  >(cacheKey);
   if (cached) return cached;
 
-  try {
-    const response = await rapidGet("/v1/markets/search", { search: query });
-    const items = response?.body || [];
-    if (!Array.isArray(items)) return [];
+  const res = await yfGet<any>(
+    "https://query1.finance.yahoo.com/v1/finance/search",
+    { q: query, quotesCount: "15", newsCount: "0" },
+    { auth: false }
+  );
+  const items: any[] = Array.isArray(res?.quotes) ? res.quotes : [];
 
-    const results = items
-      .filter((item: any) => item.symbol)
-      .slice(0, 15)
-      .map((item: any) => ({
-        symbol: item.symbol,
-        name: item.name || item.longname || item.shortname || item.symbol,
-        exchange: item.exchDisp || item.exchange || "US",
-      }));
+  const results = items
+    .filter((item) => item.symbol)
+    .slice(0, 15)
+    .map((item) => ({
+      symbol: item.symbol,
+      name: item.longname || item.shortname || item.symbol,
+      exchange: item.exchDisp || item.exchange || "US",
+    }));
 
-    setCache(cacheKey, results, CACHE_15MIN);
-    return results;
-  } catch (error) {
-    console.error("[StockService] Search error:", error);
-    return [];
-  }
+  setCache(cacheKey, results, CACHE_15MIN);
+  return results;
 }
 
-// ─── Screener ──────────────────────────────────────────────────────
+// ─── Screener (combined most-active + gainers + losers) ────────────
 export async function getScreenerData(): Promise<ScreenerStock[]> {
   const cacheKey = "screener:all";
   const cached = getCached<ScreenerStock[]>(cacheKey);
   if (cached) return cached;
 
-  try {
-    const [mostActive, gainers, losers] = [
-      await safeGet("/v1/markets/screener", { list: "most_actives" }),
-      await safeGet("/v1/markets/screener", { list: "day_gainers" }),
-      await safeGet("/v1/markets/screener", { list: "day_losers" }),
-    ];
+  const [mostActive, gainers, losers] = await Promise.all([
+    getPredefinedScreener("most_actives", 25),
+    getPredefinedScreener("day_gainers", 25),
+    getPredefinedScreener("day_losers", 25),
+  ]);
 
-    const seen = new Set<string>();
-    const stocks: ScreenerStock[] = [];
+  const seen = new Set<string>();
+  const stocks: ScreenerStock[] = [];
 
-    const parseScreener = (res: PromiseSettledResult<any>) => {
-      if (res.status !== "fulfilled") return;
-      const items = res.value?.body || [];
-      if (!Array.isArray(items)) return;
-      for (const item of items) {
-        const sym = item.symbol;
-        if (!sym || seen.has(sym)) continue;
-        seen.add(sym);
-        stocks.push({
-          symbol: sym,
-          name: item.shortName || item.longName || sym,
-          price: item.regularMarketPrice?.raw ?? item.regularMarketPrice ?? 0,
-          change: item.regularMarketChange?.raw ?? item.regularMarketChange ?? 0,
-          changePercent: item.regularMarketChangePercent?.raw ?? item.regularMarketChangePercent ?? 0,
-          marketCap: item.marketCap?.raw ?? item.marketCap ?? 0,
-          peRatio: item.trailingPE?.raw ?? item.trailingPE ?? null,
-          volume: item.regularMarketVolume?.raw ?? item.regularMarketVolume ?? 0,
-          sector: item.sector || "Other",
-        });
-      }
-    };
+  const add = (items: any[]) => {
+    for (const item of items) {
+      const sym = item.symbol;
+      if (!sym || seen.has(sym)) continue;
+      seen.add(sym);
+      stocks.push({
+        symbol: sym,
+        name: item.shortName || item.longName || sym,
+        price: item.regularMarketPrice ?? 0,
+        change: item.regularMarketChange ?? 0,
+        changePercent: item.regularMarketChangePercent ?? 0,
+        marketCap: item.marketCap ?? 0,
+        peRatio: typeof item.trailingPE === "number" ? item.trailingPE : null,
+        volume: item.regularMarketVolume ?? 0,
+        sector: item.sector || "Other",
+      });
+    }
+  };
 
-    parseScreener(mostActive);
-    parseScreener(gainers);
-    parseScreener(losers);
+  add(mostActive);
+  add(gainers);
+  add(losers);
 
-    setCache(cacheKey, stocks, CACHE_5MIN);
-    return stocks;
-  } catch (error) {
-    console.error("[StockService] Screener error:", error);
-    return [];
-  }
+  setCache(cacheKey, stocks, CACHE_5MIN);
+  return stocks;
 }
 
-// ─── IPO Data ──────────────────────────────────────────────────────
+// ─── IPO Data (static fallback) ────────────────────────────────────
+// Yahoo Finance doesn't expose a clean public JSON API for IPO calendars.
+// The RapidAPI version that existed here was flaky too; we keep the curated
+// static list as the primary source and revisit if a good data source appears.
 export async function getIPOData(): Promise<{ recent: any[]; upcoming: any[] }> {
   const cacheKey = "ipo:data";
   const cached = getCached<{ recent: any[]; upcoming: any[] }>(cacheKey);
   if (cached) return cached;
 
-  try {
-    // Try to get IPO data from the screener endpoint with IPO-related criteria
-    const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
-    const pastDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const pastStr = pastDate.toISOString().split("T")[0];
-    const futureDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const futureStr = futureDate.toISOString().split("T")[0];
-
-    // Use calendar/ipo for recent and upcoming (sequential to respect rate limit)
-    const recentRes = await safeGet("/v1/markets/calendar/ipo", { date: pastStr });
-    const upcomingRes = await safeGet("/v1/markets/calendar/ipo", { date: futureStr });
-
-    const recentData = recentRes.status === "fulfilled" ? recentRes.value : null;
-    const upcomingData = upcomingRes.status === "fulfilled" ? upcomingRes.value : null;
-    const recentItems = (recentData?.body && Array.isArray(recentData.body)) ? recentData.body : [];
-    const upcomingItems = (upcomingData?.body && Array.isArray(upcomingData.body)) ? upcomingData.body : [];
-
-    const recent = recentItems.slice(0, 10).map((item: any) => ({
-      date: item.date || item.startdatetime || pastStr,
-      symbol: item.ticker || item.symbol || "N/A",
-      name: item.companyshortname || item.name || "Unknown",
-    }));
-
-    const upcoming = upcomingItems.slice(0, 10).map((item: any) => ({
-      date: item.date || item.startdatetime || futureStr,
-      symbol: item.ticker || item.symbol || "N/A",
-      name: item.companyshortname || item.name || "Unknown",
-    }));
-
-    // If we got data from API, cache and return
-    if (recent.length > 0 || upcoming.length > 0) {
-      const result = { recent, upcoming };
-      setCache(cacheKey, result, CACHE_1HR);
-      return result;
-    }
-  } catch (error) {
-    console.error("[StockService] IPO data fetch error:", error);
-  }
-
-  // Fallback to static data if API is unavailable
   const result = {
     recent: [
       { date: "Apr 14, 2026", symbol: "MYX", name: "Maywood Acquisition Corp." },
@@ -581,7 +526,7 @@ export async function getIPOData(): Promise<{ recent: any[]; upcoming: any[] }> 
   return result;
 }
 
-// ─── Market News (static fallback) ────────────────────────────────
+// ─── Market News (static fallback) ─────────────────────────────────
 export function getMarketNews(): NewsItem[] {
   return [
     { title: "Wall Street scales fresh record high as investors bet on end of Iran war", source: "The Guardian", timestamp: "2h ago", relatedSymbols: ["^GSPC", "^DJI"] },
@@ -593,90 +538,32 @@ export function getMarketNews(): NewsItem[] {
 }
 
 // ─── Calendar Events ───────────────────────────────────────────────
-export async function getCalendarEarnings(date: string): Promise<any[]> {
-  const cacheKey = `cal:earnings:${date}`;
-  const cached = getCached<any[]>(cacheKey);
-  if (cached) return cached;
+// Yahoo Finance's public JSON endpoints don't cover earnings/dividends/splits
+// calendars directly — those are served by their HTML pages. Return empty
+// gracefully so UI falls through to other sources or shows "no data".
+async function emptyCalendar(kind: string, date: string): Promise<any[]> {
+  console.warn(
+    `[StockService] Calendar '${kind}' for ${date} is not backed by a Yahoo direct endpoint; returning [].`
+  );
+  return [];
+}
 
-  try {
-    const res = await rapidGet("/v1/markets/calendar/earnings", { date });
-    const items = res?.body || [];
-    if (!Array.isArray(items)) return [];
-    setCache(cacheKey, items, CACHE_1HR);
-    return items;
-  } catch (error) {
-    console.error("[StockService] Calendar earnings error:", error);
-    return [];
-  }
+export async function getCalendarEarnings(date: string): Promise<any[]> {
+  return emptyCalendar("earnings", date);
 }
 
 export async function getCalendarDividends(date: string): Promise<any[]> {
-  const cacheKey = `cal:dividends:${date}`;
-  const cached = getCached<any[]>(cacheKey);
-  if (cached) return cached;
-
-  try {
-    const res = await rapidGet("/v1/markets/calendar/dividends", { date });
-    const items = res?.body || [];
-    if (!Array.isArray(items)) return [];
-    setCache(cacheKey, items, CACHE_1HR);
-    return items;
-  } catch (error) {
-    console.error("[StockService] Calendar dividends error:", error);
-    return [];
-  }
+  return emptyCalendar("dividends", date);
 }
 
 export async function getCalendarStockSplits(date: string): Promise<any[]> {
-  const cacheKey = `cal:splits:${date}`;
-  const cached = getCached<any[]>(cacheKey);
-  if (cached) return cached;
-
-  try {
-    const res = await rapidGet("/v1/markets/calendar/stock-splits", { date });
-    const items = res?.body || [];
-    if (!Array.isArray(items)) return [];
-    setCache(cacheKey, items, CACHE_1HR);
-    return items;
-  } catch (error) {
-    console.error("[StockService] Calendar stock-splits error:", error);
-    return [];
-  }
+  return emptyCalendar("stock-splits", date);
 }
 
 export async function getCalendarEconomicEvents(date: string): Promise<any[]> {
-  const cacheKey = `cal:econ:${date}`;
-  const cached = getCached<any[]>(cacheKey);
-  if (cached) return cached;
-
-  try {
-    const res = await rapidGet("/v1/markets/calendar/economic_events", { date });
-    if (!res) return []; // endpoint unavailable (500/302)
-    const items = res.body || [];
-    if (!Array.isArray(items)) return [];
-    setCache(cacheKey, items, CACHE_1HR);
-    return items;
-  } catch (error) {
-    console.error("[StockService] Calendar economic events error:", error);
-    return [];
-  }
+  return emptyCalendar("economic-events", date);
 }
 
 export async function getCalendarPublicOfferings(date: string): Promise<any[]> {
-  const cacheKey = `cal:ipo:${date}`;
-  const cached = getCached<any[]>(cacheKey);
-  if (cached) return cached;
-
-  try {
-    // public_offerings endpoint redirects; use ipo endpoint instead
-    const res = await rapidGet("/v1/markets/calendar/ipo", { date });
-    if (!res) return []; // endpoint unavailable
-    const items = res.body || [];
-    if (!Array.isArray(items)) return [];
-    setCache(cacheKey, items, CACHE_1HR);
-    return items;
-  } catch (error) {
-    console.error("[StockService] Calendar public offerings error:", error);
-    return [];
-  }
+  return emptyCalendar("public-offerings", date);
 }

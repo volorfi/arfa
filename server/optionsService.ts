@@ -1,102 +1,18 @@
 /**
  * Options Service
- * - Yahoo Finance crumb-based API for options chain data
- * - RapidAPI for most-active options
+ * - Yahoo Finance direct API for options chain data (via shared yahooFetch helper)
  * - Black-Scholes Greeks calculation (server-side for validation)
  */
-import { ENV } from "./_core/env";
+import { yahooFetch } from "./_core/yahooFinance";
 
-// ─── Yahoo Finance Crumb Management ──────────────────────────────
-let cachedCrumb: { crumb: string; cookies: string; expiresAt: number } | null = null;
-
-async function getYahooCrumb(): Promise<{ crumb: string; cookies: string }> {
-  if (cachedCrumb && Date.now() < cachedCrumb.expiresAt) {
-    return { crumb: cachedCrumb.crumb, cookies: cachedCrumb.cookies };
-  }
-
-  // Step 1: Get cookies
-  const cookieResp = await fetch("https://fc.yahoo.com", {
-    redirect: "manual",
-    headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
-  });
-  const setCookies = cookieResp.headers.getSetCookie?.() || [];
-  const cookieStr = setCookies.map((c: string) => c.split(";")[0]).join("; ");
-
-  // Step 2: Get crumb
-  const crumbResp = await fetch("https://query2.finance.yahoo.com/v1/test/getcrumb", {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      Cookie: cookieStr,
-    },
-  });
-  const crumb = await crumbResp.text();
-
-  cachedCrumb = { crumb, cookies: cookieStr, expiresAt: Date.now() + 30 * 60 * 1000 }; // 30 min cache
-  return { crumb, cookies: cookieStr };
-}
-
-async function yahooOptionsGet(symbol: string, expirationDate?: number): Promise<any> {
-  const { crumb, cookies } = await getYahooCrumb();
-  let url = `https://query2.finance.yahoo.com/v7/finance/options/${encodeURIComponent(symbol)}?crumb=${encodeURIComponent(crumb)}`;
-  if (expirationDate) {
-    url += `&date=${expirationDate}`;
-  }
-
-  const resp = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      Cookie: cookies,
-    },
-  });
-
-  if (!resp.ok) {
-    // If crumb expired, retry once
-    if (resp.status === 401) {
-      cachedCrumb = null;
-      const { crumb: newCrumb, cookies: newCookies } = await getYahooCrumb();
-      let retryUrl = `https://query2.finance.yahoo.com/v7/finance/options/${encodeURIComponent(symbol)}?crumb=${encodeURIComponent(newCrumb)}`;
-      if (expirationDate) retryUrl += `&date=${expirationDate}`;
-      const retryResp = await fetch(retryUrl, {
-        headers: { "User-Agent": "Mozilla/5.0", Cookie: newCookies },
-      });
-      if (!retryResp.ok) throw new Error(`Yahoo Finance options API error: ${retryResp.status}`);
-      return retryResp.json();
-    }
-    throw new Error(`Yahoo Finance options API error: ${resp.status}`);
-  }
-
-  return resp.json();
-}
-
-// ─── RapidAPI Most Active Options ────────────────────────────────
-const RAPID_BASE = "https://yahoo-finance15.p.rapidapi.com/api";
-const MIN_INTERVAL_MS = 600;
-let lastRapidTime = 0;
-
-async function rapidGet(path: string, params: Record<string, string> = {}): Promise<any> {
-  const now = Date.now();
-  const elapsed = now - lastRapidTime;
-  if (elapsed < MIN_INTERVAL_MS) {
-    await new Promise((r) => setTimeout(r, MIN_INTERVAL_MS - elapsed));
-  }
-  lastRapidTime = Date.now();
-
-  const url = new URL(`${RAPID_BASE}${path}`);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-
-  const res = await fetch(url.toString(), {
-    headers: {
-      "x-rapidapi-host": "yahoo-finance15.p.rapidapi.com",
-      "x-rapidapi-key": ENV.rapidApiKey,
-    },
-  });
-
-  if (res.status === 429) {
-    await new Promise((r) => setTimeout(r, 1500));
-    return rapidGet(path, params);
-  }
-  if (!res.ok) return null;
-  return res.json();
+async function yahooOptionsGet(
+  symbol: string,
+  expirationDate?: number
+): Promise<any> {
+  return yahooFetch<any>(
+    `https://query2.finance.yahoo.com/v7/finance/options/${encodeURIComponent(symbol)}`,
+    { query: expirationDate ? { date: expirationDate } : undefined }
+  );
 }
 
 // ─── Types ───────────────────────────────────────────────────────
@@ -343,28 +259,12 @@ export async function getOptionsChain(symbol: string, expirationDate?: number): 
 }
 
 /**
- * Get most active options from RapidAPI
+ * Most-active options was previously sourced from a RapidAPI endpoint that
+ * Yahoo Finance does not expose in its public JSON API. Returning an empty
+ * list keeps callers working; revisit if a free source becomes available.
  */
 export async function getMostActiveOptions(): Promise<MostActiveOption[]> {
-  try {
-    const data = await rapidGet("/v1/markets/options/most-active", { type: "STOCKS" });
-    if (!data?.body) return [];
-    return data.body.map((item: any) => ({
-      symbol: item.symbol,
-      symbolName: item.symbolName,
-      lastPrice: item.lastPrice,
-      priceChange: item.priceChange,
-      percentChange: item.percentChange,
-      optionsTotalVolume: item.optionsTotalVolume,
-      optionsPutVolumePercent: item.optionsPutVolumePercent,
-      optionsCallVolumePercent: item.optionsCallVolumePercent,
-      optionsPutCallVolumeRatio: item.optionsPutCallVolumeRatio,
-      optionsImpliedVolatilityRank1y: item.optionsImpliedVolatilityRank1y,
-    }));
-  } catch (err) {
-    console.error("[Options] Error fetching most active:", err);
-    return [];
-  }
+  return [];
 }
 
 /**
