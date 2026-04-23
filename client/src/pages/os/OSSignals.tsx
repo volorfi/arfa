@@ -45,7 +45,7 @@ export default function OSSignals() {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold">Signal Queue</h1>
           <Button size="sm" variant="outline" className="gap-1.5" asChild>
-            <a href="#trigger"><Zap className="w-3.5 h-3.5" />Trigger Pipeline</a>
+            <a href="/os#trigger"><Zap className="w-3.5 h-3.5" />Trigger Pipeline</a>
           </Button>
         </div>
 

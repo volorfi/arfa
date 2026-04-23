@@ -179,12 +179,16 @@ export const osRouter = router({
         identifier:  input.identifier.toUpperCase(),
         displayName: input.displayName,
       });
+      const tag = `${input.assetClass}:${input.identifier.toUpperCase()}:${input.horizon}`;
+      console.log(`[OS trigger] queued ${tag} assetId=${assetId}`);
       runSignalPipeline({
         assetId,
         identifier: input.identifier.toUpperCase(),
         assetClass: input.assetClass,
         horizon:    input.horizon,
-      }).catch(err => console.error("[OS trigger] pipeline error:", err));
+      })
+        .then(signalId => console.log(`[OS trigger] ${tag} ok signalId=${signalId}`))
+        .catch(err => console.error(`[OS trigger] ${tag} FAILED:`, err));
       return { queued: true, assetId };
     }),
 

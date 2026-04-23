@@ -10,19 +10,20 @@ import { cn } from "@/lib/utils";
 import ArfaLogo from "@/components/ArfaLogo";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { useState } from "react";
 import {
-  LayoutDashboard, ListChecks, FileText, Shield,
-  Users, Bot, Lock, Clock,
+  LayoutDashboard, ListChecks, FileText,
+  Users, Lock, Clock, Zap, Loader2,
 } from "lucide-react";
 
 // ── Nav config ────────────────────────────────────────────────────────────────
 const NAV = [
-  { href: "/os",           label: "Dashboard",     icon: LayoutDashboard },
-  { href: "/os/signals",   label: "Signal Queue",  icon: ListChecks      },
-  { href: "/os/notes",     label: "Notes",         icon: FileText        },
-  { href: "/os/overrides", label: "Overrides",     icon: Shield          },
-  { href: "/os/users",     label: "Users",         icon: Users           },
-  { href: "/os/agents",    label: "Agent Monitor", icon: Bot             },
+  { href: "/os",         label: "Dashboard",    icon: LayoutDashboard },
+  { href: "/os/signals", label: "Signal Queue", icon: ListChecks      },
+  { href: "/os/notes",   label: "Notes",        icon: FileText        },
+  { href: "/os/users",   label: "Users",        icon: Users           },
 ] as const;
 
 // ── Each nav item is its own component — hooks must not be called in a loop ───
@@ -92,9 +93,141 @@ const priorityColor: Record<string, string> = {
   medium:   "text-blue-600", low: "text-slate-500",
 };
 
+// ── Trigger pipeline card ─────────────────────────────────────────────────────
+
+type AssetClass = "equity" | "bond" | "fx" | "commodity" | "index" | "etf" | "macro";
+type Horizon = "1D" | "5D" | "20D" | "3M" | "6M";
+
+const PRESETS: Array<{ label: string; identifier: string; displayName: string; assetClass: AssetClass; horizon: Horizon }> = [
+  { label: "AAPL · 20D",    identifier: "AAPL",   displayName: "Apple Inc.",        assetClass: "equity",    horizon: "20D" },
+  { label: "EUR/USD · 5D",  identifier: "EURUSD", displayName: "Euro / US Dollar",  assetClass: "fx",        horizon: "5D"  },
+  { label: "Gold · 20D",    identifier: "GC",     displayName: "Gold Futures",      assetClass: "commodity", horizon: "20D" },
+];
+
+function TriggerPipelineCard() {
+  const [identifier,  setIdentifier]  = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [assetClass,  setAssetClass]  = useState<AssetClass>("equity");
+  const [horizon,     setHorizon]     = useState<Horizon>("20D");
+
+  const utils = trpc.useUtils();
+  const trigger = trpc.os.triggerPipeline.useMutation({
+    onSuccess: (result, vars) => {
+      toast.success(`Pipeline queued for ${vars.identifier.toUpperCase()}`, {
+        description: "Takes ~30–60s. Signal will appear in Recent Signals below when ready.",
+      });
+      setIdentifier(""); setDisplayName("");
+      utils.os.dashboard.invalidate();
+    },
+    onError: (err) => toast.error("Trigger failed", { description: err.message }),
+  });
+
+  const run = (p?: typeof PRESETS[number]) => {
+    const payload = p
+      ? { identifier: p.identifier, displayName: p.displayName, assetClass: p.assetClass, horizon: p.horizon }
+      : {
+          identifier:  identifier.trim(),
+          displayName: displayName.trim() || identifier.trim().toUpperCase(),
+          assetClass,
+          horizon,
+        };
+    if (!payload.identifier) {
+      toast.error("Enter a ticker or identifier");
+      return;
+    }
+    trigger.mutate(payload);
+  };
+
+  return (
+    <div id="trigger" className="rounded-xl border p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold flex items-center gap-2">
+          <Zap className="w-4 h-4 text-amber-500" /> Trigger Signal Pipeline
+        </h2>
+        {trigger.isPending && (
+          <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Loader2 className="w-3 h-3 animate-spin" /> Queuing…
+          </span>
+        )}
+      </div>
+
+      {/* Quick presets */}
+      <div className="flex flex-wrap gap-1.5">
+        <span className="text-xs text-muted-foreground self-center mr-1">Quick test:</span>
+        {PRESETS.map(p => (
+          <Button
+            key={p.label}
+            size="sm"
+            variant="secondary"
+            className="h-7 text-xs"
+            onClick={() => run(p)}
+            disabled={trigger.isPending}
+          >
+            {p.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Custom form */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 pt-1">
+        <Input
+          placeholder="Ticker (e.g. MSFT)"
+          value={identifier}
+          onChange={e => setIdentifier(e.target.value)}
+          className="h-9 text-sm"
+        />
+        <Input
+          placeholder="Display name (optional)"
+          value={displayName}
+          onChange={e => setDisplayName(e.target.value)}
+          className="h-9 text-sm"
+        />
+        <select
+          value={assetClass}
+          onChange={e => setAssetClass(e.target.value as AssetClass)}
+          className="h-9 rounded-md border bg-background px-2 text-sm"
+        >
+          <option value="equity">Equity</option>
+          <option value="bond">Bond</option>
+          <option value="fx">FX</option>
+          <option value="commodity">Commodity</option>
+          <option value="index">Index</option>
+          <option value="etf">ETF</option>
+          <option value="macro">Macro</option>
+        </select>
+        <select
+          value={horizon}
+          onChange={e => setHorizon(e.target.value as Horizon)}
+          className="h-9 rounded-md border bg-background px-2 text-sm"
+        >
+          <option value="1D">1D</option>
+          <option value="5D">5D</option>
+          <option value="20D">20D</option>
+          <option value="3M">3M</option>
+          <option value="6M">6M</option>
+        </select>
+        <Button
+          onClick={() => run()}
+          disabled={trigger.isPending || !identifier.trim()}
+          className="h-9 gap-1.5"
+        >
+          <Zap className="w-3.5 h-3.5" /> Run
+        </Button>
+      </div>
+
+      <p className="text-[11px] text-muted-foreground">
+        Runs 4 specialist agents → reconciler → risk review. ~30–60s total. Errors log to Railway (Service → Deployments → Logs).
+      </p>
+    </div>
+  );
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export function OSDashboard() {
-  const { data, isLoading } = trpc.os.dashboard.useQuery();
+  // Auto-refresh every 10s so newly-generated signals appear
+  const { data, isLoading } = trpc.os.dashboard.useQuery(undefined, {
+    refetchInterval: 10000,
+  });
 
   if (isLoading) return (
     <div className="animate-pulse space-y-4">
@@ -108,6 +241,8 @@ export function OSDashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-bold">Dashboard</h1>
+
+      <TriggerPipelineCard />
 
       {/* Signal counts */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
