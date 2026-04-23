@@ -3,13 +3,13 @@ import LegalPage from "@/components/LegalPage";
 export default function PrivacyPolicy() {
   return (
     <LegalPage title="Privacy Policy" lastUpdated="17 April 2026">
-      <p>This Privacy Policy explains how ARFA ("ARFA," "we," "us," or "our") collects, uses, stores, and protects personal data when you visit https://arfa.markets/ or otherwise interact with us through the website, contact forms, newsletter sign-up, email communications, or related services (together, the "Site").</p>
+      <p>This Privacy Policy explains how ARFA ("ARFA," "we," "us," or "our") collects, uses, stores, and protects personal data when you visit https://arfa.global/ or otherwise interact with us through the website, contact forms, newsletter sign-up, email communications, or related services (together, the "Site").</p>
       <p>We are committed to handling personal data in a transparent and responsible manner.</p>
 
       <h2>1. Who we are</h2>
       <p>ARFA is an independent analytical platform and founder-led project focused on market intelligence, portfolio thinking, and strategic perspectives on capital and asset allocation.</p>
       <p>For the purposes of applicable data protection law, ARFA is the data controller of the personal data described in this Privacy Policy, unless stated otherwise.</p>
-      <p>Controller details:<br />Website: <a href="https://arfa.markets/" className="text-primary hover:underline">https://arfa.markets/</a><br />Email: <a href="mailto:support@arfa.markets" className="text-primary hover:underline">support@arfa.markets</a></p>
+      <p>Controller details:<br />Website: <a href="https://arfa.global/" className="text-primary hover:underline">https://arfa.global/</a><br />Email: <a href="mailto:support@arfa.global" className="text-primary hover:underline">support@arfa.global</a></p>
 
       <h2>2. Scope of this Policy</h2>
       <p>This Privacy Policy applies to personal data that we collect when you visit the Site, when you contact us, when you submit an inquiry, when you subscribe to newsletters or updates, when you request information from us, or when you otherwise interact with ARFA through the Site.</p>
@@ -61,7 +61,7 @@ export default function PrivacyPolicy() {
 
       <h2>12. Your rights</h2>
       <p>Where the GDPR applies, individuals may have the following rights: right to be informed, right of access, right to rectification, right to erasure, right to restriction of processing, right to data portability, right to object, and the right not to be subject to a decision based solely on automated processing.</p>
-      <p>To exercise any of these rights, please contact us at: <a href="mailto:support@arfa.markets" className="text-primary hover:underline">support@arfa.markets</a></p>
+      <p>To exercise any of these rights, please contact us at: <a href="mailto:support@arfa.global" className="text-primary hover:underline">support@arfa.global</a></p>
 
       <h2>13. Complaints</h2>
       <p>If you believe your personal data has been processed in breach of applicable law, you may have the right to lodge a complaint with a supervisory authority in an EEA Member State. In Cyprus, the relevant authority is the Office of the Commissioner for Personal Data Protection.</p>
@@ -77,7 +77,7 @@ export default function PrivacyPolicy() {
 
       <h2>17. Contact us</h2>
       <p>If you have questions about this Privacy Policy or about how ARFA handles personal data, please contact:</p>
-      <p>ARFA<br />Website: <a href="https://arfa.markets/" className="text-primary hover:underline">https://arfa.markets/</a><br />Email: <a href="mailto:support@arfa.markets" className="text-primary hover:underline">support@arfa.markets</a></p>
+      <p>ARFA<br />Website: <a href="https://arfa.global/" className="text-primary hover:underline">https://arfa.global/</a><br />Email: <a href="mailto:support@arfa.global" className="text-primary hover:underline">support@arfa.global</a></p>
     </LegalPage>
   );
 }

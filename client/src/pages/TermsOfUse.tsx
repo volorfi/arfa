@@ -3,8 +3,8 @@ import LegalPage from "@/components/LegalPage";
 export default function TermsOfUse() {
   return (
     <LegalPage title="Terms of Use" lastUpdated="17 April 2026">
-      <p>Welcome to arfa.markets ("ARFA," "we," "us," or "our").</p>
-      <p>These Terms of Use ("Terms") govern your access to and use of the website located at https://arfa.markets/ and any related pages, content, features, communications, or services made available through it (collectively, the "Site").</p>
+      <p>Welcome to arfa.global ("ARFA," "we," "us," or "our").</p>
+      <p>These Terms of Use ("Terms") govern your access to and use of the website located at https://arfa.global/ and any related pages, content, features, communications, or services made available through it (collectively, the "Site").</p>
       <p>By accessing or using the Site, you agree to be bound by these Terms and by our Privacy Policy. If you do not agree, do not use the Site.</p>
 
       <h2>1. About ARFA</h2>
@@ -107,7 +107,7 @@ export default function TermsOfUse() {
 
       <h2>24. Contact</h2>
       <p>If you have questions about these Terms, please contact:</p>
-      <p>ARFA<br />Website: <a href="https://arfa.markets/" className="text-primary hover:underline">https://arfa.markets/</a><br />Email: <a href="mailto:support@arfa.markets" className="text-primary hover:underline">support@arfa.markets</a></p>
+      <p>ARFA<br />Website: <a href="https://arfa.global/" className="text-primary hover:underline">https://arfa.global/</a><br />Email: <a href="mailto:support@arfa.global" className="text-primary hover:underline">support@arfa.global</a></p>
     </LegalPage>
   );
 }

@@ -3,7 +3,7 @@ import LegalPage from "@/components/LegalPage";
 export default function CookieNotice() {
   return (
     <LegalPage title="Cookie Notice" lastUpdated="17 April 2026">
-      <p>This Cookie Notice explains how ARFA ("ARFA," "we," "us," or "our") uses cookies and similar technologies on https://arfa.markets/ (the "Site"). It should be read together with our Privacy Policy.</p>
+      <p>This Cookie Notice explains how ARFA ("ARFA," "we," "us," or "our") uses cookies and similar technologies on https://arfa.global/ (the "Site"). It should be read together with our Privacy Policy.</p>
 
       <h2>1. What are cookies?</h2>
       <p>Cookies are small text files placed on your device when you visit a website. They help websites function, remember certain information, understand how visitors use the site, and improve performance and user experience.</p>
@@ -38,7 +38,7 @@ export default function CookieNotice() {
       <p>You can manage cookies through the cookie banner or preference centre on the Site, through your browser settings, by deleting stored cookies from your device, or by using browser tools that block certain tracking technologies.</p>
       <p>Please note that disabling strictly necessary cookies may affect the operation, security, or availability of some parts of the Site.</p>
 
-      <h2>6. Cookies we may use on arfa.markets</h2>
+      <h2>6. Cookies we may use on arfa.global</h2>
       <p>The exact cookies used on the Site may change over time depending on how the Site is built and which services are enabled. The categories below reflect the intended structure:</p>
 
       <div className="grid gap-4 sm:grid-cols-2 my-6">
@@ -77,7 +77,7 @@ export default function CookieNotice() {
 
       <h2>12. Contact</h2>
       <p>If you have questions about this Cookie Notice or our use of cookies, please contact:</p>
-      <p>ARFA<br />Website: <a href="https://arfa.markets/" className="text-primary hover:underline">https://arfa.markets/</a><br />Email: <a href="mailto:support@arfa.markets" className="text-primary hover:underline">support@arfa.markets</a></p>
+      <p>ARFA<br />Website: <a href="https://arfa.global/" className="text-primary hover:underline">https://arfa.global/</a><br />Email: <a href="mailto:support@arfa.global" className="text-primary hover:underline">support@arfa.global</a></p>
     </LegalPage>
   );
 }

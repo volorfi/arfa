@@ -3,7 +3,7 @@ import LegalPage from "@/components/LegalPage";
 export default function DataDisclaimer() {
   return (
     <LegalPage title="Data Disclaimer" lastUpdated="17 April 2026">
-      <p>The data, information, charts, metrics, market prices, historical records, estimates, financial figures, and other materials displayed on https://arfa.markets/ (the "Site") are provided for general informational, educational, and analytical purposes only.</p>
+      <p>The data, information, charts, metrics, market prices, historical records, estimates, financial figures, and other materials displayed on https://arfa.global/ (the "Site") are provided for general informational, educational, and analytical purposes only.</p>
       <p>They should not be relied upon as the sole basis for any investment, trading, financial, legal, tax, or commercial decision.</p>
 
       <h2>1. Informational use only</h2>
@@ -45,7 +45,7 @@ export default function DataDisclaimer() {
 
       <h2>11. Contact regarding data issues</h2>
       <p>If you believe that data displayed on the Site is materially inaccurate or misleading, you may contact us at:</p>
-      <p>ARFA<br />Website: <a href="https://arfa.markets/" className="text-primary hover:underline">https://arfa.markets/</a><br />Email: <a href="mailto:support@arfa.markets" className="text-primary hover:underline">support@arfa.markets</a></p>
+      <p>ARFA<br />Website: <a href="https://arfa.global/" className="text-primary hover:underline">https://arfa.global/</a><br />Email: <a href="mailto:support@arfa.global" className="text-primary hover:underline">support@arfa.global</a></p>
     </LegalPage>
   );
 }

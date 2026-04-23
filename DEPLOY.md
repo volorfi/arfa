@@ -30,7 +30,7 @@
    - Add scope: `email`, `profile`, `openid`
 4. **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
    - Application type: Web application
-   - Authorised redirect URIs: `https://arfa.markets/api/auth/google/callback`
+   - Authorised redirect URIs: `https://arfa.global/api/auth/google/callback`
    - Also add `http://localhost:3000/api/auth/google/callback` for local dev
 5. Copy **Client ID** and **Client Secret** — you'll need them in Step 4
 
@@ -49,7 +49,7 @@
 
 ### Resend (contact form emails)
 1. Go to https://resend.com → sign up (free: 3000 emails/month)
-2. Add & verify your domain (arfa.markets)
+2. Add & verify your domain (arfa.global)
 3. Create API key → copy it
 
 ---
@@ -85,7 +85,7 @@ In Railway → your app service → **Variables** tab, add all of these:
 ```
 NODE_ENV               = production
 PORT                   = 3000
-APP_BASE_URL           = https://arfa.markets
+APP_BASE_URL           = https://arfa.global
 
 JWT_SECRET             = <run: openssl rand -hex 32>
 
@@ -100,12 +100,12 @@ ANTHROPIC_API_KEY      = <from step 2>
 RAPIDAPI_KEY           = <your existing key>
 
 RESEND_API_KEY         = <from step 2>
-OWNER_EMAIL            = you@arfa.markets
+OWNER_EMAIL            = you@arfa.global
 ```
 
 ### 3e. Set custom domain
 1. Railway app service → **Settings** → **Domains**
-2. Add custom domain: `arfa.markets`
+2. Add custom domain: `arfa.global`
 3. Railway gives you CNAME records → add them to your DNS registrar
 4. SSL is automatic (Let's Encrypt)
 
@@ -123,17 +123,17 @@ Railway auto-deploys on every push. Watch the build logs in the dashboard.
 
 ```bash
 # Health check
-curl https://arfa.markets/api/trpc/system.health
+curl https://arfa.global/api/trpc/system.health
 
 # Test auth flow
-# 1. Open https://arfa.markets in browser
+# 1. Open https://arfa.global in browser
 # 2. Click Log In → redirects to Google
 # 3. Sign in → redirects back to / with session cookie set
 # 4. Check user appears in /os/users (admin role check)
 
 # Make yourself admin (first time)
 # Connect to Railway MySQL and run:
-# UPDATE users SET role = 'admin' WHERE email = 'you@arfa.markets';
+# UPDATE users SET role = 'admin' WHERE email = 'you@arfa.global';
 ```
 
 ---
@@ -184,7 +184,7 @@ docker push <account>.dkr.ecr.<region>.amazonaws.com/arfa-markets:latest
 # 2. Create RDS MySQL instance (via AWS Console or Terraform)
 # 3. Create ECS cluster + Fargate task definition pointing to your ECR image
 # 4. Create ALB → target group → ECS service
-# 5. Create ACM certificate for arfa.markets → attach to ALB
+# 5. Create ACM certificate for arfa.global → attach to ALB
 # 6. Route 53: A record → ALB DNS name
 ```
 
@@ -216,7 +216,7 @@ The first user to sign in via Google will have role `user`.
 Promote yourself to admin via Railway's MySQL console:
 
 ```sql
-UPDATE users SET role = 'admin' WHERE email = 'you@arfa.markets';
+UPDATE users SET role = 'admin' WHERE email = 'you@arfa.global';
 ```
 
 Then log out and back in. You'll see **Research OS** in the sidebar.

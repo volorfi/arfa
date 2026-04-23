@@ -79,7 +79,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <p className="text-sm font-medium">Email</p>
-                    <a href="mailto:support@arfa.markets" className="text-sm text-primary hover:underline">support@arfa.markets</a>
+                    <a href="mailto:support@arfa.global" className="text-sm text-primary hover:underline">support@arfa.global</a>
                   </div>
                 </CardContent>
               </Card>
@@ -91,7 +91,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <p className="text-sm font-medium">Website</p>
-                    <a href="https://arfa.markets/" className="text-sm text-primary hover:underline">arfa.markets</a>
+                    <a href="https://arfa.global/" className="text-sm text-primary hover:underline">arfa.global</a>
                   </div>
                 </CardContent>
               </Card>

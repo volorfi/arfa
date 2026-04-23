@@ -3,7 +3,7 @@ import LegalPage from "@/components/LegalPage";
 export default function Disclaimer() {
   return (
     <LegalPage title="Disclaimer / Not Investment Advice" lastUpdated="17 April 2026">
-      <p>The information provided on https://arfa.markets/ (the "Site") is published by ARFA for general informational, educational, and analytical purposes only.</p>
+      <p>The information provided on https://arfa.global/ (the "Site") is published by ARFA for general informational, educational, and analytical purposes only.</p>
 
       <h2>1. ARFA is an analytical platform</h2>
       <p>ARFA is a founder-led analytical platform focused on market intelligence, portfolio thinking, macro analysis, and strategic perspectives on capital and asset allocation.</p>
@@ -58,7 +58,7 @@ export default function Disclaimer() {
 
       <h2>12. Contact</h2>
       <p>If you have questions about this Disclaimer, please contact:</p>
-      <p>ARFA<br />Website: <a href="https://arfa.markets/" className="text-primary hover:underline">https://arfa.markets/</a><br />Email: <a href="mailto:support@arfa.markets" className="text-primary hover:underline">support@arfa.markets</a></p>
+      <p>ARFA<br />Website: <a href="https://arfa.global/" className="text-primary hover:underline">https://arfa.global/</a><br />Email: <a href="mailto:support@arfa.global" className="text-primary hover:underline">support@arfa.global</a></p>
     </LegalPage>
   );
 }

@@ -300,7 +300,7 @@ Only include tickers for US-listed stocks and ETFs. If no specific tickers, retu
 async function fetchPage(url: string): Promise<string> {
   const response = await fetch(url, {
     headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; ARFABot/1.0; +https://arfa.markets)",
+      "User-Agent": "Mozilla/5.0 (compatible; ARFABot/1.0; +https://arfa.global)",
       "Accept": "text/html,application/xhtml+xml",
     },
   });

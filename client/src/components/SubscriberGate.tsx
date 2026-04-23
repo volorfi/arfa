@@ -76,7 +76,7 @@ export default function SubscriberGate({ children }: { children: React.ReactNode
                 an active Insights subscription.
               </div>
               <Button variant="outline" size="sm" asChild>
-                <a href="mailto:hello@arfa.markets">Contact us to subscribe</a>
+                <a href="mailto:hello@arfa.global">Contact us to subscribe</a>
               </Button>
             </>
           )}
