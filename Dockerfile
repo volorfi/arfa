@@ -1,4 +1,7 @@
 # syntax=docker/dockerfile:1.7
+# cache-bust-2026-04-23-17: force a fresh Railway build so commit 8aeba81+
+# (bondService path fix, /version endpoint, .jpg brand, drizzle-kit in deps)
+# actually reaches production instead of using the stuck snapshot cache.
 FROM node:20-alpine AS base
 ENV PNPM_HOME=/root/.local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
