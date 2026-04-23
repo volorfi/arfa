@@ -7,7 +7,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Link, useRoute } from "wouter";
 import { cn } from "@/lib/utils";
-import ArfaLogo from "@/components/ArfaLogo";
+import { BrandMark } from "@/components/BrandMark";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,7 +49,7 @@ function OSNav() {
   return (
     <nav className="w-52 shrink-0 border-r min-h-screen p-3 space-y-1 hidden md:block">
       <div className="flex items-center gap-2 px-3 py-2 mb-4">
-        <ArfaLogo variant="mark" theme="auto" size="xs" />
+        <BrandMark variant="icon" size={20} />
         <span className="font-semibold text-sm">Research OS</span>
       </div>
       {NAV.map(item => <OSNavItem key={item.href} {...item} />)}
@@ -63,7 +63,7 @@ export function OSLayout({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
-          <ArfaLogo variant="mark" theme="auto" size="md" className="mx-auto" />
+          <BrandMark variant="icon" size={48} className="mx-auto" />
           <Lock className="w-6 h-6 text-muted-foreground mx-auto" />
           <p className="font-semibold">Research OS — Admin Access Only</p>
           <p className="text-sm text-muted-foreground">This area requires admin privileges.</p>

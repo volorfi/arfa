@@ -9,7 +9,7 @@ import { getLoginUrl } from "@/const";
 import { Button } from "@/components/ui/button";
 import { Lock, Sparkles, TrendingUp, BarChart3, Globe2 } from "lucide-react";
 import { Link } from "wouter";
-import ArfaLogo from "@/components/ArfaLogo";
+import { BrandMark } from "@/components/BrandMark";
 
 const FEATURES = [
   { icon: TrendingUp, text: "AI signal feed across equities, bonds, FX & macro" },
@@ -31,7 +31,7 @@ export default function SubscriberGate({ children }: { children: React.ReactNode
 
         {/* Logo + lock */}
         <div className="mx-auto flex flex-col items-center gap-2">
-          <ArfaLogo variant="mark" theme="auto" size="lg" />
+          <BrandMark variant="icon" size={64} />
           <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
             <Lock className="w-3 h-3 text-muted-foreground" />
           </div>
