@@ -1,6 +1,5 @@
 import { readFileSync } from "fs";
 import { join } from "path";
-import { fileURLToPath } from "url";
 
 // Types
 export interface BondData {
@@ -105,8 +104,10 @@ function loadData(): BondsDatabase {
   if (bondsDb) return bondsDb;
 
   try {
-    const __dirname = fileURLToPath(new URL(".", import.meta.url));
-    const dataPath = join(__dirname, "bonds_data.json");
+    // Match sovereignService: load from <cwd>/server/bonds_data.json so it
+    // works both in dev (cwd=repo root) and in the production container where
+    // the Dockerfile copies the JSON to /app/server/bonds_data.json.
+    const dataPath = join(process.cwd(), "server", "bonds_data.json");
     const raw = readFileSync(dataPath, "utf-8");
     bondsDb = JSON.parse(raw) as BondsDatabase;
     console.log(

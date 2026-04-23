@@ -93,6 +93,9 @@ async function startServer() {
     console.log(
       `Server running on http://${HOST}:${port}/ (NODE_ENV=${process.env.NODE_ENV ?? "development"})`
     );
+    console.log(
+      `[Boot] commit=${COMMIT_SHA.slice(0, 7)} deployId=${DEPLOY_ID} — if this SHA doesn't match origin/main HEAD, Railway didn't pull latest.`
+    );
     startNewsScheduler();
     startIdeafarmScheduler();
   });
