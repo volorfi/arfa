@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useState } from "react";
 
 export type BrandVariant =
@@ -8,20 +9,25 @@ export type BrandVariant =
   | "full-vertical" // Mark on top, ARFA, then tagline stacked
   | "square-full"; // Square composition: mark + ARFA + tagline stacked tighter
 
+type Finish = "navy" | "silver";
+
 type Props = {
   variant: BrandVariant;
   /** Height in px. Width auto-scales by the image's aspect ratio. */
   size?: number;
+  /** Override theme-derived finish. Defaults to navy on light theme,
+   *  silver on dark theme. */
+  finish?: Finish;
   className?: string;
   alt?: string;
 };
 
-const SRC_BY_VARIANT: Record<BrandVariant, string> = {
-  icon: "/brand/arfa-icon.png",
-  "wordmark-horizontal": "/brand/arfa-wordmark-horizontal.png",
-  "horizontal-tagline": "/brand/arfa-horizontal-tagline.png",
-  "full-vertical": "/brand/arfa-full-vertical.png",
-  "square-full": "/brand/arfa-square-full.png",
+const FILENAME_BY_VARIANT: Record<BrandVariant, string> = {
+  icon: "arfa-icon.png",
+  "wordmark-horizontal": "arfa-wordmark-horizontal.png",
+  "horizontal-tagline": "arfa-horizontal-tagline.png",
+  "full-vertical": "arfa-full-vertical.png",
+  "square-full": "arfa-square-full.png",
 };
 
 // Approximate aspect ratios (w:h) of each variant so layout reserves space
@@ -33,6 +39,10 @@ const ASPECT_BY_VARIANT: Record<BrandVariant, number> = {
   "full-vertical": 0.86,
   "square-full": 1,
 };
+
+function resolveSrc(variant: BrandVariant, finish: Finish): string {
+  return `/brand/${finish}/${FILENAME_BY_VARIANT[variant]}`;
+}
 
 /**
  * Navy SVG fallback rendered when the PNG asset isn't yet on disk. Keeps the
@@ -115,9 +125,12 @@ function Fallback({ variant, size }: { variant: BrandVariant; size: number }) {
 export function BrandMark({
   variant,
   size = 28,
+  finish,
   className,
   alt = "ARFA — Architecture of Research for Financial Allocation",
 }: Props) {
+  const { theme } = useTheme();
+  const resolvedFinish: Finish = finish ?? (theme === "dark" ? "silver" : "navy");
   const [failed, setFailed] = useState(false);
   const aspect = ASPECT_BY_VARIANT[variant];
   const width = Math.round(size * aspect);
@@ -132,7 +145,7 @@ export function BrandMark({
 
   return (
     <img
-      src={SRC_BY_VARIANT[variant]}
+      src={resolveSrc(variant, resolvedFinish)}
       alt={alt}
       height={size}
       width={width}

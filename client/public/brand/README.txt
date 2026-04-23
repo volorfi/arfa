@@ -1,11 +1,22 @@
-Drop these PNG files here (transparent-background, navy variant):
+ARFA brand assets
+-----------------
 
-arfa-icon.png                  — image 3 (just the triangle), recommended 512×512
-arfa-wordmark-horizontal.png   — image 2 (triangle + ARFA compact, ~3.2:1 aspect)
-arfa-horizontal-tagline.png    — image 4 (triangle + ARFA + tagline row, ~3.8:1)
-arfa-full-vertical.png         — image 1 (stacked with tagline, ~0.86:1 portrait)
-arfa-square-full.png           — image 5 (square composition, 1:1)
+  navy/     Deep-blue bevel variant — used on light theme (best contrast
+            against white/off-white backgrounds), favicon, and OG card.
+  silver/   Chrome-silver bevel variant — used on dark theme (glows against
+            dark backgrounds).
 
-Also place /client/public/favicon.png — square crop of the icon, at least 512×512.
+BrandMark component (client/src/components/BrandMark.tsx) switches between
+these two finishes automatically via useTheme(). Pass `finish="navy"` or
+`finish="silver"` to override.
 
-Until these files are present, a graceful navy SVG fallback renders.
+Each folder contains five variants (same filenames, different finish):
+
+  arfa-icon.png                  Triangle mark only, ~1:1
+  arfa-wordmark-horizontal.png   Mark + ARFA wordmark compact row, ~3.2:1
+  arfa-horizontal-tagline.png    Mark + ARFA + tagline row, ~3.8:1
+  arfa-full-vertical.png         Stacked: mark / ARFA / tagline, ~0.86:1 portrait
+  arfa-square-full.png           Square composition for social cards, 1:1
+
+/client/public/favicon.png is a copy of navy/arfa-icon.png for broad
+browser-tab compatibility.
