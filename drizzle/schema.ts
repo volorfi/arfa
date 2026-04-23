@@ -1,4 +1,4 @@
-import { double, int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, uniqueIndex, index } from "drizzle-orm/mysql-core";
+import { int, double, mysqlEnum, mysqlTable, text, timestamp, varchar, json, index, uniqueIndex } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -90,39 +90,100 @@ export const externalPodcasts = mysqlTable("external_podcasts", {
 export type ExternalPodcast = typeof externalPodcasts.$inferSelect;
 export type InsertExternalPodcast = typeof externalPodcasts.$inferInsert;
 
-export const signals = mysqlTable(
-  "signals",
-  {
-    id: int("id").autoincrement().primaryKey(),
-    symbol: varchar("symbol", { length: 16 }).notNull(),
-    horizon: varchar("horizon", { length: 8 }).notNull(),
-    stance: mysqlEnum("stance", ["bullish", "bearish", "neutral"]).notNull(),
-    score: double("score").notNull(),
-    confidenceBand: mysqlEnum("confidenceBand", [
-      "very_high",
-      "high",
-      "medium",
-      "low",
-      "abstain",
-    ]).notNull(),
-    topDrivers: json("topDrivers").$type<string[]>().notNull(),
-    riskFlags: json("riskFlags").$type<string[]>().notNull(),
-    publicationStatus: mysqlEnum("publicationStatus", [
-      "internal_only",
-      "review_required",
-      "publication_eligible",
-      "published",
-      "suppressed",
-    ])
-      .default("internal_only")
-      .notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  },
-  (table) => ({
-    symbolHorizonUniq: uniqueIndex("symbol_horizon_uniq").on(table.symbol, table.horizon),
-    horizonIdx: index("signals_horizon_idx").on(table.horizon),
-  }),
-);
+// ─────────────────────────────────────────────────────────────────────────────
+// INSIGHTS + RESEARCH OS SCHEMA
+// ─────────────────────────────────────────────────────────────────────────────
 
-export type Signal = typeof signals.$inferSelect;
+export const assets = mysqlTable("assets", {
+  id:           varchar("id",           { length: 36  }).primaryKey(),
+  assetClass:   mysqlEnum("assetClass", ["equity","bond","fx","commodity","index","etf","macro"]).notNull(),
+  identifier:   varchar("identifier",   { length: 64  }).notNull(),
+  displayName:  varchar("displayName",  { length: 256 }).notNull(),
+  exchangeCode: varchar("exchangeCode", { length: 16  }),
+  currency:     varchar("currency",     { length: 3   }),
+  countryCode:  varchar("countryCode",  { length: 2   }),
+  createdAt:    timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  uniqAsset: uniqueIndex("uq_asset").on(t.assetClass, t.identifier),
+}));
+export type Asset       = typeof assets.$inferSelect;
+export type InsertAsset = typeof assets.$inferInsert;
+
+export const signals = mysqlTable("signals", {
+  id:                varchar("id",              { length: 36  }).primaryKey(),
+  assetId:           varchar("assetId",         { length: 36  }).notNull(),
+  signalType:        mysqlEnum("signalType",    ["directional","relative","regime_linked","event","structural","meta"]).notNull(),
+  horizon:           mysqlEnum("horizon",       ["1D","5D","20D","3M","6M"]).notNull(),
+  stance:            mysqlEnum("stance",        ["bullish","bearish","neutral","tightening","widening","stable","stronger","weaker","range_bound"]).notNull(),
+  confidenceScore:   double("confidenceScore").notNull(),
+  confidenceBand:    mysqlEnum("confidenceBand",["very_high","high","moderate","low","abstain"]).notNull(),
+  regimeState:       varchar("regimeState",     { length: 64  }).notNull(),
+  topDrivers:        json("topDrivers").$type<string[]>().notNull(),
+  riskFlags:         json("riskFlags").$type<string[]>().notNull(),
+  falsifiers:        json("falsifiers").$type<string[]>().notNull(),
+  disagreementScore: double("disagreementScore"),
+  dataQualityScore:  double("dataQualityScore").notNull(),
+  evidenceRefs:      json("evidenceRefs").$type<string[]>().notNull(),
+  bullThesis:        text("bullThesis"),
+  bearThesis:        text("bearThesis"),
+  agentTrace:        json("agentTrace").$type<Record<string, unknown>>(),
+  publicationStatus: mysqlEnum("publicationStatus", ["internal_only","review_required","publication_eligible","published","suppressed"]).notNull().default("internal_only"),
+  createdAt:         timestamp("createdAt").defaultNow().notNull(),
+  updatedAt:         timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({
+  assetCreatedIdx: index("idx_signals_asset_created").on(t.assetId, t.createdAt),
+  statusIdx:       index("idx_signals_status").on(t.publicationStatus),
+}));
+export type Signal       = typeof signals.$inferSelect;
 export type InsertSignal = typeof signals.$inferInsert;
+
+export const notes = mysqlTable("notes", {
+  id:           varchar("id",       { length: 36  }).primaryKey(),
+  assetId:      varchar("assetId",  { length: 36  }).notNull(),
+  noteType:     mysqlEnum("noteType", ["analysis","meeting","watchlist","journal","draft","other"]).notNull(),
+  title:        varchar("title",    { length: 300 }).notNull(),
+  bodyMarkdown: text("bodyMarkdown").notNull(),
+  authorUserId: int("authorUserId").notNull(),
+  status:       mysqlEnum("status", ["draft","active","archived"]).notNull().default("active"),
+  createdAt:    timestamp("createdAt").defaultNow().notNull(),
+  updatedAt:    timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({
+  assetCreatedIdx: index("idx_notes_asset_created").on(t.assetId, t.createdAt),
+}));
+export type Note       = typeof notes.$inferSelect;
+export type InsertNote = typeof notes.$inferInsert;
+
+export const overrides = mysqlTable("overrides", {
+  id:           varchar("id",          { length: 36  }).primaryKey(),
+  objectType:   mysqlEnum("objectType",["signal","note","review","policy_decision","agent_output"]).notNull(),
+  objectId:     varchar("objectId",    { length: 64  }).notNull(),
+  overrideType: mysqlEnum("overrideType", ["suppress","downgrade_confidence","upgrade_confidence","replace_stance","hold_publication","add_falsifier","policy_restriction"]).notNull(),
+  reasonCode:   varchar("reasonCode", { length: 100 }).notNull(),
+  reasonText:   text("reasonText").notNull(),
+  evidenceRefs: json("evidenceRefs").$type<string[]>().notNull(),
+  userId:       int("userId").notNull(),
+  effectiveFrom:timestamp("effectiveFrom"),
+  effectiveTo:  timestamp("effectiveTo"),
+  createdAt:    timestamp("createdAt").defaultNow().notNull(),
+}, (t) => ({
+  objectIdx: index("idx_overrides_object").on(t.objectType, t.objectId),
+}));
+export type Override       = typeof overrides.$inferSelect;
+export type InsertOverride = typeof overrides.$inferInsert;
+
+export const reviewTasks = mysqlTable("review_tasks", {
+  id:          varchar("id",         { length: 36 }).primaryKey(),
+  reviewType:  mysqlEnum("reviewType", ["data_review","signal_review","publication_review","override_review","incident_review"]).notNull(),
+  objectType:  mysqlEnum("objectType",["signal","note","override","incident","policy_decision"]).notNull(),
+  objectId:    varchar("objectId",   { length: 64 }).notNull(),
+  status:      mysqlEnum("status",   ["open","in_progress","approved","rejected","escalated","closed"]).notNull().default("open"),
+  priority:    mysqlEnum("priority", ["low","medium","high","critical"]).notNull().default("medium"),
+  assignedTo:  int("assignedTo"),
+  reviewNotes: text("reviewNotes"),
+  createdAt:   timestamp("createdAt").defaultNow().notNull(),
+  updatedAt:   timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (t) => ({
+  statusIdx: index("idx_review_tasks_status").on(t.status, t.createdAt),
+}));
+export type ReviewTask       = typeof reviewTasks.$inferSelect;
+export type InsertReviewTask = typeof reviewTasks.$inferInsert;

@@ -78,6 +78,13 @@
       "when": 1776872666416,
       "tag": "0010_perpetual_blackheart",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1776942976560,
+      "tag": "0011_multi_agent_signals",
+      "breakpoints": true
     }
   ]
 }

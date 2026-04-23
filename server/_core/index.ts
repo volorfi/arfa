@@ -9,7 +9,6 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { startNewsScheduler } from "../newsService";
 import { startIdeafarmScheduler } from "../ideafarmService";
-import { startSignalScheduler } from "../signalService";
 
 // Inlined so production never touches ./vite.ts (which transitively imports
 // the `vite` package, a devDependency not present in the prod container).
@@ -68,7 +67,6 @@ async function startServer() {
     );
     startNewsScheduler();
     startIdeafarmScheduler();
-    startSignalScheduler();
   });
 }
 

@@ -62,6 +62,8 @@ import {
   Zap,
   Activity,
   Target,
+  Sparkles,
+  Bot,
 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -69,17 +71,19 @@ import { useLocation, Link } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import Footer from "@/components/Footer";
 import MarketTickerBar from "@/components/MarketTickerBar";
-import { BrandMark } from "@/components/BrandMark";
+import ArfaLogo from "@/components/ArfaLogo";
 
 interface MenuItem {
   icon: any;
   label: string;
   path: string;
+  adminOnly?: boolean;
   children?: { label: string; path: string; icon?: any }[];
 }
 
 interface MenuSection {
   label: string;
+  adminOnly?: boolean;
   items: MenuItem[];
 }
 
@@ -231,6 +235,22 @@ const menuSections: MenuSection[] = [
       },
     ],
   },
+  {
+    label: "Insights",
+    items: [
+      { icon: Sparkles, label: "AI Signals", path: "/insights" },
+    ],
+  },
+  {
+    label: "Research OS",
+    adminOnly: true,
+    items: [
+      { icon: Bot, label: "OS Dashboard", path: "/os", adminOnly: true },
+      { icon: Bot, label: "Signal Queue", path: "/os/signals", adminOnly: true },
+      { icon: Bot, label: "Notes", path: "/os/notes", adminOnly: true },
+      { icon: Bot, label: "Users", path: "/os/users", adminOnly: true },
+    ],
+  },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sa-sidebar-width";
@@ -352,32 +372,9 @@ function AppSidebarContent({
               >
                 <PanelLeft className="h-4 w-4 text-sidebar-foreground/60 group-hover/toggle:text-sidebar-foreground transition-colors" />
               </button>
-              {isCollapsed ? (
-                <Link
-                  href="/"
-                  aria-label="ARFA home"
-                  className="flex items-center justify-center shrink-0"
-                >
-                  <BrandMark variant="icon" size={24} />
-                </Link>
-              ) : (
-                <Link
-                  href="/"
-                  className="flex items-center gap-2.5 min-w-0 group/logo"
-                  aria-label="ARFA — Architecture of Research for Financial Allocation"
-                >
-                  <BrandMark variant="icon" size={28} className="shrink-0" />
-                  <div className="flex flex-col min-w-0">
-                    <span
-                      className="font-bold text-[13px] tracking-tight truncate text-sidebar-foreground leading-none"
-                      style={{ fontFamily: "var(--font-display)" }}
-                    >
-                      ARFA
-                    </span>
-                    <span className="text-[9px] text-sidebar-foreground/50 tracking-widest uppercase leading-none mt-0.5">
-                      Global Markets
-                    </span>
-                  </div>
+              {!isCollapsed && (
+                <Link href="/" className="flex items-center gap-2.5 min-w-0 group/logo">
+                  <ArfaLogo variant="horizontal" theme="dark" size="sm" className="group-hover/logo:opacity-90 transition-opacity" />
                 </Link>
               )}
             </div>
@@ -387,19 +384,19 @@ function AppSidebarContent({
 
           {/* ── Navigation ── */}
           <SidebarContent className="gap-0 px-2 py-1 sidebar-nav">
-            {menuSections.map((section, sectionIdx) => (
+            {menuSections.filter(s => !s.adminOnly || user?.role === "admin").map((section, sectionIdx) => (
               <SidebarGroup key={section.label} className="py-1">
                 <SidebarGroupLabel className="text-[10px] font-semibold tracking-[0.08em] uppercase text-sidebar-foreground/40 h-7 px-3" style={{ fontFamily: 'var(--font-display)' }}>
                   {section.label}
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu className="gap-0.5">
-                    {section.items.map((item) => {
+                    {section.items.filter(item => !item.adminOnly || user?.role === "admin").map((item) => {
                       const isActive = location === item.path || (item.path !== "/" && location.startsWith(item.path));
                       if (item.children) {
                         return (
-                          <SidebarMenuItem key={item.path}>
-                            <Collapsible defaultOpen={isActive} className="group/collapsible">
+                          <Collapsible key={item.path} defaultOpen={isActive} className="group/collapsible">
+                            <SidebarMenuItem>
                               <CollapsibleTrigger asChild>
                                 <SidebarMenuButton
                                   tooltip={item.label}
@@ -417,7 +414,7 @@ function AppSidebarContent({
                                   <ChevronRight className="h-3 w-3 opacity-50 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                                 </SidebarMenuButton>
                               </CollapsibleTrigger>
-                              <CollapsibleContent>
+                              <CollapsibleContent className="animate-in slide-in-from-top-1 duration-200">
                                 <SidebarMenuSub className="ml-4 border-l border-sidebar-border/50 pl-0">
                                   {item.children.map((child) => {
                                     const isChildActive = location === child.path;
@@ -442,11 +439,11 @@ function AppSidebarContent({
                                   })}
                                 </SidebarMenuSub>
                               </CollapsibleContent>
-                            </Collapsible>
-                          </SidebarMenuItem>
+                            </SidebarMenuItem>
+                          </Collapsible>
                         );
                       }
-
+                   
                       return (
                         <SidebarMenuItem key={item.path}>
                           <SidebarMenuButton
@@ -537,12 +534,9 @@ function AppSidebarContent({
           {isMobile && (
             <div className="flex border-b h-12 items-center bg-background/95 px-3 backdrop-blur">
               <SidebarTrigger className="h-8 w-8 rounded-md" />
-              <div className="ml-2 flex items-center gap-2">
-                <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                  <Zap className="h-3 w-3 text-primary-foreground" />
-                </div>
-                <span className="font-bold text-sm" style={{ fontFamily: 'var(--font-display)' }}>ARFA</span>
-              </div>
+              <Link href="/" className="ml-2">
+                <ArfaLogo variant="horizontal" theme="auto" size="xs" />
+              </Link>
             </div>
           )}
           <MarketTickerBar />

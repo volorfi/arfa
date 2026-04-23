@@ -42,6 +42,12 @@ import FXOverview from "./pages/FXOverview";
 import FXPairDetail from "./pages/FXPairDetail";
 import CommoditiesOverview from "./pages/CommoditiesOverview";
 import CommodityDetail from "./pages/CommodityDetail";
+import InsightsDashboard from "@/pages/insights/InsightsDashboard";
+import InsightsSignalDetail from "@/pages/insights/InsightsSignalDetail";
+import { OSLayout, OSDashboard } from "@/pages/os/OSLayout";
+import OSSignals from "@/pages/os/OSSignals";
+import OSUsers from "@/pages/os/OSUsers";
+import OSNotes from "@/pages/os/OSNotes";
 import { LineChart, Calculator, BarChart3 } from "lucide-react";
 import CookieConsent from "./components/CookieConsent";
 
@@ -86,6 +92,14 @@ function Router() {
         <Route path="/fx/:pair" component={FXPairDetail} />
         <Route path="/commodities" component={CommoditiesOverview} />
         <Route path="/commodities/:symbol" component={CommodityDetail} />
+        <Route path="/insights" component={InsightsDashboard} />
+        <Route path="/insights/signals/:signalId" component={InsightsSignalDetail} />
+        <Route path="/os">
+          {() => <OSLayout><OSDashboard /></OSLayout>}
+        </Route>
+        <Route path="/os/signals" component={OSSignals} />
+        <Route path="/os/users" component={OSUsers} />
+        <Route path="/os/notes" component={OSNotes} />
         <Route path="/chart">
           {() => <PlaceholderPage title="Technical Chart" icon={LineChart} />}
         </Route>
