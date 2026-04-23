@@ -1,0 +1,205 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ARFA Design Tokens
+   ─────────────────────────────────────────────────────────────────────────────
+   Every color is expressed as HSL triplets so they can be used via
+   `hsl(var(--token))` in Tailwind and `hsl(var(--token) / <alpha>)` for
+   translucent overlays. Light mode is the default; `.dark` on <html> swaps
+   the palette.
+
+   Surface layering system (5 levels):
+     --surface-0       page background
+     --surface-1       card / first elevation (raised over bg)
+     --surface-2       nested card / dialog
+     --surface-3       popover / tooltip (highest stacking)
+     --surface-offset  inverted attention bg (opposite polarity)
+
+   Text tokens (per mode):
+     --text-primary    body + headings
+     --text-muted      captions, metadata
+     --text-faint      disabled, hints
+   ────────────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  :root {
+    /* ── Typography ──────────────────────────────────────────────────────── */
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+
+    /* Fluid type scale — clamp(min, preferred, max)
+       Mobile baseline at 375px; desktop target at 1440px. */
+    --text-xs:   clamp(0.75rem,  0.70rem + 0.20vw, 0.8125rem); /* 12 → 13 */
+    --text-sm:   clamp(0.8125rem, 0.75rem + 0.30vw, 0.875rem);  /* 13 → 14 */
+    --text-base: clamp(0.9375rem, 0.85rem + 0.40vw, 1rem);      /* 15 → 16 */
+    --text-lg:   clamp(1rem,      0.90rem + 0.50vw, 1.125rem);  /* 16 → 18 */
+    --text-xl:   clamp(1.125rem,  1.00rem + 0.625vw, 1.25rem);  /* 18 → 20 */
+    --text-2xl:  clamp(1.375rem,  1.20rem + 0.875vw, 1.5rem);   /* 22 → 24 */
+    --text-3xl:  clamp(1.625rem,  1.35rem + 1.375vw, 1.875rem); /* 26 → 30 */
+    --text-4xl:  clamp(2rem,      1.60rem + 2.00vw, 2.25rem);   /* 32 → 36 */
+    --text-5xl:  clamp(2.5rem,    2.00rem + 2.50vw, 3rem);      /* 40 → 48 */
+    --text-6xl:  clamp(3rem,      2.40rem + 3.00vw, 3.75rem);   /* 48 → 60 */
+
+    /* ── Radius ──────────────────────────────────────────────────────────── */
+    --radius: 0.5rem; /* 8px — shadcn default */
+
+    /* ── Light palette ───────────────────────────────────────────────────── */
+    /* Surfaces — warm off-white backbone. Each step lifts ~2% lightness. */
+    --surface-0: 48 24% 96%; /* #f7f6f2 — page bg */
+    --surface-1: 0 0% 100%;  /* #ffffff — card */
+    --surface-2: 48 20% 98%; /* #fafaf8 — nested card */
+    --surface-3: 48 18% 93%; /* #eeede7 — popover/tooltip */
+    --surface-offset: 40 7% 8%; /* #171614 — inverted attention bg */
+
+    /* Text */
+    --text-primary: 30 10% 15%; /* #2a2824 — body */
+    --text-muted:   30 8% 40%;  /* #6b6558 — secondary */
+    --text-faint:   30 5% 60%;  /* #9d988e — hints */
+
+    /* Brand */
+    --primary:          184 98% 22%;  /* #01696f — deep teal */
+    --primary-hover:    185 75% 19%;  /* #0c4e54 */
+    --primary-foreground: 0 0% 100%;  /* white */
+
+    /* Semantic */
+    --destructive: 0 72% 45%;            /* #c53030 */
+    --destructive-foreground: 0 0% 100%;
+    --success: 160 60% 32%;              /* #20826a */
+    --success-foreground: 0 0% 100%;
+    --warning: 36 90% 44%;               /* #d4870a */
+    --warning-foreground: 0 0% 100%;
+
+    /* ── shadcn mapping — these are what shadcn primitives read ─────────── */
+    --background: var(--surface-0);
+    --foreground: var(--text-primary);
+    --card: var(--surface-1);
+    --card-foreground: var(--text-primary);
+    --popover: var(--surface-3);
+    --popover-foreground: var(--text-primary);
+    --secondary: var(--surface-2);
+    --secondary-foreground: var(--text-primary);
+    --muted: var(--surface-2);
+    --muted-foreground: var(--text-muted);
+    --accent: var(--surface-2);
+    --accent-foreground: var(--text-primary);
+    --border: 45 14% 86%;  /* #dedbd1 */
+    --input:  45 14% 86%;
+    --ring:   var(--primary);
+
+    /* ── Shadows (warm, subtle) ──────────────────────────────────────────── */
+    --shadow-color: 30 15% 10%;
+    --shadow-xs: 0 1px 2px 0 hsl(var(--shadow-color) / 0.04);
+    --shadow-sm: 0 1px 3px 0 hsl(var(--shadow-color) / 0.06),
+                 0 1px 2px -1px hsl(var(--shadow-color) / 0.06);
+    --shadow-md: 0 4px 6px -1px hsl(var(--shadow-color) / 0.07),
+                 0 2px 4px -2px hsl(var(--shadow-color) / 0.05);
+    --shadow-lg: 0 10px 15px -3px hsl(var(--shadow-color) / 0.08),
+                 0 4px 6px -4px hsl(var(--shadow-color) / 0.05);
+    --shadow-xl: 0 20px 25px -5px hsl(var(--shadow-color) / 0.10),
+                 0 8px 10px -6px hsl(var(--shadow-color) / 0.05);
+    --shadow-inset: inset 0 1px 2px 0 hsl(var(--shadow-color) / 0.05);
+  }
+
+  .dark {
+    /* ── Dark palette ────────────────────────────────────────────────────── */
+    --surface-0: 40 7% 8%;   /* #171614 — page bg */
+    --surface-1: 30 6% 12%;  /* #1f1d1b — card */
+    --surface-2: 30 7% 15%;  /* #282522 — nested card */
+    --surface-3: 30 5% 18%;  /* #302d2a — popover */
+    --surface-offset: 48 24% 96%; /* #f7f6f2 — inverted */
+
+    --text-primary: 45 15% 94%; /* #f0ede3 */
+    --text-muted:   40 8% 70%;  /* #b4afa3 */
+    --text-faint:   40 5% 50%;  /* #847f76 */
+
+    --primary:          184 80% 40%; /* slightly brighter teal for dark bg */
+    --primary-hover:    184 72% 33%;
+    --primary-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 160 50% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 80% 58%;
+    --warning-foreground: 30 10% 10%;
+
+    --background: var(--surface-0);
+    --foreground: var(--text-primary);
+    --card: var(--surface-1);
+    --card-foreground: var(--text-primary);
+    --popover: var(--surface-3);
+    --popover-foreground: var(--text-primary);
+    --secondary: var(--surface-2);
+    --secondary-foreground: var(--text-primary);
+    --muted: var(--surface-2);
+    --muted-foreground: var(--text-muted);
+    --accent: var(--surface-2);
+    --accent-foreground: var(--text-primary);
+    --border: 30 6% 22%; /* #3a3633 */
+    --input:  30 6% 22%;
+    --ring:   var(--primary);
+
+    /* Dark shadows push more black than the warm shadow color. */
+    --shadow-color: 0 0% 0%;
+    --shadow-xs: 0 1px 2px 0 hsl(var(--shadow-color) / 0.30);
+    --shadow-sm: 0 1px 3px 0 hsl(var(--shadow-color) / 0.35),
+                 0 1px 2px -1px hsl(var(--shadow-color) / 0.30);
+    --shadow-md: 0 4px 6px -1px hsl(var(--shadow-color) / 0.35),
+                 0 2px 4px -2px hsl(var(--shadow-color) / 0.30);
+    --shadow-lg: 0 10px 15px -3px hsl(var(--shadow-color) / 0.40),
+                 0 4px 6px -4px hsl(var(--shadow-color) / 0.30);
+    --shadow-xl: 0 20px 25px -5px hsl(var(--shadow-color) / 0.45),
+                 0 8px 10px -6px hsl(var(--shadow-color) / 0.35);
+    --shadow-inset: inset 0 1px 2px 0 hsl(var(--shadow-color) / 0.30);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv11", "ss01", "ss03";
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-synthesis-weight: none;
+  }
+
+  /* Selection matches brand */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.2);
+    color: hsl(var(--text-primary));
+  }
+
+  /* Focus ring — consistent with --ring token */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Scrollbar — unobtrusive, theme-aware */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--text-faint));
+  }
+}

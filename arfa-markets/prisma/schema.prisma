@@ -1,0 +1,188 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// ARFA Markets — Prisma schema
+// Database: Supabase Postgres (DATABASE_URL in .env.local).
+// Auth: Supabase Auth (separate auth.users table in the `auth` schema).
+//       This schema's `users` table is the app-level profile layer linked
+//       via supabaseId → auth.users.id.
+// Conventions: cuid IDs, snake_case column names via @map, timestamps on
+// every row.
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // directUrl is read by `prisma migrate` to bypass the connection pooler,
+  // which is required for DDL. Falls back to DATABASE_URL if unset.
+  directUrl = env("DIRECT_URL")
+}
+
+// ── Enums ───────────────────────────────────────────────────────────────────
+
+enum SubscriptionPlan {
+  FREE
+  PREMIUM
+  PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  UNPAID
+}
+
+enum AssetClass {
+  EQUITY
+  ETF
+  BOND_CORP
+  BOND_SOVEREIGN
+  FX
+  COMMODITY
+  INDEX
+  CRYPTO
+  MACRO
+}
+
+enum AlertType {
+  PRICE_ABOVE
+  PRICE_BELOW
+  PERCENT_CHANGE
+  VOLUME_SPIKE
+  NEWS_KEYWORD
+}
+
+enum AlertStatus {
+  ACTIVE
+  TRIGGERED
+  PAUSED
+  ARCHIVED
+}
+
+// ── Models ──────────────────────────────────────────────────────────────────
+
+/// App-level user profile. One row per authenticated Supabase user; created
+/// on first login via a server-side upsert keyed by supabaseId.
+model User {
+  id         String   @id @default(cuid())
+  /// Foreign key into Supabase's auth.users(id). Non-nullable — every
+  /// profile row corresponds to exactly one auth user.
+  supabaseId String   @unique @map("supabase_id")
+  email      String   @unique
+  name       String?
+  image      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt       @map("updated_at")
+
+  subscription Subscription?
+  watchlists   Watchlist[]
+  savedScreens SavedScreen[]
+  alerts       Alert[]
+
+  @@map("users")
+}
+
+/// Subscription state — one row per user (1-to-1). Created at signup as FREE;
+/// Stripe webhook mutations keep it in sync with stripeSubscription lifecycle.
+model Subscription {
+  id     String @id @default(cuid())
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plan   SubscriptionPlan   @default(FREE)
+  status SubscriptionStatus @default(ACTIVE)
+
+  stripeCustomerId     String?   @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?   @unique @map("stripe_subscription_id")
+  stripePriceId        String?           @map("stripe_price_id")
+  currentPeriodEnd     DateTime?         @map("current_period_end")
+  cancelAtPeriodEnd    Boolean   @default(false) @map("cancel_at_period_end")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt       @map("updated_at")
+
+  @@index([status])
+  @@map("subscriptions")
+}
+
+/// A user can have multiple named watchlists. Items are siblings (ordered by
+/// addedAt desc when rendered).
+model Watchlist {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name  String @default("Default")
+  color String? // optional UI accent, e.g. "#01696f"
+
+  items WatchlistItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt       @map("updated_at")
+
+  @@index([userId])
+  @@map("watchlists")
+}
+
+model WatchlistItem {
+  id          String     @id @default(cuid())
+  watchlistId String     @map("watchlist_id")
+  watchlist   Watchlist  @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+
+  symbol     String
+  assetClass AssetClass @map("asset_class")
+  notes      String?
+  addedAt    DateTime   @default(now()) @map("added_at")
+
+  @@unique([watchlistId, symbol])
+  @@index([watchlistId])
+  @@map("watchlist_items")
+}
+
+/// Serialized screener filter state. `filters` is a freeform JSON blob so we
+/// can iterate on the screener UI without migrations.
+///
+///   { market: "US", marketCap: { min: 1e9 }, peRatio: { max: 25 }, sector: "Tech" }
+model SavedScreen {
+  id      String  @id @default(cuid())
+  userId  String  @map("user_id")
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name    String
+  filters Json
+  isPinned Boolean @default(false) @map("is_pinned")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt       @map("updated_at")
+
+  @@index([userId])
+  @@map("saved_screens")
+}
+
+/// User-configured alert. One row per alert; historical triggers go to a
+/// future AlertEvent table (out of scope for this schema).
+model Alert {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      AlertType
+  symbol    String?      // null for NEWS_KEYWORD alerts across all assets
+  threshold Float?       // used by PRICE_ABOVE / PRICE_BELOW / PERCENT_CHANGE / VOLUME_SPIKE
+  keyword   String?      // used by NEWS_KEYWORD
+  status    AlertStatus  @default(ACTIVE)
+
+  triggeredAt DateTime? @map("triggered_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt       @map("updated_at")
+
+  @@index([userId, status])
+  @@index([symbol])
+  @@map("alerts")
+}
