@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
@@ -73,6 +74,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           disableTransitionOnChange
         >
           {children}
+          {/* Sonner toaster — mounted once at the root so any client
+              component can call toast() / toast.error() / etc. without
+              extra wiring. Uses next-themes' resolved theme. */}
+          <Toaster
+            position="bottom-right"
+            richColors
+            closeButton
+            theme="system"
+          />
         </ThemeProvider>
       </body>
     </html>

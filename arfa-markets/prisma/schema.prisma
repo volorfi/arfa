@@ -84,6 +84,7 @@ model User {
   watchlists   Watchlist[]
   savedScreens SavedScreen[]
   alerts       Alert[]
+  portfolio    Portfolio?
 
   @@map("users")
 }
@@ -185,4 +186,55 @@ model Alert {
   @@index([userId, status])
   @@index([symbol])
   @@map("alerts")
+}
+
+/// Portfolio — one per user (1-to-1). Created lazily the first time the
+/// user adds a holding, so users without portfolios have no row.
+model Portfolio {
+  id     String @id @default(cuid())
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Optional display name. Defaults to "Main" when omitted.
+  name String @default("Main")
+
+  /// ISO currency code the portfolio is reported in. UI converts holdings
+  /// from their native currency at view time using FX rates (out of scope
+  /// for this schema).
+  baseCurrency String @default("USD") @map("base_currency")
+
+  holdings PortfolioHolding[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt       @map("updated_at")
+
+  @@map("portfolios")
+}
+
+model PortfolioHolding {
+  id          String     @id @default(cuid())
+  portfolioId String     @map("portfolio_id")
+  portfolio   Portfolio  @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  /// The asset's id in our scoring system. References AssetAnalysis.assetId
+  /// (no FK because the asset catalogue lives outside Prisma for now).
+  assetId    String     @map("asset_id")
+  /// Display fields cached at add time so the holdings list doesn't need
+  /// to fan-out to the asset service for every row.
+  displayName String   @map("display_name")
+  ticker      String
+  assetClass  AssetClass @map("asset_class")
+
+  /// Number of units held. Decimal so partial-share holdings work.
+  quantity      Float
+  /// Average cost per unit (asset native currency).
+  purchasePrice Float    @map("purchase_price")
+  /// Date the position was opened. UI groups buys per asset later.
+  purchaseDate  DateTime @map("purchase_date")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt       @map("updated_at")
+
+  @@index([portfolioId])
+  @@map("portfolio_holdings")
 }
