@@ -69,6 +69,7 @@ import { useLocation, Link } from "wouter";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import Footer from "@/components/Footer";
 import MarketTickerBar from "@/components/MarketTickerBar";
+import { BrandMark } from "@/components/BrandMark";
 
 interface MenuItem {
   icon: any;
@@ -328,13 +329,26 @@ function AppSidebarContent({
               >
                 <PanelLeft className="h-4 w-4 text-sidebar-foreground/60 group-hover/toggle:text-sidebar-foreground transition-colors" />
               </button>
-              {!isCollapsed && (
-                <Link href="/" className="flex items-center gap-2.5 min-w-0 group/logo">
-                  <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shrink-0 shadow-sm group-hover/logo:shadow-md group-hover/logo:scale-105 transition-all duration-200">
-                    <Zap className="h-3.5 w-3.5 text-primary-foreground" />
-                  </div>
+              {isCollapsed ? (
+                <Link
+                  href="/"
+                  aria-label="ARFA home"
+                  className="flex items-center justify-center shrink-0"
+                >
+                  <BrandMark variant="icon" size={24} />
+                </Link>
+              ) : (
+                <Link
+                  href="/"
+                  className="flex items-center gap-2.5 min-w-0 group/logo"
+                  aria-label="ARFA — Architecture of Research for Financial Allocation"
+                >
+                  <BrandMark variant="icon" size={28} className="shrink-0" />
                   <div className="flex flex-col min-w-0">
-                    <span className="font-bold text-[13px] tracking-tight truncate text-sidebar-foreground leading-none" style={{ fontFamily: 'var(--font-display)' }}>
+                    <span
+                      className="font-bold text-[13px] tracking-tight truncate text-sidebar-foreground leading-none"
+                      style={{ fontFamily: "var(--font-display)" }}
+                    >
                       ARFA
                     </span>
                     <span className="text-[9px] text-sidebar-foreground/50 tracking-widest uppercase leading-none mt-0.5">

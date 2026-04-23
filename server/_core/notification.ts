@@ -9,7 +9,7 @@ export type NotificationPayload = {
 
 const TITLE_MAX_LENGTH = 1200;
 const CONTENT_MAX_LENGTH = 20000;
-const DEFAULT_FROM = "ARFA Markets <noreply@arfa.markets>";
+const DEFAULT_FROM = "ARFA Research <noreply@arfa.global>";
 
 const trimValue = (value: string): string => value.trim();
 const isNonEmptyString = (value: unknown): value is string =>
