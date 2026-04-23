@@ -2,33 +2,55 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Alert } from "@/components/ui/alert";
+import {
+  getPriceId,
+  PLANS,
+  type BillingInterval,
+  type PlanId,
+} from "@/lib/plans";
+
+/**
+ * Pricing plans — marketing-side pricing cards + billing toggle.
+ *
+ * Free-plan CTA routes to /register (no payment step).
+ *
+ * Paid-plan CTAs POST to /api/stripe/checkout with the Stripe price id
+ * selected by the monthly/annual toggle, then redirect the browser to the
+ * hosted Stripe Checkout page. If the user isn't signed in, the API
+ * returns 401 with `redirectTo` — we honour it by routing through
+ * /register?next=/pricing so they come back here after signup.
+ */
 
 type BillingCycle = "monthly" | "annual";
+const BILLING_TO_INTERVAL: Record<BillingCycle, BillingInterval> = {
+  monthly: "month",
+  annual: "year",
+};
 
-interface Plan {
-  name: string;
+// ── UI plan descriptors ─────────────────────────────────────────────────────
+// Separate from lib/plans.ts Plan objects because these carry long-form
+// marketing copy (tagline + feature bullets) that the runtime plan code
+// doesn't need.
+interface CardPlan {
+  id: PlanId;
   tagline: string;
-  /** Monthly price when billed monthly. Free → 0. */
-  priceMonthly: number;
-  /** Annual price total when billed annually. Free → 0. */
-  priceAnnual: number;
   features: string[];
-  cta: { label: string; href: string };
+  ctaLabel: string;
   featured?: boolean;
 }
 
-const PLANS: Plan[] = [
+const CARD_PLANS: CardPlan[] = [
   {
-    name: "Free",
+    id: "FREE",
     tagline: "Best for exploring ARFA.",
-    priceMonthly: 0,
-    priceAnnual: 0,
     features: [
       "25 asset views / month",
       "Core ARFA scores",
@@ -37,13 +59,11 @@ const PLANS: Plan[] = [
       "30-day score history",
       "Limited insight explainers",
     ],
-    cta: { label: "Start Free", href: "/signup?plan=free" },
+    ctaLabel: "Start Free",
   },
   {
-    name: "Premium",
+    id: "PREMIUM",
     tagline: "Best for active investors.",
-    priceMonthly: 39,
-    priceAnnual: 348, // $29/mo effective
     features: [
       "Unlimited asset views",
       "Full ARFA diagnostics & explainers",
@@ -56,14 +76,12 @@ const PLANS: Plan[] = [
       "Email alerts",
       "20 exports / month (CSV / XLSX / PDF)",
     ],
-    cta: { label: "Upgrade to Premium", href: "/signup?plan=premium" },
+    ctaLabel: "Upgrade to Premium",
     featured: true,
   },
   {
-    name: "Pro",
+    id: "PRO",
     tagline: "Best for professionals.",
-    priceMonthly: 99,
-    priceAnnual: 948, // $79/mo effective
     features: [
       "Everything in Premium",
       "50 watchlists (500 items each)",
@@ -76,34 +94,116 @@ const PLANS: Plan[] = [
       "Priority support",
       "API access (add-on)",
     ],
-    cta: { label: "Go Pro", href: "/signup?plan=pro" },
+    ctaLabel: "Go Pro",
   },
 ];
 
 function formatUsd(n: number): string {
   if (n === 0) return "$0";
-  return `$${n.toLocaleString("en-US")}`;
+  return `$${Math.round(n).toLocaleString("en-US")}`;
 }
 
-function effectiveMonthlyAnnual(plan: Plan): number {
-  return plan.priceAnnual / 12;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Main export
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function PricingPlans() {
+  const router = useRouter();
   const [billing, setBilling] = React.useState<BillingCycle>("monthly");
+  /** Which plan is currently in the middle of a checkout roundtrip. Used
+   *  to show a spinner on the clicked card and disable the others so the
+   *  user can't double-submit. */
+  const [pendingPlan, setPendingPlan] = React.useState<PlanId | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function handleUpgrade(planId: PlanId) {
+    if (planId === "FREE") {
+      router.push("/register");
+      return;
+    }
+
+    setError(null);
+    const interval = BILLING_TO_INTERVAL[billing];
+    const priceId = getPriceId(planId, interval);
+    if (!priceId) {
+      setError(
+        `Pricing isn't configured yet for ${PLANS[planId].name} (${interval}ly). Try again later or contact support.`,
+      );
+      return;
+    }
+
+    setPendingPlan(planId);
+
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priceId }),
+      });
+
+      const data = (await res.json()) as {
+        url?: string;
+        error?: string;
+        redirectTo?: string;
+      };
+
+      if (res.status === 401 && data.redirectTo) {
+        // Not signed in — bounce to register with a return path.
+        router.push(data.redirectTo);
+        return;
+      }
+      if (!res.ok || !data.url) {
+        setError(data.error ?? "Could not start checkout. Try again.");
+        return;
+      }
+
+      // Hard navigation to Stripe Checkout.
+      window.location.href = data.url;
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Network error starting checkout.",
+      );
+    } finally {
+      // `pendingPlan` stays set on success because we're about to leave the
+      // page anyway; only clear on error so the button re-enables.
+      setPendingPlan((p) => (p === planId ? null : p));
+    }
+  }
 
   return (
     <>
       <BillingToggle value={billing} onChange={setBilling} />
 
+      {error && (
+        <Alert variant="destructive" className="mt-6">
+          {error}
+        </Alert>
+      )}
+
       <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-4 lg:gap-6">
-        {PLANS.map((plan) => (
-          <PlanCard key={plan.name} plan={plan} billing={billing} />
+        {CARD_PLANS.map((cp) => (
+          <PlanCard
+            key={cp.id}
+            cardPlan={cp}
+            billing={billing}
+            onUpgrade={handleUpgrade}
+            isPending={pendingPlan === cp.id}
+            // Disable sibling buttons while one is mid-checkout so users
+            // don't double-click across cards.
+            disableOthers={pendingPlan !== null && pendingPlan !== cp.id}
+          />
         ))}
       </div>
     </>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────────────────────────────────────
 
 function BillingToggle({
   value,
@@ -147,19 +247,33 @@ function BillingToggle({
   );
 }
 
-function PlanCard({ plan, billing }: { plan: Plan; billing: BillingCycle }) {
-  const annualEffective = effectiveMonthlyAnnual(plan);
-  const displayPrice =
-    billing === "monthly" ? plan.priceMonthly : annualEffective;
+function PlanCard({
+  cardPlan,
+  billing,
+  onUpgrade,
+  isPending,
+  disableOthers,
+}: {
+  cardPlan: CardPlan;
+  billing: BillingCycle;
+  onUpgrade: (planId: PlanId) => void;
+  isPending: boolean;
+  disableOthers: boolean;
+}) {
+  const plan = PLANS[cardPlan.id];
+  const effectiveMonthly =
+    plan.priceAnnual === 0 ? 0 : plan.priceAnnual / 12;
+  const displayPrice = billing === "monthly" ? plan.priceMonthly : effectiveMonthly;
+  const isFree = cardPlan.id === "FREE";
 
   return (
     <Card
       className={cn(
         "relative flex flex-col",
-        plan.featured && "border-primary shadow-md ring-1 ring-primary/20",
+        cardPlan.featured && "border-primary shadow-md ring-1 ring-primary/20",
       )}
     >
-      {plan.featured && (
+      {cardPlan.featured && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <Badge className="bg-primary text-primary-foreground">
             Most Popular
@@ -172,42 +286,34 @@ function PlanCard({ plan, billing }: { plan: Plan; billing: BillingCycle }) {
           <h3 className="font-display text-xl font-semibold tracking-tight text-text-primary">
             {plan.name}
           </h3>
-          <p className="text-sm text-text-muted">{plan.tagline}</p>
+          <p className="text-sm text-text-muted">{cardPlan.tagline}</p>
         </div>
 
         <div className="mt-3 flex items-baseline gap-1.5">
           <span className="font-display text-4xl font-bold tracking-tight text-text-primary">
-            {formatUsd(
-              plan.priceMonthly === 0
-                ? 0
-                : Number(displayPrice.toFixed(0)),
-            )}
+            {formatUsd(displayPrice)}
           </span>
-          {plan.priceMonthly !== 0 && (
-            <span className="text-sm text-text-muted">/ month</span>
-          )}
+          {!isFree && <span className="text-sm text-text-muted">/ month</span>}
         </div>
-        {plan.priceMonthly !== 0 && billing === "annual" && (
+        {!isFree && billing === "annual" && (
           <p className="text-xs text-text-faint">
             Billed {formatUsd(plan.priceAnnual)} annually
           </p>
         )}
-        {plan.priceMonthly !== 0 && billing === "monthly" && (
+        {!isFree && billing === "monthly" && (
           <p className="text-xs text-text-faint">Billed monthly</p>
         )}
-        {plan.priceMonthly === 0 && (
-          <p className="text-xs text-text-faint">Free forever</p>
-        )}
+        {isFree && <p className="text-xs text-text-faint">Free forever</p>}
       </CardHeader>
 
       <CardContent className="flex flex-1 flex-col gap-6 pt-0">
         <ul className="flex flex-col gap-3">
-          {plan.features.map((feature) => (
+          {cardPlan.features.map((feature) => (
             <li key={feature} className="flex items-start gap-2.5 text-sm">
               <Check
                 className={cn(
                   "mt-0.5 h-4 w-4 shrink-0",
-                  plan.featured ? "text-primary" : "text-text-muted",
+                  cardPlan.featured ? "text-primary" : "text-text-muted",
                 )}
               />
               <span className="text-text-primary">{feature}</span>
@@ -215,14 +321,36 @@ function PlanCard({ plan, billing }: { plan: Plan; billing: BillingCycle }) {
           ))}
         </ul>
 
-        <Button
-          asChild
-          variant={plan.featured ? "default" : "outline"}
-          className="mt-auto w-full"
-          size="lg"
-        >
-          <Link href={plan.cta.href}>{plan.cta.label}</Link>
-        </Button>
+        {isFree ? (
+          // Free tier has no Stripe roundtrip — straight to /register.
+          <Button
+            asChild
+            variant={cardPlan.featured ? "default" : "outline"}
+            className="mt-auto w-full"
+            size="lg"
+            disabled={disableOthers}
+          >
+            <Link href="/register">{cardPlan.ctaLabel}</Link>
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant={cardPlan.featured ? "default" : "outline"}
+            className="mt-auto w-full"
+            size="lg"
+            onClick={() => onUpgrade(cardPlan.id)}
+            disabled={isPending || disableOthers}
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Redirecting…
+              </>
+            ) : (
+              cardPlan.ctaLabel
+            )}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
