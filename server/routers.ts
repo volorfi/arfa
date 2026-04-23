@@ -61,6 +61,23 @@ import {
   listSignals,
   HORIZONS_SUPPORTED,
 } from "./signalService";
+import {
+  getFXOverview,
+  getFXPair,
+  getCurrencyStrength,
+  getCrossRateMatrix,
+  getCentralBankRates,
+  getFXMovers,
+} from "./fxService";
+import {
+  getCommoditiesOverview,
+  getCommodity,
+  getCommoditiesByFamily,
+  getCommodityLeaderboard,
+  getCorrelationMatrix,
+  getInflationBaskets,
+  getRelatedEquities,
+} from "./commodityService";
 
 export const appRouter = router({
   system: systemRouter,
@@ -555,6 +572,42 @@ export const appRouter = router({
       }
       return runFullScrape();
     }),
+  }),
+
+  fx: router({
+    overview: publicProcedure.query(async () => getFXOverview()),
+    pair: publicProcedure
+      .input(z.object({ slug: z.string().min(3).max(10) }))
+      .query(async ({ input }) => getFXPair(input.slug)),
+    strength: publicProcedure.query(async () => getCurrencyStrength()),
+    crossRates: publicProcedure.query(async () => getCrossRateMatrix()),
+    centralBanks: publicProcedure.query(async () => getCentralBankRates()),
+    movers: publicProcedure
+      .input(z.object({ limit: z.number().int().min(1).max(50).default(10) }))
+      .query(async ({ input }) => getFXMovers(input.limit)),
+  }),
+
+  commodity: router({
+    overview: publicProcedure.query(async () => getCommoditiesOverview()),
+    byFamily: publicProcedure.query(async () => getCommoditiesByFamily()),
+    detail: publicProcedure
+      .input(z.object({ symbol: z.string().min(1).max(8) }))
+      .query(async ({ input }) => getCommodity(input.symbol)),
+    leaderboard: publicProcedure
+      .input(
+        z.object({
+          sortKey: z
+            .enum(["changePercent", "changePercent1W", "changePercent1M", "changePercentYTD"])
+            .default("changePercent"),
+          limit: z.number().int().min(1).max(50).default(10),
+        }),
+      )
+      .query(async ({ input }) => getCommodityLeaderboard(input.sortKey, input.limit)),
+    correlations: publicProcedure.query(async () => getCorrelationMatrix()),
+    inflationBaskets: publicProcedure.query(async () => getInflationBaskets()),
+    relatedEquities: publicProcedure
+      .input(z.object({ symbol: z.string().min(1).max(8) }))
+      .query(async ({ input }) => getRelatedEquities(input.symbol)),
   }),
 });
 

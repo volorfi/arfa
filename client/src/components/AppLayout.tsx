@@ -114,6 +114,29 @@ const menuSections: MenuSection[] = [
           { label: "Corporate Bonds", path: "/fixed-income/corporate", icon: Shield },
         ],
       },
+      {
+        icon: DollarSign,
+        label: "Currencies",
+        path: "/fx",
+        children: [
+          { label: "FX Overview", path: "/fx", icon: DollarSign },
+          { label: "EUR / USD", path: "/fx/EURUSD", icon: DollarSign },
+          { label: "GBP / USD", path: "/fx/GBPUSD", icon: DollarSign },
+          { label: "USD / JPY", path: "/fx/USDJPY", icon: DollarSign },
+        ],
+      },
+      {
+        icon: Rocket,
+        label: "Commodities",
+        path: "/commodities",
+        children: [
+          { label: "All Commodities", path: "/commodities", icon: ListOrdered },
+          { label: "Gold", path: "/commodities/GC", icon: DollarSign },
+          { label: "WTI Crude", path: "/commodities/CL", icon: DollarSign },
+          { label: "Natural Gas", path: "/commodities/NG", icon: DollarSign },
+          { label: "Copper", path: "/commodities/HG", icon: DollarSign },
+        ],
+      },
     ],
   },
   {

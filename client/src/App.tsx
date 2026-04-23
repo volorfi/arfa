@@ -38,6 +38,10 @@ import OptionsChain from "./pages/OptionsChain";
 import StrategyBuilder from "./pages/StrategyBuilder";
 import OptionsFlow from "./pages/OptionsFlow";
 import OptionsScreener from "./pages/OptionsScreener";
+import FXOverview from "./pages/FXOverview";
+import FXPairDetail from "./pages/FXPairDetail";
+import CommoditiesOverview from "./pages/CommoditiesOverview";
+import CommodityDetail from "./pages/CommodityDetail";
 import { LineChart, Calculator, BarChart3 } from "lucide-react";
 import CookieConsent from "./components/CookieConsent";
 
@@ -78,6 +82,10 @@ function Router() {
         <Route path="/options/strategy" component={StrategyBuilder} />
         <Route path="/options/flow" component={OptionsFlow} />
         <Route path="/options/tools" component={OptionsScreener} />
+        <Route path="/fx" component={FXOverview} />
+        <Route path="/fx/:pair" component={FXPairDetail} />
+        <Route path="/commodities" component={CommoditiesOverview} />
+        <Route path="/commodities/:symbol" component={CommodityDetail} />
         <Route path="/chart">
           {() => <PlaceholderPage title="Technical Chart" icon={LineChart} />}
         </Route>

@@ -19,9 +19,54 @@ const siteLinks = [
     links: [
       { label: "Home", path: "/" },
       { label: "Watchlist", path: "/watchlist" },
-      { label: "News", path: "/news" },
+      { label: "News & Blogs", path: "/news" },
       { label: "Trending", path: "/trending" },
       { label: "Market Movers", path: "/movers" },
+    ],
+  },
+  {
+    title: "Stocks & ETFs",
+    links: [
+      { label: "Stock Screener", path: "/screener" },
+      { label: "All Stocks", path: "/stocks" },
+      { label: "ETFs", path: "/etfs" },
+      { label: "IPOs", path: "/ipos" },
+    ],
+  },
+  {
+    title: "Fixed Income",
+    links: [
+      { label: "Sovereign Bonds", path: "/fixed-income/sovereign" },
+      { label: "Corporate Bonds", path: "/fixed-income/corporate" },
+    ],
+  },
+  {
+    title: "Currencies",
+    links: [
+      { label: "FX Overview", path: "/fx" },
+      { label: "EUR / USD", path: "/fx/EURUSD" },
+      { label: "GBP / USD", path: "/fx/GBPUSD" },
+      { label: "USD / JPY", path: "/fx/USDJPY" },
+    ],
+  },
+  {
+    title: "Commodities",
+    links: [
+      { label: "All Commodities", path: "/commodities" },
+      { label: "Gold", path: "/commodities/GC" },
+      { label: "WTI Crude", path: "/commodities/CL" },
+      { label: "Natural Gas", path: "/commodities/NG" },
+      { label: "Copper", path: "/commodities/HG" },
+    ],
+  },
+  {
+    title: "Macro",
+    links: [
+      { label: "All Countries", path: "/macro" },
+      { label: "Americas", path: "/macro/region/Americas" },
+      { label: "Europe", path: "/macro/region/Europe" },
+      { label: "Asia", path: "/macro/region/Asia" },
+      { label: "Middle East", path: "/macro/region/Middle%20East" },
     ],
   },
   {
@@ -32,15 +77,6 @@ const siteLinks = [
       { label: "Stock Splits", path: "/calendars/stock-splits" },
       { label: "Economic Events", path: "/calendars/economic-events" },
       { label: "Public Offerings", path: "/calendars/public-offerings" },
-    ],
-  },
-  {
-    title: "Stocks & ETFs",
-    links: [
-      { label: "Stock Screener", path: "/screener" },
-      { label: "All Stocks", path: "/stocks" },
-      { label: "ETFs", path: "/etfs" },
-      { label: "IPOs", path: "/ipos" },
     ],
   },
   {
@@ -86,7 +122,7 @@ export default function Footer() {
           </div>
 
           {/* Center: Site navigation columns */}
-          <div className="lg:col-span-6 grid grid-cols-2 sm:grid-cols-4 gap-6">
+          <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-8">
             {siteLinks.map((section) => (
               <div key={section.title}>
                 <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">
@@ -109,7 +145,7 @@ export default function Footer() {
           </div>
 
           {/* Right: ARFA Markets legal links */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">
               ARFA Markets
             </h4>
