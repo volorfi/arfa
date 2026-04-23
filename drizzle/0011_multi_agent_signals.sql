@@ -1,4 +1,4 @@
-DROP TABLE `signals`;
+DROP TABLE IF EXISTS `signals`;
 --> statement-breakpoint
 CREATE TABLE `assets` (
 	`id` varchar(36) NOT NULL,
