@@ -11,6 +11,7 @@ import {
   ArrowUpDown,
   Wrench,
 } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
 
 const siteLinks = [
   {
@@ -71,21 +72,16 @@ export default function Footer() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8">
           {/* Left: ARFA branding */}
           <div className="lg:col-span-3">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="h-8 w-8 rounded bg-primary flex items-center justify-center shrink-0">
-                <span className="text-primary-foreground font-bold text-[10px]">AG</span>
-              </div>
-              <div>
-                <div className="font-semibold text-sm tracking-tight text-foreground">
-                  ARFA Global Markets
-                </div>
-                <div className="text-[11px] text-muted-foreground tracking-wide uppercase">
-                  Investment Intelligence
-                </div>
-              </div>
-            </div>
+            <Link href="/" aria-label="ARFA home" className="inline-block">
+              <BrandMark variant="horizontal-tagline" size={44} />
+            </Link>
+            <p className="text-[11px] text-muted-foreground tracking-wider uppercase mt-3">
+              Global Markets Intelligence Hub
+            </p>
             <p className="text-sm text-muted-foreground leading-relaxed mt-4 max-w-xs">
-              ARFA is an independent analytical platform focused on market intelligence, portfolio thinking, and capital allocation perspectives.
+              ARFA is an independent analytical platform focused on market
+              intelligence, portfolio thinking, and capital allocation
+              perspectives.
             </p>
           </div>
 

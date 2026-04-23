@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { TrendingUp, TrendingDown, Minus, AlertTriangle, Lock } from "lucide-react";
+import { BrandMark } from "@/components/BrandMark";
 
 type Stance = "bullish" | "bearish" | "neutral";
 type ConfidenceBand = "very_high" | "high" | "medium" | "low" | "abstain";
@@ -61,10 +62,13 @@ export function SignalCard({ symbol }: { symbol: string }) {
 
   if (!user) {
     return (
-      <div className="bg-card border border-border rounded-lg p-4 flex items-center gap-3">
-        <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
-        <div className="text-xs text-muted-foreground">
-          Log in to see ARFA's 20-day research signal for {symbol}.
+      <div className="bg-card border border-border rounded-lg p-4 flex flex-col items-center text-center gap-3">
+        <BrandMark variant="full-vertical" size={96} />
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Lock className="h-3.5 w-3.5" />
+          <span>
+            Log in to see ARFA's 20-day research signal for {symbol}.
+          </span>
         </div>
       </div>
     );
