@@ -1,9 +1,92 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "0e6218d4-ca00-48e6-b64c-21a797d2c420",
+  "id": "359224e5-c848-4ae3-bbca-0529a5385fa7",
   "prevId": "3ddbf67f-2a39-4444-a6ff-f72535d482a7",
   "tables": {
+    "assets": {
+      "name": "assets",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "assetClass": {
+          "name": "assetClass",
+          "type": "enum('equity','bond','fx','commodity','index','etf','macro')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "displayName": {
+          "name": "displayName",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "exchangeCode": {
+          "name": "exchangeCode",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "currency": {
+          "name": "currency",
+          "type": "varchar(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "countryCode": {
+          "name": "countryCode",
+          "type": "varchar(2)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {
+        "uq_asset": {
+          "name": "uq_asset",
+          "columns": [
+            "assetClass",
+            "identifier"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "assets_id": {
+          "name": "assets_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
     "external_podcasts": {
       "name": "external_podcasts",
       "columns": {
@@ -404,51 +487,58 @@
       },
       "checkConstraint": {}
     },
-    "users": {
-      "name": "users",
+    "notes": {
+      "name": "notes",
       "columns": {
         "id": {
           "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "assetId": {
+          "name": "assetId",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "noteType": {
+          "name": "noteType",
+          "type": "enum('analysis','meeting','watchlist','journal','draft','other')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(300)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bodyMarkdown": {
+          "name": "bodyMarkdown",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "authorUserId": {
+          "name": "authorUserId",
           "type": "int",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": true
-        },
-        "openId": {
-          "name": "openId",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true,
           "autoincrement": false
         },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "email": {
-          "name": "email",
-          "type": "varchar(320)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "loginMethod": {
-          "name": "loginMethod",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "role": {
-          "name": "role",
-          "type": "enum('user','subscriber','admin')",
+        "status": {
+          "name": "status",
+          "type": "enum('draft','active','archived')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'user'"
+          "default": "'active'"
         },
         "createdAt": {
           "name": "createdAt",
@@ -466,81 +556,22 @@
           "autoincrement": false,
           "onUpdate": true,
           "default": "(now())"
-        },
-        "lastSignedIn": {
-          "name": "lastSignedIn",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_notes_asset_created": {
+          "name": "idx_notes_asset_created",
+          "columns": [
+            "assetId",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "users_id": {
-          "name": "users_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {
-        "users_openId_unique": {
-          "name": "users_openId_unique",
-          "columns": [
-            "openId"
-          ]
-        }
-      },
-      "checkConstraint": {}
-    },
-    "watchlist": {
-      "name": "watchlist",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "userId": {
-          "name": "userId",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "symbol": {
-          "name": "symbol",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "companyName": {
-          "name": "companyName",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "addedAt": {
-          "name": "addedAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "watchlist_id": {
-          "name": "watchlist_id",
+        "notes_id": {
+          "name": "notes_id",
           "columns": [
             "id"
           ]
@@ -549,54 +580,75 @@
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
-    "assets": {
-      "name": "assets",
+    "overrides": {
+      "name": "overrides",
       "columns": {
         "id": {
           "name": "id",
           "type": "varchar(36)",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "assetClass": {
-          "name": "assetClass",
-          "type": "enum('equity','bond','fx','commodity','index','etf','macro')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "identifier": {
-          "name": "identifier",
+        "objectType": {
+          "name": "objectType",
+          "type": "enum('signal','note','review','policy_decision','agent_output')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "objectId": {
+          "name": "objectId",
           "type": "varchar(64)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "displayName": {
-          "name": "displayName",
-          "type": "varchar(256)",
+        "overrideType": {
+          "name": "overrideType",
+          "type": "enum('suppress','downgrade_confidence','upgrade_confidence','replace_stance','hold_publication','add_falsifier','policy_restriction')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "exchangeCode": {
-          "name": "exchangeCode",
-          "type": "varchar(16)",
+        "reasonCode": {
+          "name": "reasonCode",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reasonText": {
+          "name": "reasonText",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "evidenceRefs": {
+          "name": "evidenceRefs",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "effectiveFrom": {
+          "name": "effectiveFrom",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "currency": {
-          "name": "currency",
-          "type": "varchar(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "countryCode": {
-          "name": "countryCode",
-          "type": "varchar(2)",
+        "effectiveTo": {
+          "name": "effectiveTo",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -610,25 +662,127 @@
           "default": "(now())"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_overrides_object": {
+          "name": "idx_overrides_object",
+          "columns": [
+            "objectType",
+            "objectId"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "assets_id": {
-          "name": "assets_id",
+        "overrides_id": {
+          "name": "overrides_id",
           "columns": [
             "id"
           ]
         }
       },
-      "uniqueConstraints": {
-        "uq_asset": {
-          "name": "uq_asset",
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "review_tasks": {
+      "name": "review_tasks",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reviewType": {
+          "name": "reviewType",
+          "type": "enum('data_review','signal_review','publication_review','override_review','incident_review')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "objectType": {
+          "name": "objectType",
+          "type": "enum('signal','note','override','incident','policy_decision')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "objectId": {
+          "name": "objectId",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "enum('open','in_progress','approved','rejected','escalated','closed')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'open'"
+        },
+        "priority": {
+          "name": "priority",
+          "type": "enum('low','medium','high','critical')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'medium'"
+        },
+        "assignedTo": {
+          "name": "assignedTo",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reviewNotes": {
+          "name": "reviewNotes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "onUpdate": true,
+          "default": "(now())"
+        }
+      },
+      "indexes": {
+        "idx_review_tasks_status": {
+          "name": "idx_review_tasks_status",
           "columns": [
-            "assetClass",
-            "identifier"
+            "status",
+            "createdAt"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "review_tasks_id": {
+          "name": "review_tasks_id",
+          "columns": [
+            "id"
           ]
         }
       },
+      "uniqueConstraints": {},
       "checkConstraint": {}
     },
     "signals": {
@@ -637,7 +791,7 @@
         "id": {
           "name": "id",
           "type": "varchar(36)",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -775,7 +929,8 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "(now()) ON UPDATE CURRENT_TIMESTAMP"
+          "onUpdate": true,
+          "default": "(now())"
         }
       },
       "indexes": {
@@ -785,20 +940,14 @@
             "assetId",
             "createdAt"
           ],
-          "isUnique": false,
-          "using": "btree",
-          "algorithm": "default",
-          "lock": "default"
+          "isUnique": false
         },
         "idx_signals_status": {
           "name": "idx_signals_status",
           "columns": [
             "publicationStatus"
           ],
-          "isUnique": false,
-          "using": "btree",
-          "algorithm": "default",
-          "lock": "default"
+          "isUnique": false
         }
       },
       "foreignKeys": {},
@@ -813,58 +962,51 @@
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
-    "notes": {
-      "name": "notes",
+    "users": {
+      "name": "users",
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(36)",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "assetId": {
-          "name": "assetId",
-          "type": "varchar(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "noteType": {
-          "name": "noteType",
-          "type": "enum('analysis','meeting','watchlist','journal','draft','other')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "title": {
-          "name": "title",
-          "type": "varchar(300)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "bodyMarkdown": {
-          "name": "bodyMarkdown",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "authorUserId": {
-          "name": "authorUserId",
           "type": "int",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": true
+        },
+        "openId": {
+          "name": "openId",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true,
           "autoincrement": false
         },
-        "status": {
-          "name": "status",
-          "type": "enum('draft','active','archived')",
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "loginMethod": {
+          "name": "loginMethod",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "enum('user','subscriber','admin')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'active'"
+          "default": "'user'"
         },
         "createdAt": {
           "name": "createdAt",
@@ -880,85 +1022,47 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "(now()) ON UPDATE CURRENT_TIMESTAMP"
+          "onUpdate": true,
+          "default": "(now())"
+        },
+        "lastSignedIn": {
+          "name": "lastSignedIn",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
         }
       },
-      "indexes": {
-        "idx_notes_asset_created": {
-          "name": "idx_notes_asset_created",
-          "columns": [
-            "assetId",
-            "createdAt"
-          ],
-          "isUnique": false,
-          "using": "btree",
-          "algorithm": "default",
-          "lock": "default"
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "notes_id": {
-          "name": "notes_id",
+        "users_id": {
+          "name": "users_id",
           "columns": [
             "id"
           ]
         }
       },
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "users_openId_unique": {
+          "name": "users_openId_unique",
+          "columns": [
+            "openId"
+          ]
+        }
+      },
       "checkConstraint": {}
     },
-    "overrides": {
-      "name": "overrides",
+    "watchlist": {
+      "name": "watchlist",
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(36)",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "objectType": {
-          "name": "objectType",
-          "type": "enum('signal','note','review','policy_decision','agent_output')",
+          "type": "int",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "objectId": {
-          "name": "objectId",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "overrideType": {
-          "name": "overrideType",
-          "type": "enum('suppress','downgrade_confidence','upgrade_confidence','replace_stance','hold_publication','add_falsifier','policy_restriction')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "reasonCode": {
-          "name": "reasonCode",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "reasonText": {
-          "name": "reasonText",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "evidenceRefs": {
-          "name": "evidenceRefs",
-          "type": "json",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "autoincrement": true
         },
         "userId": {
           "name": "userId",
@@ -967,22 +1071,22 @@
           "notNull": true,
           "autoincrement": false
         },
-        "effectiveFrom": {
-          "name": "effectiveFrom",
-          "type": "timestamp",
+        "symbol": {
+          "name": "symbol",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "companyName": {
+          "name": "companyName",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "effectiveTo": {
-          "name": "effectiveTo",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "createdAt": {
-          "name": "createdAt",
+        "addedAt": {
+          "name": "addedAt",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
@@ -990,126 +1094,11 @@
           "default": "(now())"
         }
       },
-      "indexes": {
-        "idx_overrides_object": {
-          "name": "idx_overrides_object",
-          "columns": [
-            "objectType",
-            "objectId"
-          ],
-          "isUnique": false,
-          "using": "btree",
-          "algorithm": "default",
-          "lock": "default"
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "overrides_id": {
-          "name": "overrides_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "review_tasks": {
-      "name": "review_tasks",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(36)",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "reviewType": {
-          "name": "reviewType",
-          "type": "enum('data_review','signal_review','publication_review','override_review','incident_review')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "objectType": {
-          "name": "objectType",
-          "type": "enum('signal','note','override','incident','policy_decision')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "objectId": {
-          "name": "objectId",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "enum('open','in_progress','approved','rejected','escalated','closed')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'open'"
-        },
-        "priority": {
-          "name": "priority",
-          "type": "enum('low','medium','high','critical')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'medium'"
-        },
-        "assignedTo": {
-          "name": "assignedTo",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "reviewNotes": {
-          "name": "reviewNotes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now()) ON UPDATE CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {
-        "idx_review_tasks_status": {
-          "name": "idx_review_tasks_status",
-          "columns": [
-            "status",
-            "createdAt"
-          ],
-          "isUnique": false,
-          "using": "btree",
-          "algorithm": "default",
-          "lock": "default"
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "review_tasks_id": {
-          "name": "review_tasks_id",
+        "watchlist_id": {
+          "name": "watchlist_id",
           "columns": [
             "id"
           ]
