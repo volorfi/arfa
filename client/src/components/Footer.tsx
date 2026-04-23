@@ -11,7 +11,7 @@ import {
   ArrowUpDown,
   Wrench,
 } from "lucide-react";
-import { BrandMark } from "@/components/BrandMark";
+import ArfaLogo from "@/components/ArfaLogo";
 
 const siteLinks = [
   {
@@ -109,7 +109,7 @@ export default function Footer() {
           {/* Left: ARFA branding */}
           <div className="lg:col-span-3">
             <Link href="/" aria-label="ARFA home" className="inline-block">
-              <BrandMark variant="horizontal-tagline" size={44} />
+              <ArfaLogo variant="stacked" theme="auto" size="md" />
             </Link>
             <p className="text-[11px] text-muted-foreground tracking-wider uppercase mt-3">
               Global Markets Intelligence Hub

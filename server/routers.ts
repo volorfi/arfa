@@ -56,11 +56,8 @@ import {
   getPodcastCategories,
   runFullScrape,
 } from "./ideafarmService";
-import {
-  getLatestSignalBySymbol,
-  listSignals,
-  HORIZONS_SUPPORTED,
-} from "./signalService";
+import { insightsRouter } from "./insightsRouter";
+import { osRouter } from "./osRouter";
 import {
   getFXOverview,
   getFXPair,
@@ -90,36 +87,8 @@ export const appRouter = router({
     }),
   }),
 
-  // Research-engine signals (Phase 0). Gated behind protectedProcedure so
-  // only logged-in users see them — swap to a subscriber tier later.
-  signal: router({
-    get: protectedProcedure
-      .input(
-        z.object({
-          symbol: z.string().min(1),
-          horizon: z.enum(HORIZONS_SUPPORTED as [string, ...string[]]).default("20D"),
-        }),
-      )
-      .query(async ({ input }) => {
-        return getLatestSignalBySymbol(input.symbol, input.horizon as any);
-      }),
-    list: protectedProcedure
-      .input(
-        z.object({
-          horizon: z.enum(HORIZONS_SUPPORTED as [string, ...string[]]).default("20D"),
-          stance: z.enum(["bullish", "bearish", "neutral"]).optional(),
-          limit: z.number().int().min(1).max(200).default(25),
-          onlyPublishable: z.boolean().default(false),
-        }),
-      )
-      .query(async ({ input }) => {
-        return listSignals(input.horizon as any, {
-          stance: input.stance,
-          limit: input.limit,
-          onlyPublishable: input.onlyPublishable,
-        });
-      }),
-  }),
+  insights: insightsRouter,
+  os: osRouter,
 
   stock: router({
     quote: publicProcedure
