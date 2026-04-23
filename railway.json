@@ -5,6 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
+    "preDeployCommand": "pnpm drizzle-kit migrate",
     "startCommand": "node dist/index.js",
     "healthcheckPath": "/healthz",
     "healthcheckTimeout": 60,
