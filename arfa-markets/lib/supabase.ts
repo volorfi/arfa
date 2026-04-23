@@ -59,7 +59,9 @@ export function createServerSupabase(cookieStore: ServerCookieStore) {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(
+        cookiesToSet: { name: string; value: string; options: CookieOptions }[],
+      ) {
         // In server components (rendering), cookies are read-only; the
         // try/catch lets us ignore the expected Next error there.
         try {
