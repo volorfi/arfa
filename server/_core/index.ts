@@ -19,11 +19,29 @@ function serveStatic(app: express.Express) {
       `Could not find the build directory: ${distPath}, make sure to build the client first`
     );
   }
+  // Bypass all caches for brand assets so logo changes propagate immediately
+  // when the deploy succeeds. Cheap to re-fetch; worth it for debugging.
+  app.use("/brand", (_req, res, next) => {
+    res.setHeader("Cache-Control", "no-store, must-revalidate");
+    next();
+  });
+  app.use("/favicon.jpg", (_req, res, next) => {
+    res.setHeader("Cache-Control", "no-store, must-revalidate");
+    next();
+  });
   app.use(express.static(distPath));
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
+
+// Build-time git SHA: Railway exposes RAILWAY_GIT_COMMIT_SHA at runtime.
+// Render it at /version so we can prove which commit is live without guessing.
+const COMMIT_SHA =
+  process.env.RAILWAY_GIT_COMMIT_SHA ??
+  process.env.GIT_COMMIT_SHA ??
+  "unknown";
+const DEPLOY_ID = process.env.RAILWAY_DEPLOYMENT_ID ?? "unknown";
 
 async function startServer() {
   const app = express();
@@ -34,6 +52,16 @@ async function startServer() {
   // Liveness probe — plain 200 with no deps, used by Railway healthcheck.
   app.get("/healthz", (_req, res) => {
     res.status(200).json({ ok: true });
+  });
+  // Diagnostic — which commit is actually running? Cache-busted.
+  app.get("/version", (_req, res) => {
+    res.setHeader("Cache-Control", "no-store, must-revalidate");
+    res.status(200).json({
+      commit: COMMIT_SHA,
+      commitShort: COMMIT_SHA.slice(0, 7),
+      deployId: DEPLOY_ID,
+      bootedAt: new Date().toISOString(),
+    });
   });
   // Google OAuth routes under /api/auth/google and /api/auth/google/callback
   registerAuthRoutes(app);
