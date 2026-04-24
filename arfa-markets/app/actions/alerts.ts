@@ -55,6 +55,14 @@ function requirePremium(plan: PlanId): void {
   }
 }
 
+/** Per-plan cap on total alerts. PREMIUM: 5. PRO: 25. FREE shouldn't reach
+ *  this (gate above catches it) but we return 0 as a safety net. */
+function alertCapForPlan(plan: PlanId): number {
+  if (plan === "PRO") return 25;
+  if (plan === "PREMIUM") return 5;
+  return 0;
+}
+
 // ── Schemas ─────────────────────────────────────────────────────────────────
 
 const ConditionInput = z.discriminatedUnion("kind", [
@@ -92,6 +100,22 @@ export async function createAlert(input: z.infer<typeof CreateInput>) {
   const data = CreateInput.parse(input);
   const { prismaUserId, plan } = await requireUser();
   requirePremium(plan);
+
+  // Per-plan total-alert cap. Count across ACTIVE + PAUSED (archived rows
+  // are free). Done before Stripe-delivery checks so a user at their cap
+  // gets the clearer message.
+  const cap = alertCapForPlan(plan);
+  const existing = await prisma.alert.count({
+    where: {
+      userId: prismaUserId,
+      status: { in: ["ACTIVE", "PAUSED"] },
+    },
+  });
+  if (existing >= cap) {
+    throw new Error(
+      `${plan} plan is limited to ${cap} alerts. Remove one or upgrade to add more.`,
+    );
+  }
 
   // Delivery method gate: PUSH is PRO-only.
   const requiredForDelivery = DELIVERY_REQUIRED_PLAN[data.deliveryMethod as AlertDeliveryMethod];

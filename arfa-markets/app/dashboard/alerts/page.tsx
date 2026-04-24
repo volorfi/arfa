@@ -67,7 +67,7 @@ export default async function AlertsPage() {
         <p className="mt-1 text-sm text-text-muted">
           {rows.length === 0
             ? "Set thresholds; we'll tell you when an asset crosses them."
-            : `${rows.length} alert${rows.length === 1 ? "" : "s"} configured.`}
+            : `${rows.length} of ${plan === "PRO" ? 25 : 5} alerts on ${plan}.`}
         </p>
       </header>
 

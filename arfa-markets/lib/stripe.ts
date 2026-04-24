@@ -26,8 +26,11 @@ export const stripe = new Stripe(secretKey, {
   },
 });
 
-/** Publishable key — safe to expose to the client. Re-exported here for
- *  convenience so server code fetching the checkout session can pass it
- *  through without importing another file. */
+/** Publishable key — safe to expose to the client (it IS public). We
+ *  read it from NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY so client bundles can
+ *  also reference `process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+ *  directly when wiring Stripe.js on the checkout page. Re-exported here
+ *  for server callers that want to pass it through without another
+ *  import. */
 export const stripePublishableKey =
-  process.env.STRIPE_PUBLISHABLE_KEY ?? "";
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";

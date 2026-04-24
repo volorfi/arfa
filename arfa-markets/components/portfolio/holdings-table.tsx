@@ -6,8 +6,11 @@ import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
+import { Briefcase } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/empty-state";
 import { ScoreBadge } from "@/components/asset/factor-card";
 import { removeHolding } from "@/app/actions/portfolio";
 import type { ComputedHolding } from "./compute";
@@ -21,9 +24,11 @@ export function HoldingsTable({
 }) {
   if (holdings.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card px-6 py-12 text-center text-sm text-text-muted shadow-xs">
-        No holdings yet. Use the form above to add your first position.
-      </div>
+      <EmptyState
+        icon={Briefcase}
+        title="No holdings yet"
+        description="Use the form above to add your first position. We'll compute weight, weighted ARFA scores, and P&L as soon as you do."
+      />
     );
   }
 

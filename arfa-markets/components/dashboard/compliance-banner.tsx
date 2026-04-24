@@ -22,7 +22,9 @@ export function ComplianceBanner() {
     <div
       role="region"
       aria-label="Compliance notice"
-      className="pointer-events-none sticky bottom-0 z-30 flex justify-center px-4 pb-3"
+      // Sits above the mobile tab bar on small screens (bottom-20
+       // = h-16 tab bar + 16px gap) and flush to the bottom on md+.
+      className="pointer-events-none fixed inset-x-0 bottom-20 z-30 flex justify-center px-4 md:sticky md:bottom-3"
     >
       <div className="pointer-events-auto flex w-full max-w-3xl items-center gap-3 rounded-lg border border-border bg-surface-1/95 px-4 py-2.5 shadow-md backdrop-blur supports-[backdrop-filter]:bg-surface-1/80">
         <ShieldAlert

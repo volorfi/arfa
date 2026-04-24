@@ -8,6 +8,7 @@ import { createServerSupabase } from "@/lib/supabase";
 import { ensureUserProfile } from "@/app/actions/user";
 import { getPlanLimits } from "@/lib/plans";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/empty-state";
 import { CreateWatchlistForm } from "@/components/watchlists/create-watchlist-form";
 import { DeleteWatchlistButton } from "@/components/watchlists/delete-watchlist-button";
 
@@ -67,7 +68,13 @@ export default async function WatchlistsPage() {
       </header>
 
       {watchlists.length === 0 ? (
-        <EmptyState />
+        <EmptyState
+          icon={Star}
+          title="No watchlists yet"
+          description="Create a list to track tickers you're researching. From the screener you can quick-add any asset to your default list."
+          ctaLabel="New watchlist"
+          ctaHref="#"
+        />
       ) : (
         <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {watchlists.map((wl) => (
@@ -113,19 +120,3 @@ export default async function WatchlistsPage() {
   );
 }
 
-function EmptyState() {
-  return (
-    <Card>
-      <CardContent className="flex flex-col items-start gap-3 px-8 py-10">
-        <Star className="h-6 w-6 text-text-faint" />
-        <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary">
-          No watchlists yet
-        </h2>
-        <p className="max-w-md text-sm text-text-muted">
-          Create a list to track tickers you&apos;re researching. From the
-          screener you can quick-add any asset to your default list.
-        </p>
-      </CardContent>
-    </Card>
-  );
-}

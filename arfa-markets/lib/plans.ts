@@ -49,13 +49,12 @@ export interface Plan {
   priceMonthly: number;
   /** Total billed annually when paying yearly. 0 for FREE. */
   priceAnnual: number;
-  /** Stripe price IDs — absent for FREE. undefined if the env var isn't set
-   *  (e.g. in dev before you've created prices in Stripe). Callers should
-   *  treat empty string as "not configured" and surface a clear error. */
-  monthlyPriceId?: string;
-  annualPriceId?: string;
   limits: PlanLimits;
 }
+// Price IDs intentionally DO NOT live here anymore — they were moved to
+// `lib/stripe-prices.ts` (server-only) so the client can't tamper with
+// the plan → priceId mapping. Client callers send { plan, interval }
+// and the server resolves the id.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Feature flags — what a plan can access
@@ -137,8 +136,6 @@ export const PLANS: Record<PlanId, Plan> = {
     tier: 1,
     priceMonthly: 39,
     priceAnnual: 348, // $29/mo effective
-    monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PREMIUM_MONTHLY_PRICE_ID,
-    annualPriceId: process.env.NEXT_PUBLIC_STRIPE_PREMIUM_ANNUAL_PRICE_ID,
     limits: {
       assetViews: null,
       watchlists: 10,
@@ -155,8 +152,6 @@ export const PLANS: Record<PlanId, Plan> = {
     tier: 2,
     priceMonthly: 99,
     priceAnnual: 948, // $79/mo effective
-    monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID,
-    annualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRO_ANNUAL_PRICE_ID,
     limits: {
       assetViews: null,
       watchlists: 50,
@@ -190,32 +185,7 @@ export function planMeetsTier(plan: PlanId, required: PlanId): boolean {
   return (PLANS[plan]?.tier ?? 0) >= (PLANS[required]?.tier ?? 0);
 }
 
-/** Resolve a Stripe price ID for a given plan + interval. Returns undefined
- *  for FREE or when the env var isn't configured. */
-export function getPriceId(
-  plan: PlanId,
-  interval: BillingInterval,
-): string | undefined {
-  if (plan === "FREE") return undefined;
-  const id =
-    interval === "month" ? PLANS[plan].monthlyPriceId : PLANS[plan].annualPriceId;
-  return id && id.length > 0 ? id : undefined;
-}
-
-/** Reverse lookup: given a Stripe price ID, which plan + interval is it?
- *  Used by the webhook when a subscription updates — Stripe tells us the
- *  priceId, we need to translate that back into our internal plan enum. */
-export function planFromPriceId(
-  priceId: string,
-): { plan: PlanId; interval: BillingInterval } | null {
-  for (const planId of ["PREMIUM", "PRO"] as const) {
-    const p = PLANS[planId];
-    if (p.monthlyPriceId && p.monthlyPriceId === priceId) {
-      return { plan: planId, interval: "month" };
-    }
-    if (p.annualPriceId && p.annualPriceId === priceId) {
-      return { plan: planId, interval: "year" };
-    }
-  }
-  return null;
-}
+// Stripe price resolution (`resolvePriceId`, `planFromPriceId`) lives
+// in `lib/stripe-prices.ts` which imports "server-only". That file is
+// the single place env vars like STRIPE_PREMIUM_MONTHLY_PRICE_ID are
+// read; isomorphic code stays here.

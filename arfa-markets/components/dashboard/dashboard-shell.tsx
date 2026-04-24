@@ -16,6 +16,7 @@ import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { AssetSearch } from "@/components/dashboard/asset-search";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
 import { ComplianceBanner } from "@/components/dashboard/compliance-banner";
+import { MobileTabBar } from "@/components/dashboard/mobile-tab-bar";
 
 /**
  * Dashboard shell — fixed left sidebar + sticky top bar + scrolling main.
@@ -45,6 +46,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-dvh bg-background">
+      {/* Skip link — first focusable element, hidden until :focus so
+          keyboard users can bypass the sidebar on every page. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[60] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Desktop sidebar */}
       <aside
         aria-label="Sidebar"
@@ -99,7 +109,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 md:px-8 md:py-10">
+        <main
+          id="main"
+          tabIndex={-1}
+          // pb-32 on mobile clears the bottom tab bar (h-16) + the
+          // compliance banner above it. md+ reverts to standard padding.
+          className="flex-1 px-4 pb-32 pt-6 md:px-8 md:pb-10 md:pt-10"
+        >
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
 
@@ -107,6 +123,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             component (DashboardShell) so dismissals persist across
             in-app navigation but reset on full page reload. */}
         <ComplianceBanner />
+
+        {/* Fixed bottom tab bar — mobile only (hidden at md+). */}
+        <MobileTabBar />
       </div>
     </div>
   );

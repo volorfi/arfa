@@ -24,9 +24,17 @@ import { Badge } from "@/components/ui/badge";
 import { WatchFace } from "@/components/marketing/watch-face";
 
 export const metadata: Metadata = {
-  title: "Research any asset in seconds. With institutional depth.",
+  title: "ARFA — Institutional-Grade Asset Research | arfa.global",
   description:
-    "ARFA scores 120,000+ stocks, bonds, and ETFs across 12 return and risk factors — delivered in one number from 1 to 7.",
+    "Score any stock, bond, or ETF across 12 return and risk factors. Forward-looking. Peer-relative. Daily refresh.",
+  alternates: { canonical: "https://arfa.global/" },
+  openGraph: {
+    title: "ARFA — Institutional-Grade Asset Research",
+    description:
+      "Score any stock, bond, or ETF across 12 return and risk factors. Forward-looking. Peer-relative. Daily refresh.",
+    url: "https://arfa.global/",
+    type: "website",
+  },
 };
 
 // ── Factor data ───────────────────────────────────────────────────────────────

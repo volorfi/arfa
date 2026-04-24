@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
 import {
-  getPriceId,
   PLANS,
   type BillingInterval,
   type PlanId,
@@ -131,22 +130,17 @@ export function PricingPlans() {
 
     setError(null);
     const interval = BILLING_TO_INTERVAL[billing];
-    const priceId = getPriceId(planId, interval);
-    if (!priceId) {
-      setError(
-        `Pricing isn't configured yet for ${PLANS[planId].name} (${interval}ly). Try again later or contact support.`,
-      );
-      return;
-    }
 
     setPendingPlan(planId);
 
     try {
+      // Server resolves the Stripe priceId from { plan, interval } via
+      // env vars; we never ship priceIds to the client anymore.
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({ plan: planId, interval }),
       });
 
       const data = (await res.json()) as {

@@ -5,9 +5,17 @@ import { cn } from "@/lib/utils";
 import { PricingPlans } from "@/components/marketing/pricing-plans";
 
 export const metadata: Metadata = {
-  title: "Pricing",
+  title: "Pricing — ARFA",
   description:
-    "Choose the plan that matches your research depth. Free forever, Premium $39/mo, Pro $99/mo.",
+    "Free, Premium ($39/mo), and Pro ($99/mo) plans. Full ARFA research workflow for active investors and professionals.",
+  alternates: { canonical: "https://arfa.global/pricing" },
+  openGraph: {
+    title: "Pricing — ARFA",
+    description:
+      "Free, Premium ($39/mo), and Pro ($99/mo) plans. Full ARFA research workflow for active investors and professionals.",
+    url: "https://arfa.global/pricing",
+    type: "website",
+  },
 };
 
 // ── Feature matrix data ─────────────────────────────────────────────────────

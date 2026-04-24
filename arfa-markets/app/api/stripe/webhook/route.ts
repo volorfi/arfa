@@ -3,8 +3,8 @@ import type Stripe from "stripe";
 
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
-import { planFromPriceId } from "@/lib/plans";
-import type { SubscriptionStatus } from "@prisma/client";
+import { planFromPriceId } from "@/lib/stripe-prices";
+import type { SubscriptionPlan, SubscriptionStatus } from "@prisma/client";
 
 /**
  * POST /api/stripe/webhook
@@ -192,8 +192,12 @@ async function writeSubscription(
   const priceId = subscription.items.data[0]?.price.id;
   const planInfo = priceId ? planFromPriceId(priceId) : null;
 
+  // planFromPriceId is a narrow "PREMIUM" | "PRO" union; we fall back to
+  // FREE when the price id didn't resolve. Prisma wants its own enum
+  // type on updateMany — narrow the union directly to SubscriptionPlan.
+  const plan: SubscriptionPlan = planInfo?.plan ?? "FREE";
   const data = {
-    plan: planInfo?.plan ?? "FREE",
+    plan,
     status: mapStripeStatus(subscription.status),
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscription.id,

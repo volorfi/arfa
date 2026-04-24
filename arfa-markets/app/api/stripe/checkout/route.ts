@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createServerSupabase } from "@/lib/supabase";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
-import { planFromPriceId } from "@/lib/plans";
+import { resolvePriceId } from "@/lib/stripe-prices";
 import { absoluteUrl } from "@/lib/utils";
 import { ensureUserProfile } from "@/app/actions/user";
 
@@ -20,18 +20,16 @@ import { ensureUserProfile } from "@/app/actions/user";
  *   · We ignore any `userId` in the request body. The authenticated user
  *     comes from Supabase session cookies — never trust client claims
  *     about identity.
- *   · `priceId` IS client-provided, but we validate it maps to a known
- *     plan via planFromPriceId() — so a tampered body can't push the user
- *     into a non-existent / discounted price.
+ *   · Client sends `{ plan, interval }`; the server resolves the Stripe
+ *     priceId via `resolvePriceId`. So a tampered body can't push the
+ *     user into a non-existent / discounted price.
  *   · Stripe Customer is created lazily and cached on the Subscription row
  *     so repeated upgrades reuse the same customer (one customer per user).
  */
 
 const BodySchema = z.object({
-  priceId: z.string().min(1),
-  // Accepted for API compatibility with the spec, but ignored — we trust
-  // the Supabase session cookie, not client-supplied identity.
-  userId: z.string().optional(),
+  plan: z.enum(["PREMIUM", "PRO"]),
+  interval: z.enum(["month", "year"]),
 });
 
 export async function POST(req: NextRequest) {
@@ -41,19 +39,22 @@ export async function POST(req: NextRequest) {
     body = BodySchema.parse(await req.json());
   } catch {
     return NextResponse.json(
-      { error: "Request must be JSON with a priceId string." },
+      {
+        error:
+          "Request must be JSON: { plan: 'PREMIUM' | 'PRO', interval: 'month' | 'year' }.",
+      },
       { status: 400 },
     );
   }
 
-  const { priceId } = body;
-
-  // Validate priceId maps to a known plan
-  const planInfo = planFromPriceId(priceId);
-  if (!planInfo) {
+  // Resolve the Stripe price id server-side.
+  const priceId = resolvePriceId(body.plan, body.interval);
+  if (!priceId) {
     return NextResponse.json(
-      { error: "Unknown priceId." },
-      { status: 400 },
+      {
+        error: `Pricing is not configured yet for ${body.plan} (${body.interval}).`,
+      },
+      { status: 500 },
     );
   }
 
@@ -121,8 +122,8 @@ export async function POST(req: NextRequest) {
     metadata: {
       userId: profile.id,
       supabaseId: profile.supabaseId,
-      planId: planInfo.plan,
-      interval: planInfo.interval,
+      planId: body.plan,
+      interval: body.interval,
     },
     subscription_data: {
       metadata: {
@@ -130,10 +131,11 @@ export async function POST(req: NextRequest) {
         supabaseId: profile.supabaseId,
       },
     },
-    success_url: absoluteUrl(
-      "/dashboard/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}",
-    ),
-    cancel_url: absoluteUrl("/pricing?checkout=cancelled"),
+    // Land users back on the dashboard so they see their upgraded plan
+    // reflected immediately. The `upgrade=success` query param lets the
+    // dashboard surface a toast.
+    success_url: absoluteUrl("/dashboard?upgrade=success&session_id={CHECKOUT_SESSION_ID}"),
+    cancel_url: absoluteUrl("/pricing"),
   });
 
   if (!session.url) {

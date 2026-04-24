@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/empty-state";
+import { BellRing } from "lucide-react";
 import {
   DELIVERY_LABELS,
   describeCondition,
@@ -35,7 +37,11 @@ export interface AlertRow {
 export function AlertsList({ rows }: { rows: AlertRow[] }) {
   if (rows.length === 0) {
     return (
-      <EmptyState />
+      <EmptyState
+        icon={BellRing}
+        title="No alerts yet"
+        description="Use the form above to create one. Alerts fire when an ARFA score crosses the threshold you set — useful for keeping tabs on names you don't want to check daily."
+      />
     );
   }
 
@@ -205,20 +211,3 @@ function AlertRowItem({ row }: { row: AlertRow }) {
   );
 }
 
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed border-border bg-surface-1 px-8 py-12">
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-        <Pause className="h-4 w-4" aria-hidden />
-      </div>
-      <h3 className="font-display text-base font-semibold tracking-tight text-text-primary">
-        No alerts yet
-      </h3>
-      <p className="max-w-md text-sm text-text-muted">
-        Create one above. Alerts fire when an ARFA score crosses the
-        threshold you set — useful for keeping tabs on names you don&apos;t
-        want to check daily.
-      </p>
-    </div>
-  );
-}
