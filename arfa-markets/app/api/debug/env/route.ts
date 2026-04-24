@@ -15,7 +15,7 @@ import { NextResponse, type NextRequest } from "next/server";
  *
  * Usage:
  *   curl https://arfa.global/api/debug/env \
- *     -H "x-admin-key: <ADMIN_KEY from Railway vars>"
+ *     -H "x-admin-key: <ADMIN_KEY from Vercel env vars>"
  */
 
 export const runtime = "nodejs";
@@ -34,10 +34,10 @@ const REQUIRED_VARS = {
     "SUPABASE_SERVICE_ROLE_KEY",
   ],
   database: [
-    "DATABASE_URL",
-    // Optional: Prisma uses this when present for non-pooled migration runs.
-    // We still report it so the smoke test surfaces missing config early.
-    "DIRECT_URL",
+    // Neon-via-Vercel Postgres integration. Pooled URL for runtime queries,
+    // non-pooling URL for migrations (directUrl in schema.prisma).
+    "POSTGRES_PRISMA_URL",
+    "POSTGRES_URL_NON_POOLING",
   ],
   stripe: [
     "STRIPE_SECRET_KEY",
@@ -48,11 +48,11 @@ const REQUIRED_VARS = {
     "STRIPE_PRO_MONTHLY_PRICE_ID",
     "STRIPE_PRO_ANNUAL_PRICE_ID",
   ],
-  railway: [
-    // Not user-set; Railway injects at runtime. Included so the endpoint
-    // can confirm the container is actually on Railway.
-    "RAILWAY_GIT_COMMIT_SHA",
-    "RAILWAY_DEPLOYMENT_ID",
+  vercel: [
+    // Vercel injects these at build/runtime; included so the endpoint can
+    // confirm the app is actually running on Vercel.
+    "VERCEL_ENV",
+    "VERCEL_GIT_COMMIT_SHA",
   ],
 } as const;
 
@@ -80,12 +80,11 @@ export async function GET(req: NextRequest) {
     for (const k of keys) {
       const ok = present(k);
       checklist[group][k] = ok;
-      // Optional keys (DIRECT_URL, RAILWAY_*) shouldn't count against the
-      // overall pass/fail since they're injected/optional.
+      // Optional keys (VERCEL_*) shouldn't count against the overall
+      // pass/fail since they're platform-injected.
       const optional =
-        k === "DIRECT_URL" ||
-        k === "RAILWAY_GIT_COMMIT_SHA" ||
-        k === "RAILWAY_DEPLOYMENT_ID";
+        k === "VERCEL_ENV" ||
+        k === "VERCEL_GIT_COMMIT_SHA";
       if (!ok && !optional) allPresent = false;
     }
   }
@@ -94,7 +93,7 @@ export async function GET(req: NextRequest) {
     {
       status: allPresent ? "ok" : "missing",
       nodeEnv: process.env.NODE_ENV ?? "unknown",
-      commit: process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+      commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
       env: checklist,
     },
     {
