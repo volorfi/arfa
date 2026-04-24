@@ -87,13 +87,16 @@ model User {
   name       String?
   image      String?
   createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt       @map("updated_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   subscription Subscription?
   watchlists   Watchlist[]
   savedScreens SavedScreen[]
   alerts       Alert[]
   portfolio    Portfolio?
+  signals      Signal[]
+  assets       Asset[]
+  notes        Note[]
 
   @@map("users")
 }
@@ -110,12 +113,12 @@ model Subscription {
 
   stripeCustomerId     String?   @unique @map("stripe_customer_id")
   stripeSubscriptionId String?   @unique @map("stripe_subscription_id")
-  stripePriceId        String?           @map("stripe_price_id")
-  currentPeriodEnd     DateTime?         @map("current_period_end")
+  stripePriceId        String?   @map("stripe_price_id")
+  currentPeriodEnd     DateTime? @map("current_period_end")
   cancelAtPeriodEnd    Boolean   @default(false) @map("cancel_at_period_end")
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt       @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([status])
   @@map("subscriptions")
@@ -128,22 +131,22 @@ model Watchlist {
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  name  String @default("Default")
+  name  String  @default("Default")
   color String? // optional UI accent, e.g. "#01696f"
 
   items WatchlistItem[]
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt       @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
   @@map("watchlists")
 }
 
 model WatchlistItem {
-  id          String     @id @default(cuid())
-  watchlistId String     @map("watchlist_id")
-  watchlist   Watchlist  @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  watchlistId String    @map("watchlist_id")
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
 
   symbol     String
   assetClass AssetClass @map("asset_class")
@@ -160,16 +163,16 @@ model WatchlistItem {
 ///
 ///   { market: "US", marketCap: { min: 1e9 }, peRatio: { max: 25 }, sector: "Tech" }
 model SavedScreen {
-  id      String  @id @default(cuid())
-  userId  String  @map("user_id")
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  name    String
-  filters Json
+  name     String
+  filters  Json
   isPinned Boolean @default(false) @map("is_pinned")
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt       @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
   @@map("saved_screens")
@@ -189,17 +192,17 @@ model Alert {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   type      AlertType
-  symbol    String?      // legacy: null for NEWS_KEYWORD alerts across all assets
-  threshold Float?       // legacy: PRICE_ABOVE / PRICE_BELOW / PERCENT_CHANGE / VOLUME_SPIKE
-  keyword   String?      // legacy: NEWS_KEYWORD
-  status    AlertStatus  @default(ACTIVE)
+  symbol    String? // legacy: null for NEWS_KEYWORD alerts across all assets
+  threshold Float? // legacy: PRICE_ABOVE / PRICE_BELOW / PERCENT_CHANGE / VOLUME_SPIKE
+  keyword   String? // legacy: NEWS_KEYWORD
+  status    AlertStatus @default(ACTIVE)
 
   /// ARFA asset id (matches the catalogue / detail page slug).
-  assetId    String?     @map("asset_id")
+  assetId        String?             @map("asset_id")
   /// Display name + ticker cached at create time so the alerts list can
   /// render without an asset-service round trip.
-  assetName  String?     @map("asset_name")
-  ticker     String?
+  assetName      String?             @map("asset_name")
+  ticker         String?
   /// Detailed condition payload — see lib/alerts.ts for the discriminated
   /// union shape. Stored as JSON so the model can absorb new condition
   /// kinds without a migration per type.
@@ -208,7 +211,7 @@ model Alert {
 
   triggeredAt DateTime? @map("triggered_at")
   createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt       @map("updated_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   @@index([userId, status])
   @@index([symbol])
@@ -234,22 +237,22 @@ model Portfolio {
   holdings PortfolioHolding[]
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt       @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("portfolios")
 }
 
 model PortfolioHolding {
-  id          String     @id @default(cuid())
-  portfolioId String     @map("portfolio_id")
-  portfolio   Portfolio  @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  portfolioId String    @map("portfolio_id")
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
 
   /// The asset's id in our scoring system. References AssetAnalysis.assetId
   /// (no FK because the asset catalogue lives outside Prisma for now).
-  assetId    String     @map("asset_id")
+  assetId     String     @map("asset_id")
   /// Display fields cached at add time so the holdings list doesn't need
   /// to fan-out to the asset service for every row.
-  displayName String   @map("display_name")
+  displayName String     @map("display_name")
   ticker      String
   assetClass  AssetClass @map("asset_class")
 
@@ -261,8 +264,135 @@ model PortfolioHolding {
   purchaseDate  DateTime @map("purchase_date")
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt       @map("updated_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([portfolioId])
   @@map("portfolio_holdings")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Research + tracking models (added in the /server merge — April 2026).
+//
+// Three kinds live here:
+//   1. Scraped content (NewsArticle, ExternalResearch, ExternalPodcast)
+//   2. User-curated research (Signal, Asset, Note)
+//
+// Both groups are per-user where relevant. On PostgreSQL `@db.Text` is the
+// canonical long-text type — no `LongText` distinction to worry about.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Scraped news article. Global (not per-user). `sentiment` is a signed
+/// score produced by sentiment.ts: -1.0 = fully bearish → 1.0 = fully
+/// bullish; NULL until analysis runs.
+model NewsArticle {
+  id          String    @id @default(cuid())
+  ticker      String?
+  title       String
+  summary     String?   @db.Text
+  url         String    @unique
+  source      String?
+  publishedAt DateTime? @map("published_at")
+  /// -1.0 to 1.0; null = not yet analysed.
+  sentiment   Float?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([ticker])
+  @@index([publishedAt])
+  @@map("news_articles")
+}
+
+/// External research artefact (PDF, web article, manual note). Global.
+/// `tags` is a JSON array serialised to string.
+model ExternalResearch {
+  id        String   @id @default(cuid())
+  ticker    String?
+  title     String
+  content   String   @db.Text
+  url       String?
+  /// "pdf" | "web" | "manual" — free-form to allow future sources.
+  source    String?
+  tags      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ticker])
+  @@map("external_research")
+}
+
+/// Podcast transcript. Global. `tags` is a JSON array serialised to string.
+model ExternalPodcast {
+  id          String    @id @default(cuid())
+  title       String
+  transcript  String    @db.Text
+  url         String?
+  speaker     String?
+  publishedAt DateTime? @map("published_at")
+  tags        String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("external_podcasts")
+}
+
+/// User-curated trade idea. `type` = BUY | SELL | WATCH | AVOID.
+/// `conviction` 1 (low) → 5 (high).
+model Signal {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  ticker      String
+  type        String
+  conviction  Int       @default(3)
+  thesis      String?   @db.Text
+  targetPrice Float?    @map("target_price")
+  stopLoss    Float?    @map("stop_loss")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  expiresAt   DateTime? @map("expires_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([ticker])
+  @@map("signals")
+}
+
+/// User-tracked asset (positions + metadata). Distinct from the legacy
+/// global `assets` catalogue table — this one scopes to a user and is
+/// closer to a lightweight portfolio row.
+model Asset {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  ticker     String
+  name       String?
+  /// "equity" | "bond" | "commodity" | "fx" | "crypto"
+  assetClass String   @map("asset_class")
+  quantity   Float?
+  avgCost    Float?   @map("avg_cost")
+  currency   String   @default("USD")
+  notes      String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([ticker])
+  @@map("assets")
+}
+
+/// Free-form research note. Scoped to a user; optionally ticker-linked.
+model Note {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  ticker    String?
+  title     String?
+  content   String   @db.Text
+  tags      String?
+  isPinned  Boolean  @default(false) @map("is_pinned")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([ticker])
+  @@map("notes")
 }
