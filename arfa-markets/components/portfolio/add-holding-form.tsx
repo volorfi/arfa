@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { addHolding } from "@/app/actions/portfolio";
+import { trackEvent } from "@/lib/analytics";
 import { SCREENER_ROWS } from "@/lib/mock/screener";
 import { uiClassToPrisma } from "@/components/watchlists/watchlist-item-row";
 
@@ -86,6 +87,11 @@ export function AddHoldingForm() {
         quantity: q,
         purchasePrice: p,
         purchaseDate: date,
+      });
+      trackEvent("portfolio_holding_added", {
+        assetId: selected.assetId,
+        ticker: selected.ticker,
+        assetClass: selected.assetClass,
       });
       toast.success(`Added ${selected.ticker}`);
       reset();

@@ -10,6 +10,7 @@ import { useUser } from "@/hooks/useUser";
 import { canAccess, type PlanId } from "@/lib/plans";
 import { saveScreen } from "@/app/actions/screener";
 import { SCREENER_ROWS, type ScreenerRow } from "@/lib/mock/screener";
+import { trackEvent } from "@/lib/analytics";
 import type { FactorKey } from "@/types/asset";
 import { ScreenerFilters } from "./screener-filters";
 import { ScreenerResults } from "./screener-results";
@@ -119,6 +120,7 @@ function SaveScreenButton({
         name: name.trim(),
         filters: filters as unknown as Record<string, unknown>,
       });
+      trackEvent("screener_saved", { name: name.trim() });
       toast.success("Screen saved", {
         description: "Find it in your saved screens list.",
       });
@@ -223,6 +225,7 @@ function ExportResultsButton({
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    trackEvent("screener_exported", { rows: rows.length });
     toast.success(`Exported ${rows.length} rows`);
   }
 

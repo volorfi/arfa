@@ -7,6 +7,7 @@ import { RatioCard } from "@/components/asset/ratio-card";
 import { FactorGrid } from "@/components/asset/factor-grid";
 import { FactorDrawer } from "@/components/asset/factor-drawer";
 import { ScoreHistoryChart } from "@/components/asset/score-history-chart";
+import { trackEvent } from "@/lib/analytics";
 import type { AssetAnalysis, FactorScore } from "@/types/asset";
 
 /**
@@ -27,6 +28,19 @@ export function AssetPageClient({ asset }: { asset: AssetAnalysis }) {
 
   const openFactor = React.useCallback((slot: number, factor: FactorScore) => {
     setSelection({ slot, factor });
+  }, []);
+
+  // Fire asset_viewed once per mount. Re-renders from factor drawer
+  // state changes shouldn't re-fire; the empty dep array guards against
+  // that, and the asset id is captured in closure.
+  React.useEffect(() => {
+    trackEvent("asset_viewed", {
+      assetId: asset.assetId,
+      ticker: asset.ticker,
+      assetClass: asset.assetClass,
+      ratio: asset.ratio,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

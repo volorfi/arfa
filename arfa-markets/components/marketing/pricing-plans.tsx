@@ -16,6 +16,7 @@ import {
   type BillingInterval,
   type PlanId,
 } from "@/lib/plans";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * Pricing plans — marketing-side pricing cards + billing toggle.
@@ -117,6 +118,12 @@ export function PricingPlans() {
   const [error, setError] = React.useState<string | null>(null);
 
   async function handleUpgrade(planId: PlanId) {
+    trackEvent("upgrade_clicked", {
+      plan: planId,
+      billing,
+      source: "pricing",
+    });
+
     if (planId === "FREE") {
       router.push("/register");
       return;
@@ -158,6 +165,7 @@ export function PricingPlans() {
         return;
       }
 
+      trackEvent("checkout_started", { plan: planId, billing });
       // Hard navigation to Stripe Checkout.
       window.location.href = data.url;
     } catch (err) {

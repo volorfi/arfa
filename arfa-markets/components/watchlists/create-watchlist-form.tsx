@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { createWatchlist } from "@/app/actions/watchlist";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * Create-watchlist form — small inline expander instead of a modal.
@@ -35,6 +36,7 @@ export function CreateWatchlistForm({
     setPending(true);
     try {
       const result = await createWatchlist({ name: name.trim() });
+      trackEvent("watchlist_created", { name: name.trim() });
       toast.success(`Created "${name.trim()}"`);
       setName("");
       setOpen(false);

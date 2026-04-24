@@ -51,11 +51,17 @@ enum AssetClass {
 }
 
 enum AlertType {
+  // Price-driven (legacy / future use)
   PRICE_ABOVE
   PRICE_BELOW
   PERCENT_CHANGE
   VOLUME_SPIKE
   NEWS_KEYWORD
+  // ARFA score-driven
+  ARFA_RATIO_CHANGE
+  FACTOR_DROP
+  FACTOR_RISE
+  RISK_THRESHOLD
 }
 
 enum AlertStatus {
@@ -63,6 +69,12 @@ enum AlertStatus {
   TRIGGERED
   PAUSED
   ARCHIVED
+}
+
+enum AlertDeliveryMethod {
+  IN_APP
+  EMAIL
+  PUSH
 }
 
 // ── Models ──────────────────────────────────────────────────────────────────
@@ -168,16 +180,34 @@ model SavedScreen {
 
 /// User-configured alert. One row per alert; historical triggers go to a
 /// future AlertEvent table (out of scope for this schema).
+///
+/// Two generations of fields here, kept side by side so the model can
+/// power both future generic alerts AND the current ARFA-score-based
+/// alerts the dashboard ships:
+///   · `type` + `symbol` + `threshold` + `keyword` — legacy price alerts
+///   · `assetId` + `conditionJson` + `deliveryMethod`  — score alerts
 model Alert {
   id     String @id @default(cuid())
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   type      AlertType
-  symbol    String?      // null for NEWS_KEYWORD alerts across all assets
-  threshold Float?       // used by PRICE_ABOVE / PRICE_BELOW / PERCENT_CHANGE / VOLUME_SPIKE
-  keyword   String?      // used by NEWS_KEYWORD
+  symbol    String?      // legacy: null for NEWS_KEYWORD alerts across all assets
+  threshold Float?       // legacy: PRICE_ABOVE / PRICE_BELOW / PERCENT_CHANGE / VOLUME_SPIKE
+  keyword   String?      // legacy: NEWS_KEYWORD
   status    AlertStatus  @default(ACTIVE)
+
+  /// ARFA asset id (matches the catalogue / detail page slug).
+  assetId    String?     @map("asset_id")
+  /// Display name + ticker cached at create time so the alerts list can
+  /// render without an asset-service round trip.
+  assetName  String?     @map("asset_name")
+  ticker     String?
+  /// Detailed condition payload — see lib/alerts.ts for the discriminated
+  /// union shape. Stored as JSON so the model can absorb new condition
+  /// kinds without a migration per type.
+  conditionJson  Json?               @map("condition_json")
+  deliveryMethod AlertDeliveryMethod @default(IN_APP) @map("delivery_method")
 
   triggeredAt DateTime? @map("triggered_at")
   createdAt   DateTime  @default(now()) @map("created_at")
@@ -185,6 +215,7 @@ model Alert {
 
   @@index([userId, status])
   @@index([symbol])
+  @@index([assetId])
   @@map("alerts")
 }
 

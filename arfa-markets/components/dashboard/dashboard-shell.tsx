@@ -15,6 +15,7 @@ import { ThemeToggle } from "@/components/marketing/theme-toggle";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { AssetSearch } from "@/components/dashboard/asset-search";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
+import { ComplianceBanner } from "@/components/dashboard/compliance-banner";
 
 /**
  * Dashboard shell — fixed left sidebar + sticky top bar + scrolling main.
@@ -101,6 +102,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 px-4 py-6 md:px-8 md:py-10">
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
+
+        {/* Per-spec compliance banner. State lives in this client
+            component (DashboardShell) so dismissals persist across
+            in-app navigation but reset on full page reload. */}
+        <ComplianceBanner />
       </div>
     </div>
   );
