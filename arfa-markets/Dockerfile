@@ -51,11 +51,22 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static      ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public            ./public
-# Ship Prisma migrations so `prisma migrate deploy` works as a Railway
-# pre-deploy step when we wire migrations to the release pipeline later.
-COPY --from=builder --chown=nextjs:nodejs /app/prisma            ./prisma
+# Ship the Prisma schema + migration history so `prisma migrate deploy`
+# can run at container start. Ship node_modules/.prisma + the `prisma`
+# npm package binary too so we don't need pnpm installed at runtime.
+COPY --from=builder --chown=nextjs:nodejs /app/prisma                                ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma                  ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma/client           ./node_modules/@prisma/client
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma                   ./node_modules/prisma
+# Binary for running `prisma migrate deploy` at startup (below).
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin/prisma              ./node_modules/.bin/prisma
 
 USER nextjs
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+# Run DB migrations before starting the app so schema + app ship as a
+# unit. `migrate deploy` is idempotent: already-applied migrations are
+# skipped, so this is safe on every boot. Exits non-zero on migration
+# failure, which fails Railway's health check and prevents bad deploys
+# from replacing a working container.
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node server.js"]

@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { ArrowRight, Settings } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { UpgradeSuccessBanner } from "@/components/dashboard/upgrade-success-banner";
 
 export const metadata = { title: "Dashboard" };
 
@@ -13,6 +15,13 @@ export const metadata = { title: "Dashboard" };
 export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8">
+      {/* Suspense boundary: UpgradeSuccessBanner is a client component
+          that calls useSearchParams, which Next.js 14 requires to sit
+          under a Suspense boundary at the page level. */}
+      <Suspense fallback={null}>
+        <UpgradeSuccessBanner />
+      </Suspense>
+
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight text-text-primary">
           Welcome back

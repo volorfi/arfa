@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import type Stripe from "stripe";
 
 import { stripe } from "@/lib/stripe";
@@ -168,6 +169,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       currentPeriodEnd: null,
     },
   });
+  revalidateDashboard();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -215,6 +217,7 @@ async function writeSubscription(
       where: { userId },
       data,
     });
+    revalidateDashboard();
     return;
   }
   if (customerId) {
@@ -222,12 +225,33 @@ async function writeSubscription(
       where: { stripeCustomerId: customerId },
       data,
     });
-    if (updated.count > 0) return;
+    if (updated.count > 0) {
+      revalidateDashboard();
+      return;
+    }
   }
   await prisma.subscription.updateMany({
     where: { stripeSubscriptionId: subscription.id },
     data,
   });
+  revalidateDashboard();
+}
+
+/** Bust the Next.js data cache for every dashboard route that reads
+ *  the Subscription row. Called after every webhook-driven Prisma
+ *  write so the UI reflects the new plan without a hard refresh.
+ *
+ *  Safe to call outside a request context — revalidatePath is a no-op
+ *  during cold boot or background jobs. */
+function revalidateDashboard(): void {
+  try {
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/settings");
+  } catch (err) {
+    // Shouldn't happen in a webhook handler (we're inside a request),
+    // but log just in case so a bad cache-bust doesn't fail the event.
+    console.error("[stripe/webhook] revalidatePath failed:", err);
+  }
 }
 
 /** Read our userId from Stripe metadata. Returns null if not present. */
