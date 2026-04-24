@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireUser, serviceError } from "@/lib/api/guard";
+import { serviceError } from "@/lib/api/guard";
 import { getFinancialStatements } from "@/lib/services/financials";
 
 /** GET /api/v1/stocks/:ticker/financials — income / balance / cashflow. */
@@ -8,9 +8,6 @@ export async function GET(
   _req: Request,
   { params }: { params: { ticker: string } },
 ) {
-  const auth = await requireUser();
-  if (auth instanceof NextResponse) return auth;
-
   const ticker = params.ticker?.toUpperCase();
   if (!ticker) {
     return NextResponse.json(

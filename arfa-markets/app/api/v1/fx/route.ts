@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { requireUser, serviceError } from "@/lib/api/guard";
+import { serviceError } from "@/lib/api/guard";
 import {
   getCentralBankRates,
   getCrossRateMatrix,
@@ -22,9 +22,6 @@ import {
  *   view=movers            top movers (limit param)
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireUser();
-  if (auth instanceof NextResponse) return auth;
-
   const sp = req.nextUrl.searchParams;
   const pair = sp.get("pair");
   const view = sp.get("view");

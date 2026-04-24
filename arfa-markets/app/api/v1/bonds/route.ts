@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { requireUser, serviceError } from "@/lib/api/guard";
+import { serviceError } from "@/lib/api/guard";
 import { getBonds, getBondsSummary, getFilterOptions } from "@/lib/services/bonds";
 
 /**
@@ -13,9 +13,6 @@ import { getBonds, getBondsSummary, getFilterOptions } from "@/lib/services/bond
  *   view=summary   → returns { summary, filters } instead of the list
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireUser();
-  if (auth instanceof NextResponse) return auth;
-
   const sp = req.nextUrl.searchParams;
   const view = sp.get("view");
 

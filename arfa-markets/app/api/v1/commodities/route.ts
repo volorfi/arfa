@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { requireUser, serviceError } from "@/lib/api/guard";
+import { serviceError } from "@/lib/api/guard";
 import {
   getCommoditiesByFamily,
   getCommoditiesOverview,
@@ -18,9 +18,6 @@ import {
  *   slug=<symbol>      single commodity
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireUser();
-  if (auth instanceof NextResponse) return auth;
-
   const sp = req.nextUrl.searchParams;
   const slug = sp.get("slug");
   const view = sp.get("view");

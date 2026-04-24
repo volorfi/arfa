@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { requireUser, serviceError } from "@/lib/api/guard";
+import { serviceError } from "@/lib/api/guard";
 import {
   getExternalPodcasts,
   getExternalResearch,
@@ -13,9 +13,6 @@ import {
  * Filters: ticker, search, limit, offset.
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireUser();
-  if (auth instanceof NextResponse) return auth;
-
   const sp = req.nextUrl.searchParams;
   const opts = {
     ticker: sp.get("ticker") ?? undefined,
