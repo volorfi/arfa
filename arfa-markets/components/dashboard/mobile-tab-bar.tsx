@@ -4,11 +4,11 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Bell,
-  Briefcase,
   LayoutDashboard,
   PieChart,
-  Star,
+  Settings,
+  Sprout,
+  TrendingUp,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -16,22 +16,21 @@ import { cn } from "@/lib/utils";
 /**
  * MobileTabBar — fixed bottom navigation on viewports under md.
  *
- * Five tabs, matched to the five most-used dashboard sections. The
- * sidebar (SidebarNav) is hidden below md; this bar replaces it so
- * there's always exactly one navigation surface.
+ * Five tabs matched to the five most-used sections. The full
+ * grouped nav (Markets / Analysis / Portfolio) stays accessible on
+ * mobile via the hamburger in DashboardShell, which opens the
+ * SidebarNav in a slide-in drawer — so we don't need a "More" tab.
  *
- * Kept as a client component so `usePathname()` can highlight the
- * active tab without a round-trip. Z-index sits above the compliance
- * banner (z-20 here vs z-30 banner) — we want the legal notice visible
- * even while the tab bar is focused.
+ * Z-index sits below the compliance banner (z-20 vs z-30) so the
+ * legal notice is still visible when the tab bar is focused.
  */
 
-const TABS = [
-  { href: "/dashboard",            label: "Home",       icon: LayoutDashboard },
-  { href: "/dashboard/screener",   label: "Screener",   icon: PieChart },
-  { href: "/dashboard/watchlists", label: "Watchlists", icon: Star },
-  { href: "/dashboard/portfolio",  label: "Portfolio",  icon: Briefcase },
-  { href: "/dashboard/alerts",     label: "Alerts",     icon: Bell },
+const MOBILE_TABS = [
+  { href: "/dashboard",           label: "Home",      icon: LayoutDashboard },
+  { href: "/dashboard/stocks",    label: "Stocks",    icon: TrendingUp },
+  { href: "/dashboard/portfolio", label: "Portfolio", icon: PieChart },
+  { href: "/dashboard/ideafarm",  label: "Ideas",     icon: Sprout },
+  { href: "/dashboard/settings",  label: "Settings",  icon: Settings },
 ] as const;
 
 export function MobileTabBar() {
@@ -42,9 +41,9 @@ export function MobileTabBar() {
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-20 flex h-16 items-stretch border-t border-border bg-surface-1/95 backdrop-blur supports-[backdrop-filter]:bg-surface-1/80 md:hidden"
     >
-      {TABS.map(({ href, label, icon: Icon }) => {
-        // Exact for /dashboard; prefix for nested routes so
-        // /dashboard/screener lights up "Screener" etc.
+      {MOBILE_TABS.map(({ href, label, icon: Icon }) => {
+        // Exact match for /dashboard; prefix match for nested routes so
+        // e.g. /dashboard/stocks/AAPL still highlights "Stocks".
         const active =
           href === "/dashboard"
             ? pathname === "/dashboard"
