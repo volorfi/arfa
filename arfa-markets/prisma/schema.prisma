@@ -13,11 +13,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  // directUrl is read by `prisma migrate` to bypass the connection pooler,
-  // which is required for DDL. Falls back to DATABASE_URL if unset.
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ── Enums ───────────────────────────────────────────────────────────────────
